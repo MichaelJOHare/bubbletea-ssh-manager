@@ -8,10 +8,18 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 )
 
+// FilterValue returns the string used for filtering this item.
+// For host items, it's the name and target concatenated.
+// For group items, it's just the name.
 func (m *model) applyFilter(q string) {
 	q = strings.TrimSpace(strings.ToLower(q))
 	if q == "" {
 		m.lst.SetItems(toListItems(m.allItems))
+		if n := len(m.lst.Items()); n > 0 {
+			idx := m.lst.Index()
+			idx = min(max(idx, 0), n-1)
+			m.lst.Select(idx)
+		}
 		return
 	}
 
@@ -39,15 +47,22 @@ func (m *model) applyFilter(q string) {
 		filtered = append(filtered, m.item)
 	}
 	m.lst.SetItems(filtered)
+	if n := len(m.lst.Items()); n > 0 {
+		idx := m.lst.Index()
+		idx = min(max(idx, 0), n-1)
+		m.lst.Select(idx)
+	}
 }
 
 // fuzzyScore returns a simple subsequence match score
-// higher is better. "ok" is false if q is not a subsequence of s
+// higher is better. "ok" is false if q is not a subsequence of s.
 func fuzzyScore(q, s string) (score int, ok bool) {
+	// empty query matches everything with score 0
 	if q == "" {
 		return 0, true
 	}
 
+	// check for subsequence and calculate score
 	qi := 0
 	streak := 0
 	for i := 0; i < len(s) && qi < len(q); i++ {
@@ -59,6 +74,8 @@ func fuzzyScore(q, s string) (score int, ok bool) {
 			streak = 0
 		}
 	}
+
+	// if we didn't consume all of q, it's not a match
 	if qi != len(q) {
 		return 0, false
 	}

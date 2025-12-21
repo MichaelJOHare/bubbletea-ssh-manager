@@ -10,46 +10,62 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// newModel creates a new TUI model with initial state
+// and seeded menu items.
 func newModel() model {
+	// text input for search query
 	q := textinput.New()
 	q.Placeholder = "type to search"
 	q.Prompt = "\nSearch: "
 	q.Focus()
 
-	root := seedMenu()
+	// seed menu and initial state
+	root, seedErr := seedMenu()
 	path := []*menuItem{root}
 	items := root.children
 	litems := toListItems(items)
 
-	d := list.NewDefaultDelegate()
+	// list to display menu items
+	d := newMenuDelegate()
 	lst := list.New(litems, d, 0, 0)
 	lst.Title = "Hosts"
 	lst.SetShowStatusBar(false)
 	lst.SetFilteringEnabled(false)
 	lst.SetShowHelp(true)
 
+	// build initial bubbletea model
 	m := model{
 		query: q,
 		root:  root,
 		path:  path,
 		lst:   lst,
 	}
+	if seedErr != nil {
+		m.statusIsError = true
+		m.status = "Config: " + lastNonEmptyLine(seedErr.Error())
+	}
 	m.setCurrentMenu(items)
 	m.relayout()
 	return m
 }
 
+// Init returns the initial command for the TUI (blinking cursor).
 func (m model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+// Update handles incoming messages and updates the model state accordingly.
+// It handles window resize, connection completion, key presses, and updates
+// to the text input and list components.
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// handle different message types
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		m.relayout()
 		return m, nil
 
+	// update status on connection finish
 	case connectFinishedMsg:
 		if msg.err != nil {
 			m.statusIsError = true
@@ -67,11 +83,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.relayout()
 		return m, nil
 
+	// handle key presses
 	case tea.KeyMsg:
 		switch msg.String() {
+		// quit on Ctrl+C or 'q'
 		case "ctrl+c", "q":
 			m.quitting = true
 			return m, tea.Quit
+		// show info on selected item with '?'
 		case "?":
 			if it, ok := m.lst.SelectedItem().(*menuItem); ok {
 				m.statusIsError = false
@@ -83,6 +102,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.relayout()
 			}
 			return m, nil
+		// go back on Esc if in a group
 		case "esc":
 			if len(m.path) > 1 {
 				m.path = m.path[:len(m.path)-1]
@@ -93,6 +113,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.relayout()
 			}
 			return m, nil
+		// enter to navigate into group or connect to host
 		case "enter":
 			if it, ok := m.lst.SelectedItem().(*menuItem); ok {
 				if it.kind == itemGroup {
@@ -105,6 +126,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				// when host selected, build and start connection command
 				cmd, protocol, target, tail, err := buildConnectCommand(it)
 				if err != nil {
 					m.statusIsError = true
@@ -113,6 +135,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
+				// handoff to ssh/telnet and return to TUI when done
 				m.statusIsError = false
 				m.status = fmt.Sprintf("Starting %s %s…", protocol, target)
 				m.relayout()
@@ -140,23 +163,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmd1, cmd2)
 }
 
+// View renders the TUI components: list, status, hints, and search input.
 func (m model) View() string {
 	if m.quitting {
 		return ""
 	}
 
 	searchStyle := lipgloss.NewStyle().Bold(true).PaddingLeft(footerPadLeft)
-	statusColor := lipgloss.Color("241")
+	statusColor := lipgloss.Color("243")
 	if m.statusIsError {
 		statusColor = lipgloss.Color("9")
 	}
 	statusStyle := lipgloss.NewStyle().Foreground(statusColor).PaddingLeft(footerPadLeft)
-	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).PaddingLeft(footerPadLeft)
 
 	lines := []string{m.lst.View()}
-	if m.inGroup() {
-		lines = append(lines, hintStyle.Render("Esc: back"))
-	}
 	if strings.TrimSpace(m.status) != "" {
 		lines = append(lines, statusStyle.Render(m.status))
 	}

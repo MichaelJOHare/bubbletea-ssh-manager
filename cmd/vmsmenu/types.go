@@ -8,37 +8,42 @@ const (
 )
 
 type menuItem struct {
-	kind itemKind
-
-	name string
+	kind itemKind // item type: group or host
+	name string   // display name
 
 	// host-only fields
 	protocol string // "ssh" or "telnet"
-	target   string
+	target   string // hostname or IP address
 
 	// group-only fields
-	children []*menuItem
+	children []*menuItem // child menu items
+}
+
+type hostEntry struct {
+	alias    string // nickname for host (ssh Host alias)
+	hostname string // actual host name or IP (HostName)
+	port     string // optional port number (Port)
 }
 
 type model struct {
-	width  int
-	height int
+	width  int // window width
+	height int // window height
 
-	query textinputModel
+	query textinputModel // search input box
 
-	root     *menuItem
-	path     []*menuItem
-	allItems []*menuItem
-	lst      listModel
+	root     *menuItem   // root menu item
+	path     []*menuItem // current navigation path
+	allItems []*menuItem // all items in the current menu
+	lst      listModel   // list of current menu items
 
-	status        string
-	statusIsError bool
-	quitting      bool
+	status        string // status message
+	statusIsError bool   // is the status an error message?
+	quitting      bool   // is the app quitting?
 }
 
 type connectFinishedMsg struct {
-	protocol string
-	target   string
-	err      error
-	output   string
+	protocol string // "ssh" or "telnet"
+	target   string // hostname or IP address
+	err      error  // error from connection attempt
+	output   string // output from ssh/telnet command
 }
