@@ -35,7 +35,7 @@ type model struct {
 	height int // window height
 
 	query    textinputModel // search input box
-	delegate *menuDelegate
+	delegate *menuDelegate  // list delegate for rendering items
 
 	root     *menuItem   // root menu item
 	path     []*menuItem // current navigation path

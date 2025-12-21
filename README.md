@@ -5,9 +5,9 @@
 This changes your "Home" to be in C:\msys64\home\username\ when using a bash shell, keep that in mind. You should have the .bin folder that 
 contains the .exe for this project in that "Home" not the Windows home. Also be sure that the .bashrc, .bash_profile, and .profile files are there too.
 
-🟩 Correct: C:\msys64\home\username\.bin\vmsmenu.exe  <--- MSYS2 Home
+🟩 Correct: C:\msys64\home\username\\.bin\vmsmenu.exe  <--- MSYS2 Home
 
-🟥 Incorrect: C:\Users\username\.bin\vmsmenu.exe  <--- Windows Home
+🟥 Incorrect: C:\Users\username\\.bin\vmsmenu.exe  <--- Windows Home
 
 <br>
 <br>

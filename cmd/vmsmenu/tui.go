@@ -120,73 +120,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// handle key presses
 	case tea.KeyMsg:
-		switch msg.String() {
-		// quit on Ctrl+C or 'q'
-		case "ctrl+c", "q":
-			m.quitting = true
-			return m, tea.Quit
-		// show info on selected item with '?'
-		case "?":
-			if it, ok := m.lst.SelectedItem().(*menuItem); ok {
-				if it.kind == itemGroup {
-					cmd := m.setTemporaryStatus(fmt.Sprintf("Group: %s (%d items)", it.name, len(it.children)), false, infoStatusTTL)
-					m.relayout()
-					return m, cmd
-				}
-				if m.delegate != nil && m.delegate.groupHints != nil {
-					if grp := strings.TrimSpace(m.delegate.groupHints[it]); grp != "" {
-						cmd := m.setTemporaryStatus(fmt.Sprintf("Host: %s (%s) in %s", it.name, it.protocol, grp), false, infoStatusTTL)
-						m.relayout()
-						return m, cmd
-					}
-				}
-				cmd := m.setTemporaryStatus(fmt.Sprintf("Host: %s (%s)", it.name, it.protocol), false, infoStatusTTL)
-				m.relayout()
-				return m, cmd
-			}
-		// clear search query if non-empty
-		case "esc":
-			if strings.TrimSpace(m.query.Value()) != "" {
-				m.query.SetValue("")
-				m.applyFilter("")
-				m.relayout()
-				return m, nil
-			}
-		// go back on left arrow if in a group
-		case "left":
-			if m.inGroup() {
-				m.path = m.path[:len(m.path)-1]
-				m.query.SetValue("")
-				m.setCurrentMenu(m.current().children)
-				m.setStatus("", false)
-				m.relayout()
-			}
-			return m, nil
-		// enter to navigate into group or connect to host
-		case "enter":
-			if it, ok := m.lst.SelectedItem().(*menuItem); ok {
-				if it.kind == itemGroup {
-					m.path = append(m.path, it)
-					m.query.SetValue("")
-					m.setCurrentMenu(it.children)
-					m.setStatus("", false)
-					m.relayout()
-					return m, nil
-				}
-				cmd, protocol, target, tail, err := buildConnectCommand(it)
-				if err != nil {
-					m.setStatus(err.Error(), true)
-					m.relayout()
-					return m, nil
-				}
-				m.setStatus(fmt.Sprintf("Starting %s %s…", protocol, target), false)
-				m.relayout()
-				return m, tea.ExecProcess(cmd, func(err error) tea.Msg {
-					out := strings.TrimSpace(tail.String())
-					out = lastNonEmptyLine(out)
-					return connectFinishedMsg{protocol: protocol, target: target, err: err, output: out}
-				})
-			}
+		if nm, cmd, handled := m.handleKeyMsg(msg); handled {
+			return nm, cmd
 		}
 	}
 

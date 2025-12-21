@@ -12,7 +12,6 @@ import (
 //       improve ? info display formatting (and location and content)
 //       make help color scheme easier to read
 //       implement TCPIP probe before connecting to avoid TUI closing
-//       make esc not quit when at root (only clear search)
 
 func main() {
 	p := tea.NewProgram(newModel(), tea.WithAltScreen())

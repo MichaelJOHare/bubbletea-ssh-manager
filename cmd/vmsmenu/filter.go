@@ -38,7 +38,7 @@ func (m *model) applyFilter(q string) {
 			m.delegate.groupHints = nil
 		}
 	} else {
-		// at root: include all group names and all hosts in tree
+		// at root: include all group items and all hosts in tree
 		for _, it := range m.allItems {
 			if it != nil && it.kind == itemGroup {
 				candidates = append(candidates, it)
@@ -105,7 +105,7 @@ func allHostItemsWithGroup(root *menuItem) []hostWithGroup {
 		return nil
 	}
 
-	// assumes groups are one level deep or not-nested
+	// assumes groups are one level deep (ie. non-nested)
 	// root contains (a) ungrouped hosts and (b) group items whose direct children are hosts
 	out := make([]hostWithGroup, 0, 64)
 	for _, it := range root.children {
