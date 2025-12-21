@@ -25,11 +25,17 @@ type hostEntry struct {
 	port     string // optional port number (Port)
 }
 
+type hostWithGroup struct {
+	host      *menuItem // host menu item
+	groupPath string    // display group path
+}
+
 type model struct {
 	width  int // window width
 	height int // window height
 
-	query textinputModel // search input box
+	query    textinputModel // search input box
+	delegate *menuDelegate
 
 	root     *menuItem   // root menu item
 	path     []*menuItem // current navigation path
@@ -43,7 +49,7 @@ type model struct {
 }
 
 type statusClearMsg struct {
-	token int
+	token int // token to identify which status to clear
 }
 
 type connectFinishedMsg struct {

@@ -7,10 +7,10 @@ func seedMenu() (*menuItem, error) {
 	}
 
 	// fallback stub data so the UI still has something
-	// to show when no config files exist yet
+	// to show when no config files exist yet and hint to user to create them
 	l2 := &menuItem{
 		kind: itemGroup,
-		name: "L2 CLUSTER",
+		name: "IF YOU'RE SEEING THIS IT MEANS NO SSH OR TELNET CONFIG FILES WERE FOUND",
 		children: []*menuItem{
 			{kind: itemHost, name: "l2.IA21", protocol: "ssh", target: "l2.IA21"},
 			{kind: itemHost, name: "l2.IA22", protocol: "ssh", target: "l2.IA22"},

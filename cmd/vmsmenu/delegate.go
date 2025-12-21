@@ -10,22 +10,18 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-type menuDelegate struct {
-	list.DefaultDelegate // embed default delegate to extend it
-}
-
 const (
 	sshHostNameColor    = lipgloss.Color("10")  // green
 	telnetHostNameColor = lipgloss.Color("210") // pink
 	groupNameColor      = lipgloss.Color("208") // orange
 )
 
-func newMenuDelegate() menuDelegate {
+func newMenuDelegatePtr() *menuDelegate {
 	d := list.NewDefaultDelegate()
-	return menuDelegate{DefaultDelegate: d}
+	return &menuDelegate{DefaultDelegate: d}
 }
 
-func (d menuDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
+func (d *menuDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
 	var (
 		title, desc string
 	)
@@ -52,12 +48,18 @@ func (d menuDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 	}
 
 	// apply per-kind coloring to titles
-	if mi, ok := item.(*menuItem); ok {
+	mi, _ := item.(*menuItem)
+	if mi != nil {
 		switch mi.kind {
 		case itemGroup:
 			normalTitle = normalTitle.Foreground(groupNameColor)
 			selectedTitle = selectedTitle.Foreground(groupNameColor)
 		case itemHost:
+			if d.groupHints != nil {
+				if grp := strings.TrimSpace(d.groupHints[mi]); grp != "" {
+					desc = strings.ToLower(strings.TrimSpace(mi.protocol)) + " • " + grp
+				}
+			}
 			protocol := strings.ToLower(strings.TrimSpace(mi.protocol))
 			if protocol == "telnet" {
 				normalTitle = normalTitle.Foreground(telnetHostNameColor)

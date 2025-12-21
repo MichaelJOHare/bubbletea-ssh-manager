@@ -20,7 +20,8 @@ func (m model) Init() tea.Cmd {
 
 // setStatus sets the status message and error flag.
 //
-// It increments the status token to invalidate any pending clears.
+// It increments the status token to invalidate any pending clears from
+// a previous temporary status.
 func (m *model) setStatus(text string, isError bool) {
 	m.statusToken++
 	m.status = text
@@ -38,8 +39,9 @@ func (m *model) setTemporaryStatus(text string, isError bool, d time.Duration) t
 	})
 }
 
-// newModel creates a new TUI model with initial state
-// and seeded menu items.
+// newModel creates a new TUI model with initial state and seeded menu items.
+//
+// It also initializes the text input and list components.
 func newModel() model {
 	// text input for search query
 	q := textinput.New()
@@ -54,7 +56,7 @@ func newModel() model {
 	litems := toListItems(items)
 
 	// list to display menu items
-	d := newMenuDelegate()
+	d := newMenuDelegatePtr()
 	lst := list.New(litems, d, 0, 0)
 	lst.Title = "Hosts"
 	lst.SetShowStatusBar(false)
@@ -63,10 +65,11 @@ func newModel() model {
 
 	// build initial bubbletea model
 	m := model{
-		query: q,
-		root:  root,
-		path:  path,
-		lst:   lst,
+		query:    q,
+		delegate: d,
+		root:     root,
+		path:     path,
+		lst:      lst,
 	}
 	if seedErr != nil {
 		m.setStatus("Config: "+lastNonEmptyLine(seedErr.Error()), true)
@@ -76,7 +79,8 @@ func newModel() model {
 	return m
 }
 
-// Update handles incoming messages and updates the model state accordingly.
+// Update handles incoming messages (ie. result of IO operations)
+// and updates the model state accordingly.
 //
 // It handles window resize, connection completion, key presses, and updates
 // to the text input and list components.
@@ -87,6 +91,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.relayout()
 		return m, nil
 
+	// handle status clear messages from temporary statuses
 	case statusClearMsg:
 		if msg.token == m.statusToken {
 			m.status = ""
@@ -97,15 +102,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case connectFinishedMsg:
 		if msg.err != nil {
+			// return error status if any
 			if strings.TrimSpace(msg.output) != "" {
-				m.setStatus(fmt.Sprintf("%s to %s exited: %s (%v)", msg.protocol, msg.target, msg.output, msg.err), true)
+				m.setStatus(fmt.Sprintf("%s to %s exited - %s (%v)", msg.protocol, msg.target, msg.output, msg.err), true)
 				m.relayout()
 				return m, nil
 			}
-			m.setStatus(fmt.Sprintf("%s to %s exited: %v", msg.protocol, msg.target, msg.err), true)
+			// else generic error
+			m.setStatus(fmt.Sprintf("%s to %s exited - %v", msg.protocol, msg.target, msg.err), true)
 			m.relayout()
 			return m, nil
 		}
+		// else success - show returned to TUI message
 		m.setStatus(fmt.Sprintf("%s to %s ended.", msg.protocol, msg.target), false)
 		m.relayout()
 		return m, nil
@@ -124,15 +132,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					cmd := m.setTemporaryStatus(fmt.Sprintf("Group: %s (%d items)", it.name, len(it.children)), false, infoStatusTTL)
 					m.relayout()
 					return m, cmd
-				} else {
-					cmd := m.setTemporaryStatus(fmt.Sprintf("Host: %s (%s)", it.name, it.protocol), false, infoStatusTTL)
-					m.relayout()
-					return m, cmd
 				}
+				if m.delegate != nil && m.delegate.groupHints != nil {
+					if grp := strings.TrimSpace(m.delegate.groupHints[it]); grp != "" {
+						cmd := m.setTemporaryStatus(fmt.Sprintf("Host: %s (%s) in %s", it.name, it.protocol, grp), false, infoStatusTTL)
+						m.relayout()
+						return m, cmd
+					}
+				}
+				cmd := m.setTemporaryStatus(fmt.Sprintf("Host: %s (%s)", it.name, it.protocol), false, infoStatusTTL)
+				m.relayout()
+				return m, cmd
 			}
-			return m, nil
-		// go back on Esc if in a group
+		// clear search query if non-empty
 		case "esc":
+			if strings.TrimSpace(m.query.Value()) != "" {
+				m.query.SetValue("")
+				m.applyFilter("")
+				m.relayout()
+				return m, nil
+			}
+		// go back on left arrow if in a group
+		case "left":
 			if m.inGroup() {
 				m.path = m.path[:len(m.path)-1]
 				m.query.SetValue("")
@@ -152,16 +173,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.relayout()
 					return m, nil
 				}
-
-				// when host selected, build and start connection command
 				cmd, protocol, target, tail, err := buildConnectCommand(it)
 				if err != nil {
 					m.setStatus(err.Error(), true)
 					m.relayout()
 					return m, nil
 				}
-
-				// handoff to ssh/telnet and return to TUI when done
 				m.setStatus(fmt.Sprintf("Starting %s %s…", protocol, target), false)
 				m.relayout()
 				return m, tea.ExecProcess(cmd, func(err error) tea.Msg {
@@ -170,7 +187,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return connectFinishedMsg{protocol: protocol, target: target, err: err, output: out}
 				})
 			}
-			return m, nil
 		}
 	}
 

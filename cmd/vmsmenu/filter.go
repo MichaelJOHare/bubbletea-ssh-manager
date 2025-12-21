@@ -15,6 +15,9 @@ import (
 func (m *model) applyFilter(q string) {
 	q = strings.TrimSpace(strings.ToLower(q))
 	if q == "" {
+		if m.delegate != nil {
+			m.delegate.groupHints = nil
+		}
 		m.setItemsSafely(toListItems(m.allItems))
 		return
 	}
@@ -24,8 +27,57 @@ func (m *model) applyFilter(q string) {
 		score int
 	}
 
+	// behavior:
+	// - inside a group: search only hosts in that group (current page)
+	// - at the root: search all hosts globally, plus allow matching group names
+	candidates := make([]*menuItem, 0, len(m.allItems))
+	if m.inGroup() {
+		// in group: current page is a group's host list
+		candidates = append(candidates, m.allItems...)
+		if m.delegate != nil {
+			m.delegate.groupHints = nil
+		}
+	} else {
+		// at root: include all group names and all hosts in tree
+		for _, it := range m.allItems {
+			if it != nil && it.kind == itemGroup {
+				candidates = append(candidates, it)
+			}
+		}
+
+		// also include all hosts with group hints
+		hints := map[*menuItem]string{}
+		for _, hwg := range allHostItemsWithGroup(m.root) {
+			if hwg.host == nil {
+				continue
+			}
+			candidates = append(candidates, hwg.host)
+			if grp := strings.TrimSpace(hwg.groupPath); grp != "" {
+				hints[hwg.host] = grp
+			}
+		}
+		if m.delegate != nil {
+			m.delegate.groupHints = hints
+		}
+	}
+
+	// score candidates
 	var matches []scored
-	for _, it := range m.allItems {
+	// use a set to avoid duplicates
+	seen := map[*menuItem]struct{}{}
+	// check each candidate for a match
+	for _, it := range candidates {
+		// skip nil items and duplicates
+		if it == nil {
+			continue
+		}
+		if _, ok := seen[it]; ok {
+			continue
+		}
+		// else mark as seen
+		seen[it] = struct{}{}
+
+		// fuzzy match
 		hay := strings.ToLower(it.FilterValue())
 		s, ok := fuzzyScore(q, hay)
 		if !ok {
@@ -34,15 +86,48 @@ func (m *model) applyFilter(q string) {
 		matches = append(matches, scored{item: it, score: s})
 	}
 
+	// sort matches by score descending
 	slices.SortStableFunc(matches, func(a, b scored) int {
 		return cmp.Compare(b.score, a.score)
 	})
 
 	filtered := make([]list.Item, 0, len(matches))
-	for _, m := range matches {
-		filtered = append(filtered, m.item)
+	for _, sm := range matches {
+		filtered = append(filtered, sm.item)
 	}
 	m.setItemsSafely(filtered)
+}
+
+// allHostItemsWithGroup returns all host items in the tree along with a display
+// group path that indicates where the host came from.
+func allHostItemsWithGroup(root *menuItem) []hostWithGroup {
+	if root == nil {
+		return nil
+	}
+
+	// assumes groups are one level deep or not-nested
+	// root contains (a) ungrouped hosts and (b) group items whose direct children are hosts
+	out := make([]hostWithGroup, 0, 64)
+	for _, it := range root.children {
+		if it == nil {
+			continue
+		}
+		if it.kind == itemHost {
+			out = append(out, hostWithGroup{host: it, groupPath: ""})
+			continue
+		}
+		if it.kind != itemGroup {
+			continue
+		}
+		grp := strings.TrimSpace(it.name)
+		for _, ch := range it.children {
+			if ch == nil || ch.kind != itemHost {
+				continue
+			}
+			out = append(out, hostWithGroup{host: ch, groupPath: grp})
+		}
+	}
+	return out
 }
 
 // fuzzyScore returns a simple subsequence match score

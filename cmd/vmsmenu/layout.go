@@ -9,10 +9,16 @@ import (
 
 const footerPadLeft = 2
 
-// Key binding for going back in the menu (when in a group).
-var escBackKey = key.NewBinding(
+// Key binding for clearing the search query.
+var escClearKey = key.NewBinding(
 	key.WithKeys("esc"),
-	key.WithHelp("esc", "back"),
+	key.WithHelp("esc", "clear search"),
+)
+
+// Key binding for going back in the menu (when in a group).
+var leftBackKey = key.NewBinding(
+	key.WithKeys("left"),
+	key.WithHelp("←", "back"),
 )
 
 // inGroup returns true if the current path is inside a group (not at root).
@@ -45,8 +51,8 @@ func (m *model) relayout() {
 
 	// keep the list help in sync with our navigation state
 	if m.inGroup() {
-		m.lst.AdditionalShortHelpKeys = func() []key.Binding { return []key.Binding{escBackKey} }
+		m.lst.AdditionalShortHelpKeys = func() []key.Binding { return []key.Binding{escClearKey, leftBackKey} }
 	} else {
-		m.lst.AdditionalShortHelpKeys = nil
+		m.lst.AdditionalShortHelpKeys = func() []key.Binding { return []key.Binding{escClearKey} }
 	}
 }
