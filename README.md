@@ -2,13 +2,12 @@
 
 <img width="302" height="94" alt="Image" src="https://github.com/user-attachments/assets/b557634a-5b74-4d58-b6e2-b69baac26c60" />
 
-This changes your "Home" to be in C:\msys64\home\username\ when using a bash shell, keep that in mind. You should have the .local folder  
-that contains the scripts for this project in that "Home" not the Windows home. 
-Also be sure that the .bashrc, .bash_profile, and .profile files are there too.
+This changes your "Home" to be in C:\msys64\home\username\ when using a bash shell, keep that in mind. You should have the .bin folder that 
+contains the .exe for this project in that "Home" not the Windows home. Also be sure that the .bashrc, .bash_profile, and .profile files are there too.
 
-🟩 Correct: C:\msys64\home\username\.local  <--- MSYS2 Home
+🟩 Correct: C:\msys64\home\username\.bin\vmsmenu.exe  <--- MSYS2 Home
 
-🟥 Incorrect: C:\Users\username\.local  <--- Windows Home
+🟥 Incorrect: C:\Users\username\.bin\vmsmenu.exe  <--- Windows Home
 
 <br>
 <br>
@@ -45,11 +44,10 @@ Update packages again, it probably won't find anything to update which is fine, 
 <br>
 <br>
 
-# Step 5: Ensure that your .bash_profile, .bashrc, and .profile files are correct
+# Step 5: Copy .bash_profile, .bashrc, and .profile files
     
-They should have the additions that are shown in this project. You can copy them directly, they make important additions to $PATH so that  
-your bash shell can see your Windows Python installation. If you want to change the prompt of the shell (since it has my name) you can edit  
-it in .bash_profile
+This is entirely optional, they just have some changes like allowing you to type vmsmenu at the command prompt instead of having to launch the .exe directly. 
+If you want, you can download Go and build/install this yourself and not worry about it (although you might run into $PATH issues).
 
 <br>
 <br>
