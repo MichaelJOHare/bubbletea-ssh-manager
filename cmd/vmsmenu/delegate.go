@@ -10,14 +10,15 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const (
-	hostNameColor  = lipgloss.Color("10")  // green
-	groupNameColor = lipgloss.Color("208") // orange
-)
-
 type menuDelegate struct {
-	list.DefaultDelegate
+	list.DefaultDelegate // embed default delegate to extend it
 }
+
+const (
+	sshHostNameColor    = lipgloss.Color("10")  // green
+	telnetHostNameColor = lipgloss.Color("210") // pink
+	groupNameColor      = lipgloss.Color("208") // orange
+)
 
 func newMenuDelegate() menuDelegate {
 	d := list.NewDefaultDelegate()
@@ -26,17 +27,18 @@ func newMenuDelegate() menuDelegate {
 
 func (d menuDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
 	var (
-		title, desc  string
-		matchedRunes []int
+		title, desc string
 	)
 
-	// Copy styles so per-item tweaks don't leak across renders.
+	// copy styles so per-item tweaks don't leak across renders
 	styles := d.Styles
 	normalTitle := styles.NormalTitle
 	selectedTitle := styles.SelectedTitle
-	dimmedTitle := styles.DimmedTitle
 
-	// We only know how to render DefaultItem (which *menuItem is).
+	normalDesc := styles.NormalDesc
+	selectedDesc := styles.SelectedDesc
+
+	// we only know how to render DefaultItem (which *menuItem is)
 	i, ok := item.(list.DefaultItem)
 	if !ok {
 		return
@@ -49,21 +51,26 @@ func (d menuDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 		return
 	}
 
-	// Apply per-kind coloring to titles.
+	// apply per-kind coloring to titles
 	if mi, ok := item.(*menuItem); ok {
 		switch mi.kind {
 		case itemGroup:
 			normalTitle = normalTitle.Foreground(groupNameColor)
 			selectedTitle = selectedTitle.Foreground(groupNameColor)
-			dimmedTitle = dimmedTitle.Foreground(groupNameColor)
 		case itemHost:
-			normalTitle = normalTitle.Foreground(hostNameColor)
-			selectedTitle = selectedTitle.Foreground(hostNameColor)
-			dimmedTitle = dimmedTitle.Foreground(hostNameColor)
+			protocol := strings.ToLower(strings.TrimSpace(mi.protocol))
+			if protocol == "telnet" {
+				normalTitle = normalTitle.Foreground(telnetHostNameColor)
+				selectedTitle = selectedTitle.Foreground(telnetHostNameColor)
+			} else {
+				// default to SSH color (green)
+				normalTitle = normalTitle.Foreground(sshHostNameColor)
+				selectedTitle = selectedTitle.Foreground(sshHostNameColor)
+			}
 		}
 	}
 
-	// Prevent text from exceeding list width.
+	// prevent text from exceeding list width
 	textWidth := max(width-normalTitle.GetPaddingLeft()-normalTitle.GetPaddingRight(), 0)
 	title = ansi.Truncate(title, textWidth, "…")
 	if d.ShowDescription {
@@ -78,36 +85,17 @@ func (d menuDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 	}
 
 	isSelected := index == m.Index()
-	emptyFilter := m.FilterState() == list.Filtering && m.FilterValue() == ""
-	isFiltered := m.FilterState() == list.Filtering || m.FilterState() == list.FilterApplied
-	if isFiltered {
-		matchedRunes = m.MatchesForItem(index)
-	}
-
-	if emptyFilter {
-		title = dimmedTitle.Render(title)
-		desc = styles.DimmedDesc.Render(desc)
-	} else if isSelected && m.FilterState() != list.Filtering {
-		if isFiltered {
-			unmatched := selectedTitle.Inline(true)
-			matched := unmatched.Inherit(styles.FilterMatch)
-			title = lipgloss.StyleRunes(title, matchedRunes, matched, unmatched)
-		}
+	if isSelected {
 		title = selectedTitle.Render(title)
-		desc = styles.SelectedDesc.Render(desc)
+		desc = selectedDesc.Render(desc)
 	} else {
-		if isFiltered {
-			unmatched := normalTitle.Inline(true)
-			matched := unmatched.Inherit(styles.FilterMatch)
-			title = lipgloss.StyleRunes(title, matchedRunes, matched, unmatched)
-		}
 		title = normalTitle.Render(title)
-		desc = styles.NormalDesc.Render(desc)
+		desc = normalDesc.Render(desc)
 	}
 
 	if d.ShowDescription {
-		fmt.Fprintf(w, "%s\n%s", title, desc) //nolint: errcheck
+		fmt.Fprintf(w, "%s\n%s", title, desc)
 		return
 	}
-	fmt.Fprintf(w, "%s", title) //nolint: errcheck
+	fmt.Fprintf(w, "%s", title)
 }

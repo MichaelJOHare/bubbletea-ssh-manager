@@ -43,7 +43,7 @@ func (m *model) relayout() {
 	promptW := lipgloss.Width(m.query.Prompt)
 	m.query.Width = max(0, m.width-footerPadLeft-promptW-1)
 
-	// Keep the list help in sync with our navigation state.
+	// keep the list help in sync with our navigation state
 	if m.inGroup() {
 		m.lst.AdditionalShortHelpKeys = func() []key.Binding { return []key.Binding{escBackKey} }
 	} else {

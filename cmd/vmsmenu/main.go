@@ -7,11 +7,12 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// TODO: Always format host names when displaying in status
-//       Add hosts in groups to searchable list
-//       Implement edit/remove/add host functionality
-//       Improve ? info display formatting
-//       Adjust help color scheme for better visibility
+// TODO: always format host names when displaying in status
+//       add hosts in groups to searchable list
+//       implement edit/remove/add host functionality
+//       improve ? info display formatting (and location and content)
+//       make help color scheme easier to read
+//       implement TCPIP probe before connecting to avoid TUI closing
 
 func main() {
 	p := tea.NewProgram(newModel(), tea.WithAltScreen())

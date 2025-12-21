@@ -10,8 +10,8 @@ import (
 
 // userConfigPath returns the path under the user's home directory.
 //
-// Note: when run under MSYS2/Cygwin on Windows, os.UserHomeDir() points to the
-// Windows home directory, not the MSYS2/Cygwin POSIX-style home.
+// When run under MSYS2 on Windows, os.UserHomeDir() points to the
+// Windows home directory, not the MSYS2 home.
 func userConfigPath(parts ...string) (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -21,13 +21,13 @@ func userConfigPath(parts ...string) (string, error) {
 }
 
 // readLines reads the given file and returns its lines.
+//
 // It normalizes line endings to Unix-style LF.
 func readLines(path string) ([]string, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	// normalize Windows CRLF so line splitting behaves predictably
 	s := strings.ReplaceAll(string(b), "\r\n", "\n")
 	s = strings.ReplaceAll(s, "\r", "\n")
 	return strings.Split(s, "\n"), nil
@@ -51,7 +51,7 @@ func isSimpleAlias(s string) bool {
 	if s == "" {
 		return false
 	}
-	// SSH supports patterns in Host directives, we only treat simple names as menu entries
+	// openssh supports patterns in Host directives, we only treat simple names as menu entries
 	return !strings.ContainsAny(s, "*?!")
 }
 

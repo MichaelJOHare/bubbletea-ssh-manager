@@ -50,9 +50,7 @@ func (m *model) current() *menuItem {
 // setCurrentMenu sets the current menu items and updates the list title.
 func (m *model) setCurrentMenu(items []*menuItem) {
 	m.allItems = items
-	m.lst.SetItems(toListItems(items))
-
-	m.refreshSelection()
+	m.setItemsSafely(toListItems(items))
 
 	parts := make([]string, 0, len(m.path))
 	for _, p := range m.path {
@@ -65,11 +63,12 @@ func (m *model) setCurrentMenu(items []*menuItem) {
 	m.lst.Title = strings.Join(parts, " / ")
 }
 
-// refreshSelection keeps the selection valid immediately after swapping items.
+// setItemsSafely refreshes the list items and updates the selection index immediately.
 //
 // Without this, the previous index can be temporarily out of range and
-// the highlight may appear one tick late.
-func (m *model) refreshSelection() {
+// the highlight may appear one tick late when filtering rapidly.
+func (m *model) setItemsSafely(items []list.Item) {
+	m.lst.SetItems(items)
 	if n := len(m.lst.Items()); n > 0 {
 		idx := m.lst.Index()
 		idx = min(max(idx, 0), n-1)

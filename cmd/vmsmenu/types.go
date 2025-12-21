@@ -38,7 +38,12 @@ type model struct {
 
 	status        string // status message
 	statusIsError bool   // is the status an error message?
+	statusToken   int    // increments on status updates; cancels pending clears
 	quitting      bool   // is the app quitting?
+}
+
+type statusClearMsg struct {
+	token int
 }
 
 type connectFinishedMsg struct {
@@ -46,4 +51,9 @@ type connectFinishedMsg struct {
 	target   string // hostname or IP address
 	err      error  // error from connection attempt
 	output   string // output from ssh/telnet command
+}
+
+type tailBuffer struct {
+	buf []byte // stored bytes
+	max int    // max bytes to keep
 }

@@ -5,13 +5,54 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 )
 
-// tailBuffer is an io.Writer that keeps only the last N bytes written to it.
-type tailBuffer struct {
-	buf []byte // stored bytes
-	max int    // max bytes to keep
+// fileExists checks if the given path exists and is a file.
+func fileExists(path string) bool {
+	if path == "" {
+		return false
+	}
+	if st, err := os.Stat(path); err == nil {
+		return !st.IsDir()
+	}
+	return false
+}
+
+// preferredProgramPath returns the preferred full path to the given program name.
+//
+// On Windows, it prefers MSYS2 binaries if available.
+// On other platforms, it looks in the system PATH.
+func preferredProgramPath(name string) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "", fmt.Errorf("empty program name")
+	}
+
+	// prefer MSYS2 binaries when running on Windows
+	if runtime.GOOS == "windows" {
+		roots := []string{}
+		if v := strings.TrimSpace(os.Getenv("BTSM_MSYS_ROOT")); v != "" {
+			roots = append(roots, v)
+		}
+		// default install location
+		roots = append(roots, `C:\msys64`)
+		for _, root := range roots {
+			p := filepath.Join(root, "usr", "bin", name+".exe")
+			if fileExists(p) {
+				return p, nil
+			}
+		}
+	}
+
+	// fallback to PATH lookup
+	p, err := exec.LookPath(name)
+	if err != nil {
+		return "", err
+	}
+	return p, nil
 }
 
 // newTailBuffer creates a new tailBuffer that keeps up to max bytes.
@@ -74,8 +115,9 @@ func buildConnectCommand(it *menuItem) (*exec.Cmd, string, string, *tailBuffer, 
 		return nil, "", "", nil, fmt.Errorf("unknown protocol for %s: %q", it.name, it.protocol)
 	}
 
-	if _, err := exec.LookPath(protocol); err != nil {
-		return nil, "", "", nil, fmt.Errorf("%s not found on PATH: %w", protocol, err)
+	programPath, err := preferredProgramPath(protocol)
+	if err != nil {
+		return nil, "", "", nil, fmt.Errorf("%s not found: %w", protocol, err)
 	}
 
 	target := strings.TrimSpace(it.target)
@@ -97,7 +139,7 @@ func buildConnectCommand(it *menuItem) (*exec.Cmd, string, string, *tailBuffer, 
 		}
 	}
 
-	cmd := exec.Command(protocol, args...)
+	cmd := exec.Command(programPath, args...)
 	cmd.Stdin = os.Stdin
 
 	// keep streaming to the real terminal (interactive), but also capture the last

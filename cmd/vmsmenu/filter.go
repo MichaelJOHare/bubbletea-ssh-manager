@@ -8,18 +8,14 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 )
 
-// FilterValue returns the string used for filtering this item.
-// For host items, it's the name and target concatenated.
-// For group items, it's just the name.
+// applyFilter filters the list items based on the query string q.
+//
+// It performs a fuzzy match on the items' FilterValue() strings
+// and ranks them by match quality.
 func (m *model) applyFilter(q string) {
 	q = strings.TrimSpace(strings.ToLower(q))
 	if q == "" {
-		m.lst.SetItems(toListItems(m.allItems))
-		if n := len(m.lst.Items()); n > 0 {
-			idx := m.lst.Index()
-			idx = min(max(idx, 0), n-1)
-			m.lst.Select(idx)
-		}
+		m.setItemsSafely(toListItems(m.allItems))
 		return
 	}
 
@@ -46,12 +42,7 @@ func (m *model) applyFilter(q string) {
 	for _, m := range matches {
 		filtered = append(filtered, m.item)
 	}
-	m.lst.SetItems(filtered)
-	if n := len(m.lst.Items()); n > 0 {
-		idx := m.lst.Index()
-		idx = min(max(idx, 0), n-1)
-		m.lst.Select(idx)
-	}
+	m.setItemsSafely(filtered)
 }
 
 // fuzzyScore returns a simple subsequence match score

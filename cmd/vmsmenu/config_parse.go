@@ -29,6 +29,8 @@ func parseConfigRecursively(path string, depth int) ([]hostEntry, error) {
 	// build host entries
 	var out []hostEntry
 	currentAliases := []string{}
+	localOrder := []string{}
+	localSeen := map[string]bool{}
 	values := map[string]hostEntry{}
 
 	// get directory of current file for relative includes
@@ -82,6 +84,10 @@ func parseConfigRecursively(path string, depth int) ([]hostEntry, error) {
 				if _, ok := values[a]; !ok {
 					values[a] = hostEntry{alias: a}
 				}
+				if !localSeen[a] {
+					localSeen[a] = true
+					localOrder = append(localOrder, a)
+				}
 			}
 
 		case "hostname":
@@ -106,35 +112,13 @@ func parseConfigRecursively(path string, depth int) ([]hostEntry, error) {
 				values[a] = e
 			}
 
-		default:
-			// ignore
 		}
 	}
 
-	// Preserve first-seen order by walking values in the order they were
-	// encountered in out (includes), then locally by stable iteration of lines.
-	// Easiest: append local values in original order of appearance by scanning
-	// lines again for Host directives and collecting aliases.
-	seen := map[string]bool{}
-	for _, raw := range lines {
-		line := strings.TrimSpace(stripComment(raw))
-		if line == "" {
-			continue
-		}
-		fields := splitFields(line)
-		if len(fields) == 0 {
-			continue
-		}
-		if strings.ToLower(fields[0]) != "host" {
-			continue
-		}
-		for _, a := range fields[1:] {
-			if !isSimpleAlias(a) || seen[a] {
-				continue
-			}
-			seen[a] = true
-			out = append(out, values[a])
-		}
+	// append local hosts after any included hosts, preserving first appearance
+	// order from this file
+	for _, a := range localOrder {
+		out = append(out, values[a])
 	}
 
 	return out, nil

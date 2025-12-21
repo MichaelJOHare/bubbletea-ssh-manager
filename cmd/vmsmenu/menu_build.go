@@ -1,9 +1,11 @@
 package main
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -141,6 +143,18 @@ func buildMenuFromConfigs() ([]*menuItem, error) {
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
 		parseErrs = append(parseErrs, fmt.Errorf("read telnet config: %w", err))
+	}
+
+	slices.SortStableFunc(ungrouped, func(a, b *menuItem) int {
+		return cmp.Compare(a.name, b.name)
+	})
+	slices.SortStableFunc(grouped, func(a, b *menuItem) int {
+		return cmp.Compare(a.name, b.name)
+	})
+	for _, g := range grouped {
+		slices.SortStableFunc(g.children, func(a, b *menuItem) int {
+			return cmp.Compare(a.name, b.name)
+		})
 	}
 
 	items := append(ungrouped, grouped...)

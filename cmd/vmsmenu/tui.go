@@ -3,12 +3,40 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
+
+const infoStatusTTL = 8 * time.Second
+
+// Init returns the initial command for the TUI (blinking cursor).
+func (m model) Init() tea.Cmd {
+	return textinput.Blink
+}
+
+// setStatus sets the status message and error flag.
+//
+// It increments the status token to invalidate any pending clears.
+func (m *model) setStatus(text string, isError bool) {
+	m.statusToken++
+	m.status = text
+	m.statusIsError = isError
+}
+
+// setTemporaryStatus sets a temporary status message that clears after duration d.
+//
+// It returns a command that will clear the status after the duration.
+func (m *model) setTemporaryStatus(text string, isError bool, d time.Duration) tea.Cmd {
+	m.setStatus(text, isError)
+	tok := m.statusToken
+	return tea.Tick(d, func(time.Time) tea.Msg {
+		return statusClearMsg{token: tok}
+	})
+}
 
 // newModel creates a new TUI model with initial state
 // and seeded menu items.
@@ -41,45 +69,44 @@ func newModel() model {
 		lst:   lst,
 	}
 	if seedErr != nil {
-		m.statusIsError = true
-		m.status = "Config: " + lastNonEmptyLine(seedErr.Error())
+		m.setStatus("Config: "+lastNonEmptyLine(seedErr.Error()), true)
 	}
 	m.setCurrentMenu(items)
 	m.relayout()
 	return m
 }
 
-// Init returns the initial command for the TUI (blinking cursor).
-func (m model) Init() tea.Cmd {
-	return textinput.Blink
-}
-
 // Update handles incoming messages and updates the model state accordingly.
+//
 // It handles window resize, connection completion, key presses, and updates
 // to the text input and list components.
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// handle different message types
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		m.relayout()
 		return m, nil
 
-	// update status on connection finish
+	case statusClearMsg:
+		if msg.token == m.statusToken {
+			m.status = ""
+			m.statusIsError = false
+			m.relayout()
+		}
+		return m, nil
+
 	case connectFinishedMsg:
 		if msg.err != nil {
-			m.statusIsError = true
 			if strings.TrimSpace(msg.output) != "" {
-				m.status = fmt.Sprintf("%s to %s exited: %s (%v)", msg.protocol, msg.target, msg.output, msg.err)
+				m.setStatus(fmt.Sprintf("%s to %s exited: %s (%v)", msg.protocol, msg.target, msg.output, msg.err), true)
 				m.relayout()
 				return m, nil
 			}
-			m.status = fmt.Sprintf("%s to %s exited: %v", msg.protocol, msg.target, msg.err)
+			m.setStatus(fmt.Sprintf("%s to %s exited: %v", msg.protocol, msg.target, msg.err), true)
 			m.relayout()
 			return m, nil
 		}
-		m.statusIsError = false
-		m.status = fmt.Sprintf("%s to %s ended.", msg.protocol, msg.target)
+		m.setStatus(fmt.Sprintf("%s to %s ended.", msg.protocol, msg.target), false)
 		m.relayout()
 		return m, nil
 
@@ -93,23 +120,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// show info on selected item with '?'
 		case "?":
 			if it, ok := m.lst.SelectedItem().(*menuItem); ok {
-				m.statusIsError = false
 				if it.kind == itemGroup {
-					m.status = fmt.Sprintf("Group: %s (%d items)", it.name, len(it.children))
+					cmd := m.setTemporaryStatus(fmt.Sprintf("Group: %s (%d items)", it.name, len(it.children)), false, infoStatusTTL)
+					m.relayout()
+					return m, cmd
 				} else {
-					m.status = fmt.Sprintf("Host: %s (%s)", it.name, it.protocol)
+					cmd := m.setTemporaryStatus(fmt.Sprintf("Host: %s (%s)", it.name, it.protocol), false, infoStatusTTL)
+					m.relayout()
+					return m, cmd
 				}
-				m.relayout()
 			}
 			return m, nil
 		// go back on Esc if in a group
 		case "esc":
-			if len(m.path) > 1 {
+			if m.inGroup() {
 				m.path = m.path[:len(m.path)-1]
 				m.query.SetValue("")
 				m.setCurrentMenu(m.current().children)
-				m.status = ""
-				m.statusIsError = false
+				m.setStatus("", false)
 				m.relayout()
 			}
 			return m, nil
@@ -120,8 +148,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.path = append(m.path, it)
 					m.query.SetValue("")
 					m.setCurrentMenu(it.children)
-					m.status = ""
-					m.statusIsError = false
+					m.setStatus("", false)
 					m.relayout()
 					return m, nil
 				}
@@ -129,15 +156,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// when host selected, build and start connection command
 				cmd, protocol, target, tail, err := buildConnectCommand(it)
 				if err != nil {
-					m.statusIsError = true
-					m.status = err.Error()
+					m.setStatus(err.Error(), true)
 					m.relayout()
 					return m, nil
 				}
 
 				// handoff to ssh/telnet and return to TUI when done
-				m.statusIsError = false
-				m.status = fmt.Sprintf("Starting %s %s…", protocol, target)
+				m.setStatus(fmt.Sprintf("Starting %s %s…", protocol, target), false)
 				m.relayout()
 				return m, tea.ExecProcess(cmd, func(err error) tea.Msg {
 					out := strings.TrimSpace(tail.String())
@@ -169,12 +194,12 @@ func (m model) View() string {
 		return ""
 	}
 
-	searchStyle := lipgloss.NewStyle().Bold(true).PaddingLeft(footerPadLeft)
 	statusColor := lipgloss.Color("243")
 	if m.statusIsError {
 		statusColor = lipgloss.Color("9")
 	}
 	statusStyle := lipgloss.NewStyle().Foreground(statusColor).PaddingLeft(footerPadLeft)
+	searchStyle := lipgloss.NewStyle().Bold(true).PaddingLeft(footerPadLeft)
 
 	lines := []string{m.lst.View()}
 	if strings.TrimSpace(m.status) != "" {
