@@ -1,12 +1,13 @@
 package main
 
 import (
+	"bubbletea-ssh-manager/internal/config"
+
 	"cmp"
 	"errors"
 	"fmt"
 	"os"
 	"slices"
-	"strconv"
 	"strings"
 )
 
@@ -26,36 +27,6 @@ func splitGroupedAlias(alias string) (groupRaw, nicknameRaw string, ok bool) {
 	return before, after, true
 }
 
-// splitHostPort attempts to split a target string into host and port.
-// It supports "host port" and "host:port" formats (single-colon, numeric port).
-//
-// Returns ok=false if no valid port could be found.
-func splitHostPort(target string) (host, port string, ok bool) {
-	fields := strings.Fields(target)
-	if len(fields) >= 2 {
-		if _, err := strconv.Atoi(fields[1]); err == nil {
-			return fields[0], fields[1], true
-		}
-		return "", "", false
-	}
-
-	// host:port (avoid IPv6 nonsense; only accept exactly one colon)
-	if strings.Count(target, ":") != 1 {
-		return "", "", false
-	}
-	before, after, okSplit := strings.Cut(target, ":")
-	if !okSplit {
-		return "", "", false
-	}
-	if before == "" || after == "" {
-		return "", "", false
-	}
-	if _, err := strconv.Atoi(after); err != nil {
-		return "", "", false
-	}
-	return before, after, true
-}
-
 // formatGroupName formats a raw group name for display.
 //
 // It replaces hyphens with spaces, trims whitespace, collapses
@@ -67,34 +38,36 @@ func formatGroupName(raw string) string {
 	return strings.ToUpper(s)
 }
 
-// formatNickname formats a raw nickname for display.
-//
-// It trims whitespace and converts to lowercase.
-func formatNickname(raw string) string {
-	return strings.ToLower(strings.TrimSpace(raw))
-}
+// addMenuItem adds a host/group menu item to the root or a group, based on the alias format.
+func addMenuItem(ungrouped *[]*menuItem, groups map[string]*menuItem, host *menuItem) {
+	if host == nil {
+		return
+	}
+	alias := strings.TrimSpace(host.alias)
+	if alias == "" {
+		return
+	}
 
-// addMenuHost adds a host menu item to the root or a group, based on the alias format.
-func addMenuHost(ungrouped *[]*menuItem, grouped *[]*menuItem, groups map[string]*menuItem, alias, protocol, target string) {
 	// grouped alias: add to group (create group if needed)
 	groupRaw, nickRaw, ok := splitGroupedAlias(alias)
 	if ok {
 		groupName := formatGroupName(groupRaw)
-		displayName := formatNickname(nickRaw)
+		displayName := normalizeString(nickRaw)
+		host.name = displayName
 
 		g, exists := groups[groupName]
 		if !exists {
 			g = &menuItem{kind: itemGroup, name: groupName}
 			groups[groupName] = g
-			*grouped = append(*grouped, g)
 		}
-		g.children = append(g.children, &menuItem{kind: itemHost, name: displayName, protocol: protocol, target: target})
+		g.children = append(g.children, host)
 		return
 	}
 
 	// ungrouped alias: lowercase it for display and add to root
-	displayName := formatNickname(alias)
-	*ungrouped = append(*ungrouped, &menuItem{kind: itemHost, name: displayName, protocol: protocol, target: target})
+	displayName := normalizeString(alias)
+	host.name = displayName
+	*ungrouped = append(*ungrouped, host)
 }
 
 // buildMenuFromConfigs builds menu items from SSH and Telnet config files.
@@ -102,49 +75,57 @@ func addMenuHost(ungrouped *[]*menuItem, grouped *[]*menuItem, groups map[string
 // SSH items connect by alias (ssh reads ~/.ssh/config).
 // Telnet items connect by HostName/Port because telnet typically does not use aliases.
 func buildMenuFromConfigs() ([]*menuItem, error) {
-	sshPath, err := userConfigPath(".ssh", "config")
+	sshPath, err := config.UserConfigPath(".ssh", "config")
 	if err != nil {
 		return nil, err
 	}
-	telnetPath, err := userConfigPath(".telnet", "config")
+	telnetPath, err := config.UserConfigPath(".telnet", "config")
 	if err != nil {
 		return nil, err
 	}
 
-	var ungrouped []*menuItem
-	var grouped []*menuItem
-	groups := map[string]*menuItem{}
-	var parseErrs []error
+	var (
+		ungrouped []*menuItem              // hosts without groups
+		groups    = map[string]*menuItem{} // map of group names
+		parseErrs []error                  // parsing errors
+	)
 
-	if sshEntries, err := parseConfigRecursively(sshPath, 0); err == nil {
+	// parse ssh config, add hosts to menu
+	if sshEntries, err := config.ParseConfigRecursively(sshPath); err == nil {
 		for _, e := range sshEntries {
-			alias := strings.TrimSpace(e.alias)
+			alias := strings.TrimSpace(e.Alias)
 			if alias == "" {
 				continue
 			}
-			addMenuHost(&ungrouped, &grouped, groups, alias, "ssh", alias)
+			h := &menuItem{kind: itemHost, protocol: "ssh", alias: alias, hostname: e.HostName, port: e.Port, user: e.User}
+			addMenuItem(&ungrouped, groups, h)
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
 		parseErrs = append(parseErrs, fmt.Errorf("read ssh config: %w", err))
 	}
 
-	if telnetEntries, err := parseConfigRecursively(telnetPath, 0); err == nil {
+	// parse telnet config, add hosts to menu
+	if telnetEntries, err := config.ParseConfigRecursively(telnetPath); err == nil {
 		for _, e := range telnetEntries {
-			alias := strings.TrimSpace(e.alias)
-			host := strings.TrimSpace(e.hostname)
+			alias := strings.TrimSpace(e.Alias)
+			host := strings.TrimSpace(e.HostName)
 			if alias == "" || host == "" {
 				continue
 			}
-			target := host
-			if port := strings.TrimSpace(e.port); port != "" {
-				target = host + ":" + port
-			}
-			addMenuHost(&ungrouped, &grouped, groups, alias, "telnet", target)
+			h := &menuItem{kind: itemHost, protocol: "telnet", alias: alias, hostname: host, port: e.Port, user: e.User}
+			addMenuItem(&ungrouped, groups, h)
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
 		parseErrs = append(parseErrs, fmt.Errorf("read telnet config: %w", err))
 	}
 
+	// convert groups map to slice for sorting
+	grouped := make([]*menuItem, 0, len(groups))
+	for _, g := range groups {
+		grouped = append(grouped, g)
+	}
+
+	// sort ungrouped hosts, group names, and children of groups (grouped hosts) alphabetically
 	slices.SortStableFunc(ungrouped, func(a, b *menuItem) int {
 		return cmp.Compare(a.name, b.name)
 	})

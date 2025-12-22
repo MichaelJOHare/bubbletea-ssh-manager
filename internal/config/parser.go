@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"fmt"
@@ -6,53 +6,73 @@ import (
 	"strings"
 )
 
-// parseConfigRecursively parses an ssh-style config file at the given path,
-// handling Include directives recursively up to a certain depth.
+// HostEntry is a minimal representation of a Host block from an SSH-style config.
+// It intentionally contains only the fields this project currently supports.
+type HostEntry struct {
+	Alias    string
+	HostName string
+	Port     string
+	User     string
+}
+
+const maxIncludeDepth = 5
+
+// UserConfigPath returns a path under the effective home directory.
+//
+// On Windows/MSYS2, prefer $HOME so this matches where MSYS2/OpenSSH tools
+// look for config files (eg. ~/.ssh/config).
+func UserConfigPath(parts ...string) (string, error) {
+	home, err := effectiveHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(append([]string{home}, parts...)...), nil
+}
+
+// ParseConfigRecursively parses an SSH-style config file at the given path,
+// following Include directives recursively (up to a small depth limit).
 //
 // Supported directives:
+//   - Include (with basic glob support)
 //   - Host
 //   - HostName
+//   - User
 //   - Port
-//   - Include (with basic glob support)
-func parseConfigRecursively(path string, depth int) ([]hostEntry, error) {
-	// who really needs more than 5 levels of includes anyway
-	if depth > 5 {
+func ParseConfigRecursively(path string) ([]HostEntry, error) {
+	return parseConfigRecursively(path, 0)
+}
+
+func parseConfigRecursively(path string, depth int) ([]HostEntry, error) {
+	if depth > maxIncludeDepth {
 		return nil, fmt.Errorf("config include depth exceeded")
 	}
 
-	// read lines from config file
 	lines, err := readLines(path)
 	if err != nil {
 		return nil, err
 	}
 
-	// build host entries
-	var out []hostEntry
+	var out []HostEntry
 	currentAliases := []string{}
 	localOrder := []string{}
 	localSeen := map[string]bool{}
-	values := map[string]hostEntry{}
+	values := map[string]*HostEntry{}
 
-	// get directory of current file for relative includes
 	relDir := filepath.Dir(path)
 
-	// process each line
 	for _, raw := range lines {
-		// strip comments and skip empty lines
 		line := strings.TrimSpace(stripComment(raw))
 		if line == "" {
 			continue
 		}
-		fields := splitFields(line)
+		fields := strings.Fields(line)
 		if len(fields) == 0 {
 			continue
 		}
 
-		// handle directives
 		key := strings.ToLower(fields[0])
 		switch key {
 		case "include":
-			// basic include support, also supports globs
 			for _, incRaw := range fields[1:] {
 				inc, err := expandPath(incRaw)
 				if err != nil {
@@ -82,7 +102,7 @@ func parseConfigRecursively(path string, depth int) ([]hostEntry, error) {
 				}
 				currentAliases = append(currentAliases, a)
 				if _, ok := values[a]; !ok {
-					values[a] = hostEntry{alias: a}
+					values[a] = &HostEntry{Alias: a}
 				}
 				if !localSeen[a] {
 					localSeen[a] = true
@@ -96,9 +116,9 @@ func parseConfigRecursively(path string, depth int) ([]hostEntry, error) {
 			}
 			v := fields[1]
 			for _, a := range currentAliases {
-				e := values[a]
-				e.hostname = v
-				values[a] = e
+				if it := values[a]; it != nil {
+					it.HostName = v
+				}
 			}
 
 		case "port":
@@ -107,18 +127,28 @@ func parseConfigRecursively(path string, depth int) ([]hostEntry, error) {
 			}
 			p := fields[1]
 			for _, a := range currentAliases {
-				e := values[a]
-				e.port = p
-				values[a] = e
+				if it := values[a]; it != nil {
+					it.Port = p
+				}
 			}
 
+		case "user":
+			if len(fields) < 2 {
+				continue
+			}
+			u := fields[1]
+			for _, a := range currentAliases {
+				if it := values[a]; it != nil {
+					it.User = u
+				}
+			}
 		}
 	}
 
-	// append local hosts after any included hosts, preserving first appearance
-	// order from this file
 	for _, a := range localOrder {
-		out = append(out, values[a])
+		if it := values[a]; it != nil {
+			out = append(out, *it)
+		}
 	}
 
 	return out, nil

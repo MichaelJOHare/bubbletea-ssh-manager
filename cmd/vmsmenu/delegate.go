@@ -16,11 +16,23 @@ const (
 	groupNameColor      = lipgloss.Color("208") // orange
 )
 
+type menuDelegate struct {
+	list.DefaultDelegate                      // embed default delegate to reuse its functionality
+	groupHints           map[*menuItem]string // optional group hints per host item
+}
+
+// newMenuDelegatePtr creates a new menuDelegate with default settings.
+//
+// It embeds the default delegate from bubbles/list to leverage existing functionality.
 func newMenuDelegatePtr() *menuDelegate {
 	d := list.NewDefaultDelegate()
 	return &menuDelegate{DefaultDelegate: d}
 }
 
+// Render renders a menu item with custom styles based on its kind and state.
+//
+// It applies different colors for group and host items, and adjusts the description
+// to include group hints when available.
 func (d *menuDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
 	var (
 		title, desc string
@@ -30,7 +42,6 @@ func (d *menuDelegate) Render(w io.Writer, m list.Model, index int, item list.It
 	styles := d.Styles
 	normalTitle := styles.NormalTitle
 	selectedTitle := styles.SelectedTitle
-
 	normalDesc := styles.NormalDesc
 	selectedDesc := styles.SelectedDesc
 
@@ -57,10 +68,10 @@ func (d *menuDelegate) Render(w io.Writer, m list.Model, index int, item list.It
 		case itemHost:
 			if d.groupHints != nil {
 				if grp := strings.TrimSpace(d.groupHints[mi]); grp != "" {
-					desc = strings.ToLower(strings.TrimSpace(mi.protocol)) + " • " + grp
+					desc = normalizeString(mi.protocol) + " • " + grp
 				}
 			}
-			protocol := strings.ToLower(strings.TrimSpace(mi.protocol))
+			protocol := normalizeString(mi.protocol)
 			if protocol == "telnet" {
 				normalTitle = normalTitle.Foreground(telnetHostNameColor)
 				selectedTitle = selectedTitle.Foreground(telnetHostNameColor)
@@ -86,6 +97,7 @@ func (d *menuDelegate) Render(w io.Writer, m list.Model, index int, item list.It
 		desc = strings.Join(lines, "\n")
 	}
 
+	// apply selected vs normal styles
 	isSelected := index == m.Index()
 	if isSelected {
 		title = selectedTitle.Render(title)
@@ -95,6 +107,7 @@ func (d *menuDelegate) Render(w io.Writer, m list.Model, index int, item list.It
 		desc = normalDesc.Render(desc)
 	}
 
+	// render final output
 	if d.ShowDescription {
 		fmt.Fprintf(w, "%s\n%s", title, desc)
 		return

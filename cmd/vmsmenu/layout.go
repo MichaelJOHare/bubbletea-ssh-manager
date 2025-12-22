@@ -3,28 +3,10 @@ package main
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/lipgloss"
 )
 
 const footerPadLeft = 2
-
-// Key binding for clearing the search query.
-var escClearKey = key.NewBinding(
-	key.WithKeys("esc"),
-	key.WithHelp("esc", "clear search"),
-)
-
-// Key binding for going back in the menu (when in a group).
-var leftBackKey = key.NewBinding(
-	key.WithKeys("left"),
-	key.WithHelp("←", "back"),
-)
-
-// inGroup returns true if the current path is inside a group (not at root).
-func (m *model) inGroup() bool {
-	return len(m.path) > 1
-}
 
 // relayout recalculates the sizes of the list and text input based on the current window size.
 func (m *model) relayout() {
@@ -33,11 +15,17 @@ func (m *model) relayout() {
 	// - optional status line
 	// - search input (always)
 
-	// default to 2 lines so search input is padded 1 line above
-	// to separate it from help and status
-	// add extra line for status when present
+	// default to 2 lines so search input is padded by 1 line above
 	footerLines := 2
+	// if status is set add...
 	if strings.TrimSpace(m.status) != "" {
+		// one line for the status itself
+		footerLines++
+		// extra line for error status since they can be multi-line
+		if m.statusIsError && strings.Contains(m.status, "\n") {
+			footerLines++
+		}
+		// one line for padding above status
 		footerLines++
 	}
 
@@ -46,13 +34,14 @@ func (m *model) relayout() {
 
 	// ensure the text input has enough width to render placeholder/prompt
 	// in bubbles/textinput, Width is the content width, not including the prompt
-	promptW := lipgloss.Width(m.query.Prompt)
-	m.query.Width = max(0, m.width-footerPadLeft-promptW-1)
+	if m.promptingUser {
+		promptW := lipgloss.Width(m.prompt.Prompt)
+		m.prompt.Width = max(0, m.width-footerPadLeft-promptW-1)
+	} else {
+		promptW := lipgloss.Width(m.query.Prompt)
+		m.query.Width = max(0, m.width-footerPadLeft-promptW-1)
+	}
 
 	// keep the list help in sync with our navigation state
-	if m.inGroup() {
-		m.lst.AdditionalShortHelpKeys = func() []key.Binding { return []key.Binding{escClearKey, leftBackKey} }
-	} else {
-		m.lst.AdditionalShortHelpKeys = func() []key.Binding { return []key.Binding{escClearKey} }
-	}
+	m.syncHelpKeys()
 }

@@ -13,7 +13,7 @@ import (
 // It performs a fuzzy match on the items' FilterValue() strings
 // and ranks them by match quality.
 func (m *model) applyFilter(q string) {
-	q = strings.TrimSpace(strings.ToLower(q))
+	q = normalizeString(q)
 	if q == "" {
 		if m.delegate != nil {
 			m.delegate.groupHints = nil
