@@ -11,7 +11,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const infoStatusTTL = 8 * time.Second
+const infoStatusTTL = 8 * time.Second         // duration for non-error info statuses
+const promptLabelColor = lipgloss.Color("37") // blue
 
 // Init returns the initial command for the TUI (blinking cursor).
 func (m model) Init() tea.Cmd {
@@ -213,7 +214,7 @@ func (m model) View() string {
 		statusColor = lipgloss.Color("9")
 	}
 	statusStyle := lipgloss.NewStyle().Foreground(statusColor).PaddingLeft(footerPadLeft).PaddingTop(1)
-	searchStyle := lipgloss.NewStyle().Bold(true).PaddingLeft(footerPadLeft)
+	searchStyle := lipgloss.NewStyle().Foreground(promptLabelColor).Bold(true).PaddingLeft(footerPadLeft)
 
 	lines := []string{m.lst.View()}
 	if strings.TrimSpace(m.status) != "" {

@@ -2,6 +2,15 @@ package main
 
 import (
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/lipgloss"
+)
+
+const (
+	leftBackSymbol = "🡨"
+)
+
+var (
+	leftBackStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("140")).Render(leftBackSymbol) // yellow
 )
 
 // New key bindings for the TUI added using AdditionalShortHelpKeys.
@@ -14,7 +23,7 @@ var (
 	// left arrow to go back if in a group
 	leftBackKey = key.NewBinding(
 		key.WithKeys("left"),
-		key.WithHelp("🡨", "back"),
+		key.WithHelp(leftBackStyle, "back"),
 	)
 
 	rootHelpKeys  = func() []key.Binding { return []key.Binding{escClearKey} }

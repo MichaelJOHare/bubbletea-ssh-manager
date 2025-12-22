@@ -8,11 +8,11 @@ import (
 )
 
 // TODO: always format host names when displaying in status
+//       implement saving username for hosts
 //       implement edit/remove/add host functionality
 //       improve ? info display formatting (and location and content)
 //       make help color scheme easier to read
-//       implement TCPIP probe before connecting to avoid TUI closing
-//       eventually swap group.HOST to GROUP.host for consistency
+//       swap from group.HOST to GROUP.host for consistency
 
 func main() {
 	p := tea.NewProgram(newModel(), tea.WithAltScreen())
