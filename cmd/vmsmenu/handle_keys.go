@@ -62,8 +62,16 @@ func (m model) handlePromptKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 // pass the message through to the query + list components.
 func (m model) handleNormalKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	switch msg.String() {
-	// quit on Ctrl+C or 'q'
-	case "ctrl+c", "q":
+	// cancel preflight or quit on Ctrl+C
+	case "ctrl+c":
+		if m.preflighting {
+			return m.cancelPreflightCmd()
+		}
+		m.quitting = true
+		return m, tea.Quit, true
+
+	// quit on 'Q'
+	case "Q":
 		m.quitting = true
 		return m, tea.Quit, true
 
@@ -88,7 +96,7 @@ func (m model) handleNormalKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 			}
 		}
 
-		cmd := m.setStatus(info, false, infoStatusTTL)
+		cmd := m.setStatus(info, false, statusTTL)
 		return m, cmd, true
 
 	// esc to clear search if non-empty; otherwise do nothing

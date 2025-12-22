@@ -7,10 +7,12 @@ import (
 
 const (
 	leftBackSymbol = "🡨"
+	quitSymbol     = "Q"
 )
 
 var (
-	leftBackStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("140")).Render(leftBackSymbol) // yellow
+	leftBackStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("141")).Render(leftBackSymbol) // yellow
+	quitStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render(quitSymbol)       // red
 )
 
 // New key bindings for the TUI added using AdditionalShortHelpKeys.
@@ -38,6 +40,10 @@ func (m *model) initHelpKeys() {
 	m.lst.KeyMap.CursorUp.SetKeys("up")
 	m.lst.KeyMap.CursorDown.SetHelp("🡫", "down")
 	m.lst.KeyMap.CursorDown.SetKeys("down")
+	m.lst.KeyMap.ShowFullHelp.SetHelp("?", "info")
+	m.lst.KeyMap.ShowFullHelp.SetKeys("?")
+	m.lst.KeyMap.Quit.SetHelp(quitStyle, "quit")
+	m.lst.KeyMap.Quit.SetKeys("shift+q")
 }
 
 // syncHelpKeys updates the list's additional help keys based on navigation state.

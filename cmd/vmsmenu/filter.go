@@ -46,16 +46,8 @@ func (m *model) applyFilter(q string) {
 		}
 
 		// also include all hosts with group hints
-		hints := map[*menuItem]string{}
-		for _, hwg := range allHostItemsWithGroup(m.root) {
-			if hwg.host == nil {
-				continue
-			}
-			candidates = append(candidates, hwg.host)
-			if grp := strings.TrimSpace(hwg.groupPath); grp != "" {
-				hints[hwg.host] = grp
-			}
-		}
+		hosts, hints := allHostItemsAndGroupHints(m.root)
+		candidates = append(candidates, hosts...)
 		if m.delegate != nil {
 			m.delegate.groupHints = hints
 		}
@@ -98,22 +90,24 @@ func (m *model) applyFilter(q string) {
 	m.setItemsSafely(filtered)
 }
 
-// allHostItemsWithGroup returns all host items in the tree along with a display
-// group path that indicates where the host came from.
-func allHostItemsWithGroup(root *menuItem) []hostWithGroup {
+// allHostItemsAndGroupHints returns all host items in the tree and an optional
+// group hint per host indicating where the host came from.
+//
+// Assumes groups are one level deep (non-nested): root contains (a) ungrouped
+// hosts and (b) group items whose direct children are hosts.
+func allHostItemsAndGroupHints(root *menuItem) (hosts []*menuItem, hints map[*menuItem]string) {
 	if root == nil {
-		return nil
+		return nil, nil
 	}
 
-	// assumes groups are one level deep (ie. non-nested)
-	// root contains (a) ungrouped hosts and (b) group items whose direct children are hosts
-	out := make([]hostWithGroup, 0, 64)
+	hosts = make([]*menuItem, 0, 64)
+	hints = map[*menuItem]string{}
 	for _, it := range root.children {
 		if it == nil {
 			continue
 		}
 		if it.kind == itemHost {
-			out = append(out, hostWithGroup{host: it, groupPath: ""})
+			hosts = append(hosts, it)
 			continue
 		}
 		if it.kind != itemGroup {
@@ -124,10 +118,13 @@ func allHostItemsWithGroup(root *menuItem) []hostWithGroup {
 			if ch == nil || ch.kind != itemHost {
 				continue
 			}
-			out = append(out, hostWithGroup{host: ch, groupPath: grp})
+			hosts = append(hosts, ch)
+			if grp != "" {
+				hints[ch] = grp
+			}
 		}
 	}
-	return out
+	return hosts, hints
 }
 
 // fuzzyScore returns a simple subsequence match score

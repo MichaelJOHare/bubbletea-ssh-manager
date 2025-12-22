@@ -9,10 +9,10 @@ import (
 // HostEntry is a minimal representation of a Host block from an SSH-style config.
 // It intentionally contains only the fields this project currently supports.
 type HostEntry struct {
-	Alias    string
-	HostName string
-	Port     string
-	User     string
+	Alias    string // ssh-style Host alias from the config
+	HostName string // hostname or IP address
+	Port     string // port number as string
+	User     string // user name
 }
 
 const maxIncludeDepth = 5

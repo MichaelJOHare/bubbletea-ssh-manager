@@ -6,14 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-)
-
-const (
-	sshHostNameColor    = lipgloss.Color("10")  // green
-	telnetHostNameColor = lipgloss.Color("210") // pink
-	groupNameColor      = lipgloss.Color("208") // orange
 )
 
 type menuDelegate struct {

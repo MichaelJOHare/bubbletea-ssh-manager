@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -11,30 +9,42 @@ func normalizeString(s string) string {
 	return strings.ToLower(strings.TrimSpace(s))
 }
 
-// normalizePort returns a validated numeric port for a protocol.
+// lastNonEmptyLine returns the last non-empty line from the given string.
 //
-// Behavior:
-//   - If port is empty, returns the default port for the protocol (ssh=22, telnet=23).
-//   - If port is numeric, validates it's within 1..65535 and returns it.
-func normalizePort(port string, protocol string) (string, error) {
-	port = strings.TrimSpace(port)
-	protocol = normalizeString(protocol)
-
-	if port == "" {
-		switch protocol {
-		case "ssh":
-			return "22", nil
-		case "telnet":
-			return "23", nil
+// Used to extract error messages from command output and parse errors.
+func lastNonEmptyLine(s string) string {
+	lines := splitStringOnNewline(s)
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if line != "" {
+			return line
 		}
 	}
+	return ""
+}
 
-	n, err := strconv.Atoi(port)
-	if err != nil {
-		return "", fmt.Errorf("invalid %s port %q", protocol, port)
+// splitStringOnNewline normalizes line endings to Unix-style LF then splits.
+//
+// Returns a slice of lines.
+func splitStringOnNewline(s string) []string {
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+	return strings.Split(s, "\n")
+}
+
+// splitStringOnDelim splits a string on the first dot (.) delimiter.
+//
+// Used to split grouped aliases like "group.nickname".
+// Returns ok=false if the string does not contain a valid delimiter.
+func splitStringOnDelim(alias string) (groupRaw, nicknameRaw string, ok bool) {
+	before, after, ok := strings.Cut(alias, ".")
+	if !ok {
+		return "", "", false
 	}
-	if n < 1 || n > 65535 {
-		return "", fmt.Errorf("port out of range: %d", n)
+	before = strings.TrimSpace(before)
+	after = strings.TrimSpace(after)
+	if before == "" || after == "" {
+		return "", "", false
 	}
-	return strconv.Itoa(n), nil
+	return before, after, true
 }

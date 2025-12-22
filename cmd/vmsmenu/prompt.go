@@ -16,7 +16,7 @@ func (m model) beginUserPrompt(it *menuItem, title string) (model, tea.Cmd, bool
 	}
 	m.promptingUser = true
 	m.pendingHost = it
-	// prefill with existing user (from config or previous override) so it's easy to fix typos
+	// prefill with existing user (from config or previous override) for convenience
 	m.prompt.SetValue(strings.TrimSpace(it.user))
 	m.prompt.Focus()
 	m.setStatus(title, false, 0)

@@ -11,22 +11,6 @@ import (
 	"strings"
 )
 
-// splitGroupedAlias splits an alias of the form "group.nickname" into its parts.
-//
-// Returns ok=false if the alias is not in the expected format.
-func splitGroupedAlias(alias string) (groupRaw, nicknameRaw string, ok bool) {
-	before, after, ok := strings.Cut(alias, ".")
-	if !ok {
-		return "", "", false
-	}
-	before = strings.TrimSpace(before)
-	after = strings.TrimSpace(after)
-	if before == "" || after == "" {
-		return "", "", false
-	}
-	return before, after, true
-}
-
 // formatGroupName formats a raw group name for display.
 //
 // It replaces hyphens with spaces, trims whitespace, collapses
@@ -49,7 +33,7 @@ func addMenuItem(ungrouped *[]*menuItem, groups map[string]*menuItem, host *menu
 	}
 
 	// grouped alias: add to group (create group if needed)
-	groupRaw, nickRaw, ok := splitGroupedAlias(alias)
+	groupRaw, nickRaw, ok := splitStringOnDelim(alias)
 	if ok {
 		groupName := formatGroupName(groupRaw)
 		displayName := normalizeString(nickRaw)

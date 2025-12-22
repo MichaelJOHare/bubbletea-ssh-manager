@@ -43,6 +43,17 @@ func (it *menuItem) FilterValue() string {
 	return it.name
 }
 
+// toListItems converts a slice of menuItem pointers to a slice of list.Item.
+//
+// Used to turn custom menu items into list items for the Bubble Tea list component.
+func toListItems(items []*menuItem) []list.Item {
+	out := make([]list.Item, 0, len(items))
+	for _, it := range items {
+		out = append(out, it)
+	}
+	return out
+}
+
 // current returns the current menu item (the last in the path).
 func (m *model) current() *menuItem {
 	return m.path[len(m.path)-1]
@@ -51,15 +62,6 @@ func (m *model) current() *menuItem {
 // inGroup returns true if the current path is inside a group (not at root).
 func (m *model) inGroup() bool {
 	return len(m.path) > 1
-}
-
-// toListItems converts a slice of menuItem pointers to a slice of list.Item.
-func toListItems(items []*menuItem) []list.Item {
-	out := make([]list.Item, 0, len(items))
-	for _, it := range items {
-		out = append(out, it)
-	}
-	return out
 }
 
 // setCurrentMenu sets the current menu items and updates the list title.

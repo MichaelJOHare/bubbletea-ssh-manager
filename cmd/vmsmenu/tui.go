@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bubbletea-ssh-manager/internal/connect"
 	"fmt"
 	"strings"
 	"time"
@@ -11,8 +12,16 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const infoStatusTTL = 8 * time.Second         // duration for non-error info statuses
-const promptLabelColor = lipgloss.Color("37") // blue
+const statusTTL = 8 * time.Second // duration for non-error info statuses
+const (
+	statusColor         = lipgloss.Color("243") // default status color (gray)
+	errorStatusColor    = lipgloss.Color("9")   // error status color (red)
+	searchLabelColor    = lipgloss.Color("36")  // cyan
+	promptLabelColor    = lipgloss.Color("129") // magenta
+	sshHostNameColor    = lipgloss.Color("10")  // green
+	telnetHostNameColor = lipgloss.Color("210") // pink
+	groupNameColor      = lipgloss.Color("208") // orange
+)
 
 // Init returns the initial command for the TUI (blinking cursor).
 func (m model) Init() tea.Cmd {
@@ -53,7 +62,7 @@ func newModel() model {
 	q.Prompt = "\nSearch: "
 	q.Focus()
 
-	// text input for SSH username prompt (only shown when needed)
+	// text input for generic prompt (only shown when needed)
 	u := textinput.New()
 	u.Placeholder = "username"
 	u.Prompt = "\nUser: "
@@ -117,6 +126,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.preflighting || msg.token != m.preflightToken {
 			return m, nil
 		}
+		// replace with bubbles timer?
 		remaining := max(int(time.Until(m.preflightEndsAt).Round(time.Second).Seconds()), 0)
 		m.setStatus(fmt.Sprintf("Checking %s %s (%ds)…", m.preflightProtocol, m.preflightHostPort, remaining), false, 0)
 		if remaining > 0 {
@@ -124,10 +134,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	// handle preflight result messages to start connection or show error
 	case preflightResultMsg:
 		if !m.preflighting || msg.token != m.preflightToken {
 			return m, nil
 		}
+		// capture preflight state
 		protocol := m.preflightProtocol
 		hostPort := m.preflightHostPort
 		display := m.preflightDisplay
@@ -135,22 +147,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd := m.preflightCmd
 		tail := m.preflightTail
 
-		m.preflighting = false
-		m.preflightEndsAt = time.Time{}
-		m.preflightProtocol = ""
-		m.preflightHostPort = ""
-		m.preflightWindowTitle = ""
-		m.preflightCmd = nil
-		m.preflightTail = nil
-		m.preflightDisplay = ""
+		// clear stored preflight state
+		m.clearPreflightState()
 
+		// if preflight failed, return error status
 		if msg.err != nil {
-			statusCmd := m.setStatus(fmt.Sprintf("%s %s failed: \n%v", protocol, hostPort, msg.err), true, infoStatusTTL)
+			statusCmd := m.setStatus(fmt.Sprintf("%s %s failed: \n%v", protocol, hostPort, msg.err), true, statusTTL)
 			return m, statusCmd
 		}
 
 		m.setStatus(fmt.Sprintf("Starting %s %s…", protocol, display), false, 0)
 
+		// start the actual connection command
 		return m, tea.Sequence(
 			tea.SetWindowTitle(windowTitle),
 			tea.ExecProcess(cmd, func(err error) tea.Msg {
@@ -163,6 +171,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}),
 		)
 
+	// handle connection finished messages to show success or error
 	case connectFinishedMsg:
 		titleCmd := tea.SetWindowTitle("MENU")
 		output := strings.TrimSpace(msg.output)
@@ -171,15 +180,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				statusCmd := m.setStatus(fmt.Sprintf("%s to %s exited:\n%s (%v)", msg.protocol, msg.target, output, msg.err), true, 0)
 				return m, tea.Batch(titleCmd, statusCmd)
 			}
-			if isConnectionAborted(msg.err) {
-				statusCmd := m.setStatus(fmt.Sprintf("%s to %s aborted.", msg.protocol, msg.target), true, infoStatusTTL)
+			if connect.IsConnectionAborted(msg.err) {
+				statusCmd := m.setStatus(fmt.Sprintf("%s to %s aborted.", msg.protocol, msg.target), true, statusTTL)
 				return m, tea.Batch(titleCmd, statusCmd)
 			}
 			statusCmd := m.setStatus(fmt.Sprintf("%s to %s exited - %v", msg.protocol, msg.target, msg.err), true, 0)
 			return m, tea.Batch(titleCmd, statusCmd)
 		}
 
-		statusCmd := m.setStatus(fmt.Sprintf("%s to %s ended.", msg.protocol, msg.target), false, infoStatusTTL)
+		statusCmd := m.setStatus(fmt.Sprintf("%s to %s ended.", msg.protocol, msg.target), false, statusTTL)
 		return m, tea.Batch(titleCmd, statusCmd)
 
 	// handle key presses
@@ -204,26 +213,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View renders the TUI components: list, status, hints, and search input.
+//
+// It returns the complete string to be displayed.
 func (m model) View() string {
 	if m.quitting {
 		return ""
 	}
 
-	statusColor := lipgloss.Color("243")
+	// determine status color
+	statusColor := statusColor
 	if m.statusIsError {
-		statusColor = lipgloss.Color("9")
+		statusColor = errorStatusColor
 	}
-	statusStyle := lipgloss.NewStyle().Foreground(statusColor).PaddingLeft(footerPadLeft).PaddingTop(1)
-	searchStyle := lipgloss.NewStyle().Foreground(promptLabelColor).Bold(true).PaddingLeft(footerPadLeft)
 
+	// set styles
+	statusStyle := lipgloss.NewStyle().Foreground(statusColor).PaddingLeft(footerPadLeft).PaddingTop(1)
+	searchStyle := lipgloss.NewStyle().Foreground(searchLabelColor).Bold(true).PaddingLeft(footerPadLeft)
+	promptStyle := lipgloss.NewStyle().Foreground(promptLabelColor).Bold(true).PaddingLeft(footerPadLeft)
+
+	// render status line
 	lines := []string{m.lst.View()}
 	if strings.TrimSpace(m.status) != "" {
 		lines = append(lines, statusStyle.Render(m.status))
 	}
+
+	// render search or prompt input
 	if m.promptingUser {
-		lines = append(lines, searchStyle.Render(m.prompt.View()))
+		lines = append(lines, promptStyle.Render(m.prompt.View()))
 	} else {
 		lines = append(lines, searchStyle.Render(m.query.View()))
 	}
+
 	return strings.Join(lines, "\n")
 }
