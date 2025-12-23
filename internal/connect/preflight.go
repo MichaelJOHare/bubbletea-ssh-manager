@@ -15,7 +15,7 @@ func ShouldPreflight(t Target) bool {
 	case "telnet":
 		return true
 	case "ssh":
-		return strings.TrimSpace(t.host) != ""
+		return strings.TrimSpace(t.HostName) != ""
 	default:
 		return false
 	}
@@ -23,8 +23,8 @@ func ShouldPreflight(t Target) bool {
 
 // HostPortForPreflight returns the host or host:port string used for preflight.
 func HostPortForPreflight(t Target) string {
-	host := strings.TrimSpace(t.host)
-	port := strings.TrimSpace(t.port)
+	host := strings.TrimSpace(t.HostName)
+	port := strings.TrimSpace(t.Port)
 	if host == "" {
 		return ""
 	}

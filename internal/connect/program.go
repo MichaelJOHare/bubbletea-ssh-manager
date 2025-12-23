@@ -19,13 +19,10 @@ func PreferredProgramPath(name string) (string, error) {
 		return "", fmt.Errorf("empty program name")
 	}
 
-	// Prefer MSYS2 binaries when running on Windows.
+	// prefer MSYS2 binaries when running on Windows
 	if runtime.GOOS == "windows" {
 		roots := []string{}
-		if v := strings.TrimSpace(os.Getenv("BTSM_MSYS_ROOT")); v != "" {
-			roots = append(roots, v)
-		}
-		// Default install location.
+		// default install location
 		roots = append(roots, `C:\msys64`)
 		for _, root := range roots {
 			p := filepath.Join(root, "usr", "bin", name+".exe")
@@ -35,7 +32,7 @@ func PreferredProgramPath(name string) (string, error) {
 		}
 	}
 
-	// Fallback to PATH lookup.
+	// fallback to PATH lookup
 	p, err := exec.LookPath(name)
 	if err != nil {
 		return "", err

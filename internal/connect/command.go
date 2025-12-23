@@ -1,6 +1,7 @@
 package connect
 
 import (
+	"bubbletea-ssh-manager/internal/host"
 	"fmt"
 	"io"
 	"os"
@@ -11,13 +12,10 @@ import (
 type Request struct {
 	Protocol    string // "ssh" or "telnet"
 	DisplayName string // optional; used only for friendlier error messages
-	Alias       string // ssh-style Host alias from the config
-	User        string // optional user name
-	Host        string // hostname or IP address
-	Port        string // port number as string
+	host.Spec          // shared host fields (alias/hostname/port/user)
 }
 
-// BuildCommand builds the exec.Cmd to connect.
+// BuildCommand builds the exec.Cmd to connect to the given Request.
 //
 // It returns a Target for display/title, and a TailBuffer that captures the last
 // part of the command output for error reporting.
@@ -38,50 +36,50 @@ func BuildCommand(req Request) (cmd *exec.Cmd, tgt Target, tail *TailBuffer, err
 
 	alias := strings.TrimSpace(req.Alias)
 	user := strings.TrimSpace(req.User)
-	host := strings.TrimSpace(req.Host)
+	hostName := strings.TrimSpace(req.HostName)
 	portRaw := strings.TrimSpace(req.Port)
 
 	if alias == "" {
 		return nil, Target{}, nil, fmt.Errorf("empty %s alias", protocol)
 	}
 
-	tgt = Target{protocol: protocol, alias: alias, user: user, host: host}
+	tgt = Target{protocol: protocol, Spec: host.Spec{Alias: alias, User: user, HostName: hostName}}
 
 	var args []string
 	switch protocol {
 	case "ssh":
 		// ssh connects by alias; hostname/port are only for display/preflight
-		if host != "" {
+		if hostName != "" {
 			p, err := NormalizePort(portRaw, "ssh")
 			if err != nil {
 				return nil, Target{}, nil, err
 			}
-			tgt.port = p
+			tgt.Port = p
 		}
 		if user != "" {
-			args = []string{"-l", user, alias}
+			args = append(args, "-l", user, alias)
 		} else {
-			args = []string{alias}
+			args = append(args, alias)
 		}
 
 	case "telnet":
 		// telnet connects by hostname and port
-		if host == "" {
+		if hostName == "" {
 			return nil, Target{}, nil, fmt.Errorf("telnet %q: empty hostname", alias)
 		}
 		p, err := NormalizePort(portRaw, "telnet")
 		if err != nil {
 			return nil, Target{}, nil, err
 		}
-		tgt.port = p
-		args = []string{host, p}
+		tgt.Port = p
+		args = []string{hostName, p}
 	}
 
 	cmd = exec.Command(programPath, args...)
 	cmd.Stdin = os.Stdin
 
 	tail = NewTailBuffer(4096)
-	cmd.Stdout = io.MultiWriter(os.Stdout, tail)
+	cmd.Stdout = os.Stdout
 	cmd.Stderr = io.MultiWriter(os.Stderr, tail)
 
 	return cmd, tgt, tail, nil

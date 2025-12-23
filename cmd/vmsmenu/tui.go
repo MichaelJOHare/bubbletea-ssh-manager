@@ -2,11 +2,13 @@ package main
 
 import (
 	"bubbletea-ssh-manager/internal/connect"
+	str "bubbletea-ssh-manager/internal/stringutil"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -14,10 +16,11 @@ import (
 
 const statusTTL = 8 * time.Second // duration for non-error info statuses
 const (
-	statusColor         = lipgloss.Color("243") // default status color (gray)
+	statusColor         = lipgloss.Color("250") // default status color (gray)
 	errorStatusColor    = lipgloss.Color("9")   // error status color (red)
-	searchLabelColor    = lipgloss.Color("36")  // cyan
-	promptLabelColor    = lipgloss.Color("129") // magenta
+	searchLabelColor    = lipgloss.Color("74")  // blue
+	promptLabelColor    = lipgloss.Color("221") // yellow
+	spinnerColor        = lipgloss.Color("198") // pink
 	sshHostNameColor    = lipgloss.Color("10")  // green
 	telnetHostNameColor = lipgloss.Color("210") // pink
 	groupNameColor      = lipgloss.Color("208") // orange
@@ -68,6 +71,11 @@ func newModel() model {
 	u.Prompt = "\nUser: "
 	u.Blur()
 
+	// spinner for preflight checks
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(spinnerColor)
+
 	// seed menu and initial state
 	root, seedErr := seedMenu()
 	path := []*menuItem{root}
@@ -86,6 +94,7 @@ func newModel() model {
 	m := model{
 		query:    q,
 		prompt:   u,
+		spinner:  s,
 		delegate: d,
 		root:     root,
 		path:     path,
@@ -95,7 +104,7 @@ func newModel() model {
 	m.initHelpKeys()
 	m.setCurrentMenu(items)
 	if seedErr != nil {
-		m.setStatus("Config: "+lastNonEmptyLine(seedErr.Error()), true, 0)
+		m.setStatus("Config: "+str.LastNonEmptyLine(seedErr.Error()), true, 0)
 	}
 	return m
 }
@@ -112,6 +121,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.relayout()
 		return m, nil
 
+	case spinner.TickMsg:
+		// only animate the spinner during preflight
+		if !m.preflighting {
+			return m, nil
+		}
+		var cmd tea.Cmd
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
+
 	// handle status clear messages from temporary statuses
 	case statusClearMsg:
 		if msg.token == m.statusToken {
@@ -126,9 +144,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.preflighting || msg.token != m.preflightToken {
 			return m, nil
 		}
-		// replace with bubbles timer?
+		// Keep this lightweight: update only the remaining seconds for display.
 		remaining := max(int(time.Until(m.preflightEndsAt).Round(time.Second).Seconds()), 0)
-		m.setStatus(fmt.Sprintf("Checking %s %s (%ds)…", m.preflightProtocol, m.preflightHostPort, remaining), false, 0)
+		m.preflightRemaining = remaining
 		if remaining > 0 {
 			return m, preflightTickCmd(msg.token)
 		}
@@ -139,6 +157,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.preflighting || msg.token != m.preflightToken {
 			return m, nil
 		}
+
 		// capture preflight state
 		protocol := m.preflightProtocol
 		hostPort := m.preflightHostPort
@@ -156,23 +175,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, statusCmd
 		}
 
-		m.setStatus(fmt.Sprintf("Starting %s %s…", protocol, display), false, 0)
+		// preflight succeeded; start connection
+		//m.executing = true
+		return m, launchExecCmd(windowTitle, cmd, protocol, display, tail)
 
-		// start the actual connection command
-		return m, tea.Sequence(
-			tea.SetWindowTitle(windowTitle),
-			tea.ExecProcess(cmd, func(err error) tea.Msg {
-				out := ""
-				if tail != nil {
-					out = strings.TrimSpace(tail.String())
-					out = lastNonEmptyLine(out)
-				}
-				return connectFinishedMsg{protocol: protocol, target: display, err: err, output: out}
-			}),
-		)
-
-	// handle connection finished messages to show success or error
+	// handle connection finished messages
 	case connectFinishedMsg:
+		//m.executing = false
 		titleCmd := tea.SetWindowTitle("MENU")
 		output := strings.TrimSpace(msg.output)
 		if msg.err != nil {
@@ -184,7 +193,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				statusCmd := m.setStatus(fmt.Sprintf("%s to %s aborted.", msg.protocol, msg.target), true, statusTTL)
 				return m, tea.Batch(titleCmd, statusCmd)
 			}
-			statusCmd := m.setStatus(fmt.Sprintf("%s to %s exited - %v", msg.protocol, msg.target, msg.err), true, 0)
+			statusCmd := m.setStatus(fmt.Sprintf("%s to %s exited:\n%v", msg.protocol, msg.target, msg.err), true, 0)
 			return m, tea.Batch(titleCmd, statusCmd)
 		}
 
@@ -199,11 +208,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// always update query input first
+	prevQuery := m.query.Value()
 	var cmd1 tea.Cmd
 	m.query, cmd1 = m.query.Update(msg)
+	newQuery := m.query.Value()
 
-	// reapply filter whenever the query changes
-	m.applyFilter(m.query.Value())
+	// reapply filter (and refresh help keys) only when the query changes
+	if newQuery != prevQuery {
+		m.applyFilter(newQuery)
+		m.syncHelpKeys()
+	}
 
 	// then update list navigation
 	var cmd2 tea.Cmd
@@ -219,6 +233,9 @@ func (m model) View() string {
 	if m.quitting {
 		return ""
 	}
+	if m.executing {
+		return ""
+	}
 
 	// determine status color
 	statusColor := statusColor
@@ -227,14 +244,20 @@ func (m model) View() string {
 	}
 
 	// set styles
-	statusStyle := lipgloss.NewStyle().Foreground(statusColor).PaddingLeft(footerPadLeft).PaddingTop(1)
+	statusPadStyle := lipgloss.NewStyle().PaddingLeft(footerPadLeft).PaddingTop(1)
+	statusTextStyle := lipgloss.NewStyle().Foreground(statusColor)
 	searchStyle := lipgloss.NewStyle().Foreground(searchLabelColor).Bold(true).PaddingLeft(footerPadLeft)
 	promptStyle := lipgloss.NewStyle().Foreground(promptLabelColor).Bold(true).PaddingLeft(footerPadLeft)
 
 	// render status line
 	lines := []string{m.lst.View()}
+	if m.preflighting && !m.statusIsError {
+		remaining := max(m.preflightRemaining, 0)
+		line := fmt.Sprintf("%s Checking %s %s (%ds)…", m.spinner.View(), m.preflightProtocol, m.preflightHostPort, remaining)
+		lines = append(lines, statusPadStyle.Render(statusTextStyle.Render(line)))
+	}
 	if strings.TrimSpace(m.status) != "" {
-		lines = append(lines, statusStyle.Render(m.status))
+		lines = append(lines, statusPadStyle.Render(statusTextStyle.Render(m.status)))
 	}
 
 	// render search or prompt input

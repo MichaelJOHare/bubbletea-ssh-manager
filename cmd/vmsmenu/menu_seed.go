@@ -1,5 +1,7 @@
 package main
 
+import "bubbletea-ssh-manager/internal/host"
+
 // seedMenu creates the initial menu structure.
 //
 // It builds the menu from existing config files.
@@ -17,8 +19,8 @@ func seedMenu() (*menuItem, error) {
 		kind: itemGroup,
 		name: "IF YOU'RE SEEING THIS IT MEANS NO SSH OR TELNET CONFIG FILES WERE FOUND",
 		children: []*menuItem{
-			{kind: itemHost, name: "stub", protocol: "ssh", alias: "l2.IA21"},
-			{kind: itemHost, name: "stub", protocol: "telnet", alias: "l2.IA21"},
+			{kind: itemHost, name: "stub", protocol: "ssh", spec: host.Spec{Alias: "l2.IA21"}},
+			{kind: itemHost, name: "stub", protocol: "telnet", spec: host.Spec{Alias: "l2.IA21"}},
 		},
 	}
 
@@ -33,8 +35,8 @@ func seedMenu() (*menuItem, error) {
 		children: []*menuItem{
 			l1,
 			l2,
-			{kind: itemHost, name: "stub", protocol: "ssh", alias: "devbox"},
-			{kind: itemHost, name: "stub", protocol: "telnet", alias: "router", hostname: "router", port: "23"},
+			{kind: itemHost, name: "stub", protocol: "ssh", spec: host.Spec{Alias: "devbox"}},
+			{kind: itemHost, name: "stub", protocol: "telnet", spec: host.Spec{Alias: "router", HostName: "router", Port: "23"}},
 		},
 	}, err
 }

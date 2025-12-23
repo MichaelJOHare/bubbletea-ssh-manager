@@ -2,10 +2,13 @@ package main
 
 import (
 	"bubbletea-ssh-manager/internal/connect"
+	"bubbletea-ssh-manager/internal/host"
+	"bubbletea-ssh-manager/internal/sshopts"
 	"os/exec"
 	"time"
 
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 )
 
@@ -22,17 +25,9 @@ type menuItem struct {
 	name string   // display name (host alias or group name)
 
 	// host-only fields
-	protocol string // "ssh" or "telnet"
-
-	// for SSH connections we connect by alias
-	alias string // ssh-style Host alias from the config
-
-	// for Telnet connections we connect by hostname and a numeric port
-	hostname string // hostname or IP address
-	port     string // port number as string
-
-	// ssh-only fields
-	user string // user comes from the SSH-style "User" directive
+	protocol string          // "ssh" or "telnet"
+	spec     host.Spec       // shared host fields (alias/hostname/port/user)
+	options  sshopts.Options // SSH options (only for SSH hosts)
 
 	// group-only fields
 	children []*menuItem // child menu items
@@ -44,6 +39,7 @@ type model struct {
 
 	query         textinput.Model // search input box
 	prompt        textinput.Model // generic prompt input (reused for username/addhost/etc)
+	spinner       spinner.Model   // spinner for preflight checks
 	promptingUser bool            // whether we're currently prompting for a username
 	pendingHost   *menuItem       // host waiting for username input
 	delegate      *menuDelegate   // list delegate for rendering items
@@ -57,10 +53,12 @@ type model struct {
 	statusIsError bool   // is the status an error message?
 	statusToken   int    // increments on status updates; tracked to clear status
 	quitting      bool   // is the app quitting?
+	executing     bool   // running external ssh/telnet session (blank the TUI)
 
 	// preflight state: optional TCP reachability check before handing control to ssh/telnet
 	preflighting         bool      // are we in a preflight check?
 	preflightToken       int       // increments on preflight starts; for tick/result matching
+	preflightRemaining   int       // remaining seconds in preflight (for display)
 	preflightEndsAt      time.Time // when the preflight should end
 	preflightProtocol    string    // "ssh" or "telnet"
 	preflightHostPort    string    // host:port being checked

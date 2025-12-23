@@ -1,6 +1,7 @@
 package main
 
 import (
+	str "bubbletea-ssh-manager/internal/stringutil"
 	"fmt"
 	"io"
 	"strings"
@@ -61,10 +62,10 @@ func (d *menuDelegate) Render(w io.Writer, m list.Model, index int, item list.It
 		case itemHost:
 			if d.groupHints != nil {
 				if grp := strings.TrimSpace(d.groupHints[mi]); grp != "" {
-					desc = normalizeString(mi.protocol) + " • " + grp
+					desc = str.NormalizeString(mi.protocol) + " • " + grp
 				}
 			}
-			protocol := normalizeString(mi.protocol)
+			protocol := str.NormalizeString(mi.protocol)
 			if protocol == "telnet" {
 				normalTitle = normalTitle.Foreground(telnetHostNameColor)
 				selectedTitle = selectedTitle.Foreground(telnetHostNameColor)

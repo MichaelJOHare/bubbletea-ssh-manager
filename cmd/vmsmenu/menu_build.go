@@ -1,6 +1,7 @@
 package main
 
 import (
+	str "bubbletea-ssh-manager/internal/stringutil"
 	"bubbletea-ssh-manager/internal/config"
 
 	"cmp"
@@ -27,16 +28,16 @@ func addMenuItem(ungrouped *[]*menuItem, groups map[string]*menuItem, host *menu
 	if host == nil {
 		return
 	}
-	alias := strings.TrimSpace(host.alias)
+	alias := strings.TrimSpace(host.spec.Alias)
 	if alias == "" {
 		return
 	}
 
 	// grouped alias: add to group (create group if needed)
-	groupRaw, nickRaw, ok := splitStringOnDelim(alias)
+	groupRaw, nickRaw, ok := str.SplitStringOnDelim(alias)
 	if ok {
 		groupName := formatGroupName(groupRaw)
-		displayName := normalizeString(nickRaw)
+		displayName := str.NormalizeString(nickRaw)
 		host.name = displayName
 
 		g, exists := groups[groupName]
@@ -49,7 +50,7 @@ func addMenuItem(ungrouped *[]*menuItem, groups map[string]*menuItem, host *menu
 	}
 
 	// ungrouped alias: lowercase it for display and add to root
-	displayName := normalizeString(alias)
+	displayName := str.NormalizeString(alias)
 	host.name = displayName
 	*ungrouped = append(*ungrouped, host)
 }
@@ -81,7 +82,7 @@ func buildMenuFromConfigs() ([]*menuItem, error) {
 			if alias == "" {
 				continue
 			}
-			h := &menuItem{kind: itemHost, protocol: "ssh", alias: alias, hostname: e.HostName, port: e.Port, user: e.User}
+			h := &menuItem{kind: itemHost, protocol: "ssh", spec: e}
 			addMenuItem(&ungrouped, groups, h)
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -96,7 +97,7 @@ func buildMenuFromConfigs() ([]*menuItem, error) {
 			if alias == "" || host == "" {
 				continue
 			}
-			h := &menuItem{kind: itemHost, protocol: "telnet", alias: alias, hostname: host, port: e.Port, user: e.User}
+			h := &menuItem{kind: itemHost, protocol: "telnet", spec: e}
 			addMenuItem(&ungrouped, groups, h)
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {

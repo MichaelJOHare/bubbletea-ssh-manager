@@ -4,8 +4,13 @@ package connect
 //
 // It implements io.Writer.
 type TailBuffer struct {
-	buf []byte
-	max int
+	buf []byte // buffered data
+	max int    // maximum bytes to keep
+}
+
+// String returns the buffer contents as a string.
+func (t *TailBuffer) String() string {
+	return string(t.buf)
 }
 
 // NewTailBuffer creates a new TailBuffer that keeps up to max bytes.
@@ -22,22 +27,17 @@ func (t *TailBuffer) Write(p []byte) (int, error) {
 		return 0, nil
 	}
 
-	// Too much data: keep only the tail.
+	// too much data, keep only the tail
 	if len(p) >= t.max {
 		t.buf = append(t.buf[:0], p[len(p)-t.max:]...)
 		return len(p), nil
 	}
 
-	// Append and trim from the front if needed.
+	// append and trim from the front if needed
 	need := len(t.buf) + len(p) - t.max
 	if need > 0 {
 		t.buf = t.buf[need:]
 	}
 	t.buf = append(t.buf, p...)
 	return len(p), nil
-}
-
-// String returns the buffer contents as a string.
-func (t *TailBuffer) String() string {
-	return string(t.buf)
 }

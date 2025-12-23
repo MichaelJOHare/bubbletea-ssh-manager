@@ -1,36 +1,39 @@
 package connect
 
-import "strings"
+import (
+	"bubbletea-ssh-manager/internal/host"
+	str "bubbletea-ssh-manager/internal/stringutil"
+	"strings"
+)
 
 type Target struct {
-	protocol string
-	alias    string
-	user     string
-	host     string
-	port     string
+	protocol  string // "ssh" or "telnet"
+	host.Spec        // shared host fields (alias/hostname/port/user)
 }
 
+// Protocol returns the connection protocol: "ssh" or "telnet".
 func (t Target) Protocol() string {
 	return t.protocol
 }
 
 // Display returns the human-readable target for status messages.
+//
 // Examples:
 //   - ssh:    mike@krabby <10.0.0.147:22>
 //   - ssh:    krabby
 //   - telnet: router <router:23>
 func (t Target) Display() string {
-	alias := strings.TrimSpace(t.alias)
-	user := strings.TrimSpace(t.user)
-	host := strings.TrimSpace(t.host)
-	port := strings.TrimSpace(t.port)
+	alias := strings.TrimSpace(t.Alias)
+	user := strings.TrimSpace(t.User)
+	hostName := strings.TrimSpace(t.HostName)
+	port := strings.TrimSpace(t.Port)
 
 	displayAlias := alias
 	if user != "" {
 		displayAlias = user + "@" + alias
 	}
-	if host != "" && port != "" {
-		return displayAlias + " <" + host + ":" + port + ">"
+	if hostName != "" && port != "" {
+		return displayAlias + " <" + hostName + ":" + port + ">"
 	}
 	return displayAlias
 }
@@ -39,16 +42,16 @@ func (t Target) Display() string {
 // Format: "ssh mike@KRABBY" (or group.HOST with host uppercased).
 func (t Target) WindowTitle() string {
 	protocol := strings.TrimSpace(t.protocol)
-	alias := strings.TrimSpace(t.alias)
-	user := strings.TrimSpace(t.user)
+	alias := strings.TrimSpace(t.Alias)
+	user := strings.TrimSpace(t.User)
 
 	if alias == "" {
 		return protocol
 	}
 
-	// Uppercase only the host portion of grouped aliases: group.HOST
+	// uppercase only the host portion of grouped aliases: group.HOST
 	aliasTitle := strings.ToUpper(alias)
-	if g, h, ok := splitGroupedAlias(alias); ok {
+	if g, h, ok := str.SplitStringOnDelim(alias); ok {
 		aliasTitle = g + "." + strings.ToUpper(h)
 	}
 
@@ -56,17 +59,4 @@ func (t Target) WindowTitle() string {
 		return protocol + " " + user + "@" + aliasTitle
 	}
 	return protocol + " " + aliasTitle
-}
-
-func splitGroupedAlias(alias string) (groupRaw, nicknameRaw string, ok bool) {
-	before, after, ok := strings.Cut(alias, ".")
-	if !ok {
-		return "", "", false
-	}
-	before = strings.TrimSpace(before)
-	after = strings.TrimSpace(after)
-	if before == "" || after == "" {
-		return "", "", false
-	}
-	return before, after, true
 }

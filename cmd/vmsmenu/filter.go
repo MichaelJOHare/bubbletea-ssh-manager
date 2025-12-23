@@ -1,6 +1,7 @@
 package main
 
 import (
+	str "bubbletea-ssh-manager/internal/stringutil"
 	"cmp"
 	"slices"
 	"strings"
@@ -13,7 +14,7 @@ import (
 // It performs a fuzzy match on the items' FilterValue() strings
 // and ranks them by match quality.
 func (m *model) applyFilter(q string) {
-	q = normalizeString(q)
+	q = str.NormalizeString(q)
 	if q == "" {
 		if m.delegate != nil {
 			m.delegate.groupHints = nil
@@ -70,7 +71,7 @@ func (m *model) applyFilter(q string) {
 		seen[it] = struct{}{}
 
 		// fuzzy match
-		hay := strings.ToLower(it.FilterValue())
+		hay := str.NormalizeString(it.FilterValue())
 		s, ok := fuzzyScore(q, hay)
 		if !ok {
 			continue
@@ -130,6 +131,9 @@ func allHostItemsAndGroupHints(root *menuItem) (hosts []*menuItem, hints map[*me
 // fuzzyScore returns a simple subsequence match score
 // higher is better. "ok" is false if q is not a subsequence of s.
 func fuzzyScore(q, s string) (score int, ok bool) {
+	q = str.NormalizeString(q)
+	s = str.NormalizeString(s)
+
 	// empty query matches everything with score 0
 	if q == "" {
 		return 0, true

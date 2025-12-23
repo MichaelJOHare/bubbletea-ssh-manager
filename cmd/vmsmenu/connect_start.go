@@ -2,7 +2,9 @@ package main
 
 import (
 	"bubbletea-ssh-manager/internal/connect"
+	str "bubbletea-ssh-manager/internal/stringutil"
 	"fmt"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -10,6 +12,30 @@ import (
 )
 
 const preflightTimeout = 10 * time.Second
+
+// launchExecCmd returns a command that exits the TUI and starts
+// the given exec.Cmd in the main terminal.
+//
+// The explicit call to tea.ExitAltScreen causes previous output on the main
+// terminal screen to not persist after the command exits.
+//
+// It sets the window title before starting the command, and sends a
+// connectFinishedMsg when the command exits, capturing any output from
+// the provided TailBuffer for error reporting.
+func launchExecCmd(windowTitle string, cmd *exec.Cmd, protocol string, target string, tail *connect.TailBuffer) tea.Cmd {
+	return tea.Sequence(
+		//tea.ExitAltScreen,
+		tea.SetWindowTitle(windowTitle),
+		tea.ExecProcess(cmd, func(err error) tea.Msg {
+			out := ""
+			if tail != nil {
+				out = strings.TrimSpace(tail.String())
+				out = str.LastNonEmptyLine(out)
+			}
+			return connectFinishedMsg{protocol: protocol, target: target, err: err, output: out}
+		}),
+	)
+}
 
 // preflightTickCmd returns a command that waits 1 second and then sends a preflightTickMsg
 // with the given token.
@@ -54,6 +80,7 @@ func (m model) cancelPreflightCmd() (model, tea.Cmd, bool) {
 func (m *model) clearPreflightState() {
 	m.preflighting = false
 	m.preflightEndsAt = time.Time{}
+	m.preflightRemaining = 0
 	m.preflightProtocol = ""
 	m.preflightHostPort = ""
 	m.preflightWindowTitle = ""
@@ -67,32 +94,33 @@ func (m *model) clearPreflightState() {
 // It sets the status message and returns a command to execute the connection process.
 // If an error occurs while building the command, it sets an error status instead.
 func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
+	// prevent multiple simultaneous connections
 	if m.preflighting {
 		statusCmd := m.setStatus("Already connecting…", false, statusTTL)
 		return m, statusCmd, true
 	}
 
+	// sanity check
 	if it == nil {
 		m.setStatus("No host selected.", true, 0)
 		return m, nil, true
 	}
 
+	// build the connection command
 	cmd, tgt, tail, err := connect.BuildCommand(connect.Request{
 		Protocol:    it.protocol,
 		DisplayName: it.name,
-		Alias:       it.alias,
-		User:        it.user,
-		Host:        it.hostname,
-		Port:        it.port,
+		Spec:        it.spec,
 	})
 	if err != nil {
 		m.setStatus(err.Error(), true, 0)
 		return m, nil, true
 	}
 
-	protocol := tgt.Protocol()
+	protocol := str.NormalizeString(tgt.Protocol())
 	display := tgt.Display()
 
+	// check if we need to preflight
 	if connect.ShouldPreflight(tgt) {
 		hostPort := connect.HostPortForPreflight(tgt)
 		if strings.TrimSpace(hostPort) == "" {
@@ -103,6 +131,7 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 		m.preflighting = true
 		m.preflightToken++
 		tok := m.preflightToken
+		m.preflightRemaining = int(preflightTimeout.Seconds())
 		m.preflightEndsAt = time.Now().Add(preflightTimeout)
 		m.preflightProtocol = protocol
 		m.preflightHostPort = hostPort
@@ -111,21 +140,12 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 		m.preflightTail = tail
 		m.preflightDisplay = display
 
-		m.setStatus(fmt.Sprintf("Checking %s %s (10s)…", protocol, hostPort), false, 0)
-		return m, tea.Batch(preflightDialCmd(tok, hostPort), preflightTickCmd(tok)), true
+		m.relayout()
+
+		return m, tea.Batch(preflightDialCmd(tok, hostPort), preflightTickCmd(tok), m.spinner.Tick), true
 	}
 
-	m.setStatus(fmt.Sprintf("Starting %s %s…", protocol, display), false, 0)
-
-	return m, tea.Sequence(
-		tea.SetWindowTitle(tgt.WindowTitle()),
-		tea.ExecProcess(cmd, func(err error) tea.Msg {
-			out := ""
-			if tail != nil {
-				out = strings.TrimSpace(tail.String())
-				out = lastNonEmptyLine(out)
-			}
-			return connectFinishedMsg{protocol: protocol, target: display, err: err, output: out}
-		}),
-	), true
+	// no preflight needed; start connection immediately
+	m.executing = true
+	return m, launchExecCmd(tgt.WindowTitle(), cmd, protocol, display, tail), true
 }

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bubbletea-ssh-manager/internal/host"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -8,12 +9,7 @@ import (
 
 // HostEntry is a minimal representation of a Host block from an SSH-style config.
 // It intentionally contains only the fields this project currently supports.
-type HostEntry struct {
-	Alias    string // ssh-style Host alias from the config
-	HostName string // hostname or IP address
-	Port     string // port number as string
-	User     string // user name
-}
+type HostEntry = host.Spec
 
 const maxIncludeDepth = 5
 

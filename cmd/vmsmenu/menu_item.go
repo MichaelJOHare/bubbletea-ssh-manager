@@ -29,13 +29,13 @@ func (it *menuItem) Description() string {
 func (it *menuItem) FilterValue() string {
 	if it.kind == itemHost {
 		parts := []string{it.name, it.protocol}
-		if v := strings.TrimSpace(it.alias); v != "" {
+		if v := strings.TrimSpace(it.spec.Alias); v != "" {
 			parts = append(parts, v)
 		}
-		if v := strings.TrimSpace(it.user); v != "" {
+		if v := strings.TrimSpace(it.spec.User); v != "" {
 			parts = append(parts, v)
 		}
-		if v := strings.TrimSpace(it.hostname); v != "" {
+		if v := strings.TrimSpace(it.spec.HostName); v != "" {
 			parts = append(parts, v)
 		}
 		return strings.Join(parts, " ")

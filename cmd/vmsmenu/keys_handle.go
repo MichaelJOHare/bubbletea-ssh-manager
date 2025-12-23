@@ -1,6 +1,7 @@
 package main
 
 import (
+	str "bubbletea-ssh-manager/internal/stringutil"
 	"fmt"
 	"strings"
 
@@ -47,7 +48,7 @@ func (m model) handlePromptKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 			m.setStatus("No host selected.", true, 0)
 			return m, nil, true
 		}
-		it.user = u
+		it.spec.User = u
 		return m.startConnect(it)
 	}
 
@@ -103,13 +104,15 @@ func (m model) handleNormalKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	case "esc":
 		return m.clearSearch()
 
-	// go back on left arrow if in a group
+	// go back on left arrow if in a group or search is active
 	case "left":
 		if m.inGroup() {
 			m.path = m.path[:len(m.path)-1]
 			m.query.SetValue("")
 			m.setCurrentMenu(m.current().children)
 			m.setStatus("", false, 0)
+		} else if m.query.Value() != "" {
+			return m.clearSearch()
 		}
 		return m, nil, true
 
@@ -126,8 +129,8 @@ func (m model) handleNormalKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 			}
 
 			// connect to host
-			if normalizeString(it.protocol) == "ssh" {
-				return m.beginUserPrompt(it, fmt.Sprintf("Enter SSH username for %s", strings.TrimSpace(it.alias)))
+			if str.NormalizeString(it.protocol) == "ssh" {
+				return m.beginUserPrompt(it, fmt.Sprintf("Enter SSH username for %s", strings.TrimSpace(it.spec.Alias)))
 			}
 			return m.startConnect(it)
 		}
