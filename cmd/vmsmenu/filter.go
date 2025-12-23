@@ -9,6 +9,43 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 )
 
+// getHostItemsWithHints returns all host items in the tree and an optional
+// group hint per host indicating where the host came from.
+//
+// Assumes groups are one level deep (non-nested): root contains (a) ungrouped
+// hosts and (b) group items whose direct children are hosts.
+func getHostItemsWithHints(root *menuItem) (hosts []*menuItem, hints map[*menuItem]string) {
+	if root == nil {
+		return nil, nil
+	}
+
+	hosts = make([]*menuItem, 0, 64)
+	hints = map[*menuItem]string{}
+	for _, it := range root.children {
+		if it == nil {
+			continue
+		}
+		if it.kind == itemHost {
+			hosts = append(hosts, it)
+			continue
+		}
+		if it.kind != itemGroup {
+			continue
+		}
+		grp := strings.TrimSpace(it.name)
+		for _, ch := range it.children {
+			if ch == nil || ch.kind != itemHost {
+				continue
+			}
+			hosts = append(hosts, ch)
+			if grp != "" {
+				hints[ch] = grp
+			}
+		}
+	}
+	return hosts, hints
+}
+
 // applyFilter filters the list items based on the query string q.
 //
 // It performs a fuzzy match on the items' FilterValue() strings
@@ -47,7 +84,7 @@ func (m *model) applyFilter(q string) {
 		}
 
 		// also include all hosts with group hints
-		hosts, hints := allHostItemsAndGroupHints(m.root)
+		hosts, hints := getHostItemsWithHints(m.root)
 		candidates = append(candidates, hosts...)
 		if m.delegate != nil {
 			m.delegate.groupHints = hints
@@ -89,43 +126,6 @@ func (m *model) applyFilter(q string) {
 		filtered = append(filtered, sm.item)
 	}
 	m.setItemsSafely(filtered)
-}
-
-// allHostItemsAndGroupHints returns all host items in the tree and an optional
-// group hint per host indicating where the host came from.
-//
-// Assumes groups are one level deep (non-nested): root contains (a) ungrouped
-// hosts and (b) group items whose direct children are hosts.
-func allHostItemsAndGroupHints(root *menuItem) (hosts []*menuItem, hints map[*menuItem]string) {
-	if root == nil {
-		return nil, nil
-	}
-
-	hosts = make([]*menuItem, 0, 64)
-	hints = map[*menuItem]string{}
-	for _, it := range root.children {
-		if it == nil {
-			continue
-		}
-		if it.kind == itemHost {
-			hosts = append(hosts, it)
-			continue
-		}
-		if it.kind != itemGroup {
-			continue
-		}
-		grp := strings.TrimSpace(it.name)
-		for _, ch := range it.children {
-			if ch == nil || ch.kind != itemHost {
-				continue
-			}
-			hosts = append(hosts, ch)
-			if grp != "" {
-				hints[ch] = grp
-			}
-		}
-	}
-	return hosts, hints
 }
 
 // fuzzyScore returns a simple subsequence match score

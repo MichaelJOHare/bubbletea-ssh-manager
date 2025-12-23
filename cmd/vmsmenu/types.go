@@ -41,8 +41,8 @@ type model struct {
 	prompt        textinput.Model // generic prompt input (reused for username/addhost/etc)
 	spinner       spinner.Model   // spinner for preflight checks
 	promptingUser bool            // whether we're currently prompting for a username
-	fullHelpOpen  bool            // full help modal is open (custom-rendered)
 	pendingHost   *menuItem       // host waiting for username input
+	fullHelpOpen  bool            // full help modal is open (custom-rendered)
 	delegate      *menuDelegate   // list delegate for rendering items
 
 	root     *menuItem   // root menu item

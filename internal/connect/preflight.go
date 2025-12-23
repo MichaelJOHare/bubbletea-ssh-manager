@@ -9,7 +9,7 @@ import (
 // ShouldPreflight returns true if the given Target requires a reachability check.
 //
 // Telnet always requires preflight (host/port).
-// SSH requires preflight if a hostname is set (host/port for display / checks).
+// SSH requires preflight if a hostname is set (host/port for display & checks).
 func ShouldPreflight(t Target) bool {
 	switch strings.TrimSpace(t.protocol) {
 	case "telnet":

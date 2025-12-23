@@ -13,10 +13,38 @@ import (
 // It returns (newModel, cmd, handled). If handled is false, the caller should
 // pass the message through to the query + list components.
 func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
-	// Full help behaves like a modal:
-	// - '?' opens it (no-op if already open)
-	// - 'left' closes it
-	// - while open, ignore all other keys so search/prompt don't change
+	if m.fullHelpOpen {
+		if nm, cmd, handled := m.handleFullHelpKeyMsg(msg); handled {
+			return nm, cmd, true
+		}
+	}
+
+	// keep full help available at any time except when it's already open
+	if msg.String() == "?" {
+		m.fullHelpOpen = true     // open full help
+		m.lst.SetShowHelp(false)  // hide base help
+		m.setStatus("", false, 0) // hide status
+		m.relayout()
+		return m, nil, true
+	}
+
+	if m.promptingUser {
+		return m.handlePromptKeyMsg(msg)
+	}
+
+	return m.handleBaseKeyMsg(msg)
+}
+
+// handleFullHelpKeyMsg handles key messages related to the full help view.
+//
+// Full help behaves like a modal:
+//   - '?' opens it (no-op if already open)
+//   - 'left' closes it
+//   - while open, ignore all other keys so search/prompt don't change
+//
+// It returns (newModel, cmd, handled). If handled is false, the caller should
+// pass the message through to the other handlers.
+func (m model) handleFullHelpKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	if m.fullHelpOpen {
 		switch msg.String() {
 		case "left":
@@ -47,19 +75,7 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		}
 	}
 
-	if msg.String() == "?" {
-		m.fullHelpOpen = true
-		m.lst.SetShowHelp(false)
-		m.setStatus("", false, 0)
-		m.relayout()
-		return m, nil, true
-	}
-
-	if m.promptingUser {
-		return m.handlePromptKeyMsg(msg)
-	}
-
-	return m.handleNormalKeyMsg(msg)
+	return m, nil, false
 }
 
 // handlePromptKeyMsg handles key messages when prompting for username.
@@ -99,11 +115,11 @@ func (m model) handlePromptKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	return m, cmd, true
 }
 
-// handleNormalKeyMsg handles key messages when not prompting for username.
+// handleBaseKeyMsg handles key messages from the base menu context.
 //
 // It returns (newModel, cmd, handled). If handled is false, the caller should
 // pass the message through to the query + list components.
-func (m model) handleNormalKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
+func (m model) handleBaseKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	switch msg.String() {
 	// cancel preflight or quit on Ctrl+C
 	case "ctrl+c":

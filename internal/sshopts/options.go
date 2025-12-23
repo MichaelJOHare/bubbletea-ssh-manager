@@ -22,7 +22,10 @@ func (o Options) IsZero() bool {
 
 // DisplayString returns a human-readable summary for UI display.
 //
-// Example output: "HostKeyAlgorithms=ssh-ed25519,rsa-sha2-512; KexAlgorithms=curve25519-sha256; MACs=hmac-sha2-256".
+// Example output:
+//   - HostKeyAlgorithms=ssh-ed25519,rsa-sha2-512
+//   - KexAlgorithms=curve25519-sha256
+//   - MACs=hmac-sha2-256
 //
 // Note: this is intentionally not used to construct the ssh command line.
 // This app connects by alias and relies on OpenSSH to apply ~/.ssh/config.
@@ -37,5 +40,5 @@ func (o Options) DisplayString() string {
 	if v := strings.TrimSpace(o.MACs); v != "" {
 		parts = append(parts, "MACs="+v)
 	}
-	return strings.Join(parts, "; ")
+	return strings.Join(parts, "\n")
 }

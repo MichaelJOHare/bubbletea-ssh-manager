@@ -1,8 +1,8 @@
 package main
 
 import (
-	str "bubbletea-ssh-manager/internal/stringutil"
 	"bubbletea-ssh-manager/internal/config"
+	str "bubbletea-ssh-manager/internal/stringutil"
 
 	"cmp"
 	"errors"
@@ -78,11 +78,11 @@ func buildMenuFromConfigs() ([]*menuItem, error) {
 	// parse ssh config, add hosts to menu
 	if sshEntries, err := config.ParseConfigRecursively(sshPath); err == nil {
 		for _, e := range sshEntries {
-			alias := strings.TrimSpace(e.Alias)
+			alias := strings.TrimSpace(e.Spec.Alias)
 			if alias == "" {
 				continue
 			}
-			h := &menuItem{kind: itemHost, protocol: "ssh", spec: e}
+			h := &menuItem{kind: itemHost, protocol: "ssh", spec: e.Spec, options: e.SSHOptions}
 			addMenuItem(&ungrouped, groups, h)
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -92,12 +92,12 @@ func buildMenuFromConfigs() ([]*menuItem, error) {
 	// parse telnet config, add hosts to menu
 	if telnetEntries, err := config.ParseConfigRecursively(telnetPath); err == nil {
 		for _, e := range telnetEntries {
-			alias := strings.TrimSpace(e.Alias)
-			host := strings.TrimSpace(e.HostName)
+			alias := strings.TrimSpace(e.Spec.Alias)
+			host := strings.TrimSpace(e.Spec.HostName)
 			if alias == "" || host == "" {
 				continue
 			}
-			h := &menuItem{kind: itemHost, protocol: "telnet", spec: e}
+			h := &menuItem{kind: itemHost, protocol: "telnet", spec: e.Spec}
 			addMenuItem(&ungrouped, groups, h)
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {

@@ -2,6 +2,7 @@ package config
 
 import (
 	"bubbletea-ssh-manager/internal/host"
+	"bubbletea-ssh-manager/internal/sshopts"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -9,8 +10,13 @@ import (
 
 // HostEntry is a minimal representation of a Host block from an SSH-style config.
 // It intentionally contains only the fields this project currently supports.
-type HostEntry = host.Spec
+type HostEntry struct {
+	Spec       host.Spec       // host fields that are shared between SSH and Telnet (alias/hostname/port/user)
+	SSHOptions sshopts.Options // SSH-specific options for this host
+	SourcePath string          // path to the config file this entry was read from
+}
 
+// maxIncludeDepth is the maximum depth for recursive Include parsing.
 const maxIncludeDepth = 5
 
 // UserConfigPath returns a path under the effective home directory.
@@ -34,6 +40,9 @@ func UserConfigPath(parts ...string) (string, error) {
 //   - HostName
 //   - User
 //   - Port
+//   - SSH options: HostKeyAlgorithms, KexAlgorithms, MACs
+//
+// It returns a slice of HostEntry structs representing the parsed hosts.
 func ParseConfigRecursively(path string) ([]HostEntry, error) {
 	return parseConfigRecursively(path, 0)
 }
@@ -48,14 +57,35 @@ func parseConfigRecursively(path string, depth int) ([]HostEntry, error) {
 		return nil, err
 	}
 
+	// store output entries, current host aliases, and parsed values
 	var out []HostEntry
 	currentAliases := []string{}
 	localOrder := []string{}
 	localSeen := map[string]bool{}
 	values := map[string]*HostEntry{}
 
+	// helper to get or create a HostEntry for the given alias
+	getOrCreate := func(alias string) *HostEntry {
+		if it, ok := values[alias]; ok && it != nil {
+			return it
+		}
+		it := &HostEntry{Spec: host.Spec{Alias: alias}, SourcePath: path}
+		values[alias] = it
+		return it
+	}
+	// helper to apply a function to all current aliases' HostEntrys
+	applyToCurrent := func(apply func(*HostEntry)) {
+		for _, a := range currentAliases {
+			if it := values[a]; it != nil {
+				apply(it)
+			}
+		}
+	}
+
+	// directory of the current config file (for relative includes)
 	relDir := filepath.Dir(path)
 
+	// parse lines and split into directives
 	for _, raw := range lines {
 		line := strings.TrimSpace(stripComment(raw))
 		if line == "" {
@@ -66,6 +96,7 @@ func parseConfigRecursively(path string, depth int) ([]HostEntry, error) {
 			continue
 		}
 
+		// handle include and host directives specially
 		key := strings.ToLower(fields[0])
 		switch key {
 		case "include":
@@ -89,7 +120,6 @@ func parseConfigRecursively(path string, depth int) ([]HostEntry, error) {
 					out = append(out, more...)
 				}
 			}
-
 		case "host":
 			currentAliases = currentAliases[:0]
 			for _, a := range fields[1:] {
@@ -97,50 +127,26 @@ func parseConfigRecursively(path string, depth int) ([]HostEntry, error) {
 					continue
 				}
 				currentAliases = append(currentAliases, a)
-				if _, ok := values[a]; !ok {
-					values[a] = &HostEntry{Alias: a}
-				}
+				getOrCreate(a)
 				if !localSeen[a] {
 					localSeen[a] = true
 					localOrder = append(localOrder, a)
 				}
 			}
 
-		case "hostname":
+		// handle other directives generically
+		default:
 			if len(fields) < 2 {
 				continue
 			}
-			v := fields[1]
-			for _, a := range currentAliases {
-				if it := values[a]; it != nil {
-					it.HostName = v
-				}
-			}
-
-		case "port":
-			if len(fields) < 2 {
-				continue
-			}
-			p := fields[1]
-			for _, a := range currentAliases {
-				if it := values[a]; it != nil {
-					it.Port = p
-				}
-			}
-
-		case "user":
-			if len(fields) < 2 {
-				continue
-			}
-			u := fields[1]
-			for _, a := range currentAliases {
-				if it := values[a]; it != nil {
-					it.User = u
-				}
-			}
+			value := strings.Join(fields[1:], " ")
+			applyToCurrent(func(it *HostEntry) {
+				parseHostBlockDirective(key, value, it)
+			})
 		}
 	}
 
+	// collect output entries in order
 	for _, a := range localOrder {
 		if it := values[a]; it != nil {
 			out = append(out, *it)
@@ -148,4 +154,40 @@ func parseConfigRecursively(path string, depth int) ([]HostEntry, error) {
 	}
 
 	return out, nil
+}
+
+// parseHostBlockDirective parses and applies a single Host block directive
+// to the given HostEntry.
+//
+// It returns true if the directive was recognized and applied.
+func parseHostBlockDirective(key string, value string, entry *HostEntry) bool {
+	if entry == nil {
+		return false
+	}
+
+	// standard host directives shared between SSH and Telnet
+	switch key {
+	case "hostname":
+		entry.Spec.HostName = value
+		return true
+	case "port":
+		entry.Spec.Port = value
+		return true
+	case "user":
+		entry.Spec.User = value
+		return true
+
+	// SSH options (a small subset), values are usually comma separated
+	case "hostkeyalgorithms":
+		entry.SSHOptions.HostKeyAlgorithms = value
+		return true
+	case "kexalgorithms":
+		entry.SSHOptions.KexAlgorithms = value
+		return true
+	case "macs":
+		entry.SSHOptions.MACs = value
+		return true
+	}
+
+	return false
 }

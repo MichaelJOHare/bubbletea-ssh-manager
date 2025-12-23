@@ -4,7 +4,7 @@
 
 This changes your "Home" to be in C:\msys64\home\username\ when using a bash shell, keep that in mind. You should have the .bin folder that contains the .exe for this project in that "Home" not the Windows home. Also be sure that the .bashrc, .bash_profile, and .profile files are there too.
 
-__IMPORTANt__: If you already have an SSH config make sure to copy the .ssh folder from your Windows home to the MSYS2 home otherwise your saved hosts etc. won't show up and you'll have to add them manually.
+__IMPORTANT__: If you already have an SSH config make sure to copy the .ssh folder from your Windows home to the MSYS2 home otherwise your saved hosts etc. won't show up and you'll have to add them manually.
 
 🟩 Correct: C:\msys64\home\username\\.bin\vmsmenu.exe  <--- MSYS2 Home
 

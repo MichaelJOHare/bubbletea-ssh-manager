@@ -26,7 +26,7 @@ const (
 	groupNameColor      = lipgloss.Color("208") // orange
 )
 
-// Init returns the initial command for the TUI (blinking cursor).
+// Init returns the initial command for the TUI (blinking cursor and window title).
 func (m model) Init() tea.Cmd {
 	return tea.Batch(tea.SetWindowTitle("MENU"), textinput.Blink)
 }
@@ -121,8 +121,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.relayout()
 		return m, nil
 
+	// handle spinner animation during preflight
 	case spinner.TickMsg:
-		// only animate the spinner during preflight
 		if !m.preflighting {
 			return m, nil
 		}
@@ -226,7 +226,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmd1, cmd2)
 }
 
-// View renders the TUI components: list, status, hints, and search input.
+// View renders the TUI components (in order top to bottom):
+//   - list
+//   - help (full or brief)
+//   - status
+//   - preflight spinner
+//   - search input or prompt input
 //
 // It returns the complete string to be displayed.
 func (m model) View() string {
@@ -250,8 +255,20 @@ func (m model) View() string {
 	promptStyle := lipgloss.NewStyle().Foreground(promptLabelColor).Bold(true).PaddingLeft(footerPadLeft)
 	helpStyle := lipgloss.NewStyle().PaddingLeft(footerPadLeft)
 
+	// render list
+	listView := m.lst.View()
+	if m.fullHelpOpen {
+		selected := m.lst.SelectedItem()
+		if selected != nil {
+			lst := m.lst
+			lst.SetItems([]list.Item{selected})
+			lst.Select(0)
+			listView = lst.View()
+		}
+	}
+
 	// render status line
-	lines := []string{m.lst.View()}
+	lines := []string{listView}
 	if m.preflighting && !m.statusIsError {
 		remaining := max(m.preflightRemaining, 0)
 		line := fmt.Sprintf("%s Checking %s %s (%ds)…", m.spinner.View(), m.preflightProtocol, m.preflightHostPort, remaining)

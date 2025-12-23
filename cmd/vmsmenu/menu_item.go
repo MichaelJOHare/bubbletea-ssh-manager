@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 )
 
-// Title returns the name of the menu item.
+// Title returns the main display name of the menu item.
 func (it *menuItem) Title() string {
 	return it.name
 }

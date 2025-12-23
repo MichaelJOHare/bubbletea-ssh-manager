@@ -13,31 +13,6 @@ import (
 
 const preflightTimeout = 10 * time.Second
 
-// launchExecCmd returns a command that exits the TUI and starts
-// the given exec.Cmd in the main terminal.
-//
-// tea.ExitAltScreen is used to to make every connection login
-// session start fresh in the main terminal, avoiding issues
-// with leftover TUI artifacts.
-//
-// It sets the window title before starting the command, and sends a
-// connectFinishedMsg when the command exits, capturing any output from
-// the provided TailBuffer for error reporting.
-func launchExecCmd(windowTitle string, cmd *exec.Cmd, protocol string, target string, tail *connect.TailBuffer) tea.Cmd {
-	return tea.Sequence(
-		tea.ExitAltScreen,
-		tea.SetWindowTitle(windowTitle),
-		tea.ExecProcess(cmd, func(err error) tea.Msg {
-			out := ""
-			if tail != nil {
-				out = strings.TrimSpace(tail.String())
-				out = str.LastNonEmptyLine(out)
-			}
-			return connectFinishedMsg{protocol: protocol, target: target, err: err, output: out}
-		}),
-	)
-}
-
 // preflightTickCmd returns a command that waits 1 second and then sends a preflightTickMsg
 // with the given token.
 //
@@ -148,4 +123,29 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 
 	// no preflight needed; start connection immediately
 	return m, launchExecCmd(tgt.WindowTitle(), cmd, protocol, display, tail), true
+}
+
+// launchExecCmd returns a command that exits the TUI and starts
+// the given exec.Cmd in the main terminal.
+//
+// tea.ExitAltScreen is used to to make every connection login
+// session start fresh in the main terminal, avoiding issues
+// with leftover TUI artifacts.
+//
+// It sets the window title before starting the command, and sends a
+// connectFinishedMsg when the command exits, capturing any output from
+// the provided TailBuffer for error reporting.
+func launchExecCmd(windowTitle string, cmd *exec.Cmd, protocol string, target string, tail *connect.TailBuffer) tea.Cmd {
+	return tea.Sequence(
+		tea.ExitAltScreen,
+		tea.SetWindowTitle(windowTitle),
+		tea.ExecProcess(cmd, func(err error) tea.Msg {
+			out := ""
+			if tail != nil {
+				out = strings.TrimSpace(tail.String())
+				out = str.LastNonEmptyLine(out)
+			}
+			return connectFinishedMsg{protocol: protocol, target: target, err: err, output: out}
+		}),
+	)
 }
