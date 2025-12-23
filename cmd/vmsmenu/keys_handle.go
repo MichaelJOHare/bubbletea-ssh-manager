@@ -13,6 +13,48 @@ import (
 // It returns (newModel, cmd, handled). If handled is false, the caller should
 // pass the message through to the query + list components.
 func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
+	// Full help behaves like a modal:
+	// - '?' opens it (no-op if already open)
+	// - 'left' closes it
+	// - while open, ignore all other keys so search/prompt don't change
+	if m.fullHelpOpen {
+		switch msg.String() {
+		case "left":
+			m.fullHelpOpen = false
+			m.lst.SetShowHelp(true)
+			// if we were prompting for username, restore that status message
+			if m.promptingUser {
+				m.setStatus(fmt.Sprintf("Enter SSH username for %s", strings.TrimSpace(m.pendingHost.spec.Alias)), false, 0)
+			}
+			m.relayout()
+			return m, nil, true
+		case "D":
+			// toggle detailed host info
+			return m, nil, true
+		case "E":
+			// toggle edit host
+			return m, nil, true
+		case "A":
+			// toggle add host
+			return m, nil, true
+		case "R":
+			// toggle remove host
+			return m, nil, true
+		// maybe we should capture arrow keys to set a status message?
+		// it's easy to miss the fact that the help is open
+		default:
+			return m, nil, true
+		}
+	}
+
+	if msg.String() == "?" {
+		m.fullHelpOpen = true
+		m.lst.SetShowHelp(false)
+		m.setStatus("", false, 0)
+		m.relayout()
+		return m, nil, true
+	}
+
 	if m.promptingUser {
 		return m.handlePromptKeyMsg(msg)
 	}
@@ -75,30 +117,6 @@ func (m model) handleNormalKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	case "Q":
 		m.quitting = true
 		return m, tea.Quit, true
-
-	// show info on selected item with '?'
-	case "?":
-		it, ok := m.lst.SelectedItem().(*menuItem)
-		if !ok || it == nil {
-			return m, nil, true
-		}
-
-		var info string
-		if it.kind == itemGroup {
-			info = fmt.Sprintf("Group: %s (%d items)", it.name, len(it.children))
-		} else {
-			if m.delegate != nil && m.delegate.groupHints != nil {
-				if grp := strings.TrimSpace(m.delegate.groupHints[it]); grp != "" {
-					info = fmt.Sprintf("Host: %s (%s) in %s", it.name, it.protocol, grp)
-				}
-			}
-			if info == "" {
-				info = fmt.Sprintf("Host: %s (%s)", it.name, it.protocol)
-			}
-		}
-
-		cmd := m.setStatus(info, false, statusTTL)
-		return m, cmd, true
 
 	// esc to clear search if non-empty; otherwise do nothing
 	case "esc":

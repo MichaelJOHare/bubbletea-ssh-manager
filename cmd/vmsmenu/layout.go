@@ -8,15 +8,47 @@ import (
 
 const footerPadLeft = 2
 
+// fullHelpText renders a custom full help view containing only our app-level keys.
+// We use a local copy of the help model to ensure width is consistent.
+func (m model) fullHelpText() string {
+	h := m.lst.Help
+	h.Width = m.width
+
+	// Make full help use the same dotted separators as short help.
+	h.FullSeparator = h.ShortSeparator
+	h.Styles.FullSeparator = h.Styles.ShortSeparator
+	return h.FullHelpView(moreHelpColumns)
+}
+
+// syncTitleStyles updates the list title and title bar styles based on the current width.
+func (m *model) syncTitleStyles() {
+	if m == nil {
+		return
+	}
+
+	// Default bubbles/list styles:
+	// - TitleBar padding: (top=0, right=0, bottom=1, left=1)
+	// - Title padding: (vertical=0, horizontal=1)
+	m.lst.Styles.TitleBar = m.lst.Styles.TitleBar.
+		Padding(1, 0, 1, 1)
+
+	m.lst.Styles.Title = m.lst.Styles.Title.
+		Padding(0, 2)
+}
+
 // relayout recalculates the sizes of the list and text input based on the current window size.
 func (m *model) relayout() {
 	// footer consumes lines at the bottom:
 	// - optional preflight line (spinner + countdown)
 	// - optional status line
-	// - search input (always)
+	// - search/prompt input (hidden when full help is open)
 
-	// default to 2 lines so search input is padded by 1 line above
-	footerLines := 2
+	footerLines := 0
+	if m.fullHelpOpen {
+		footerLines += lipgloss.Height(m.fullHelpText()) + 2 // +2 for padding above and border
+	} else {
+		footerLines = 2 // default to 2 lines so search input is padded by 1 line above
+	}
 
 	// if preflight line is rendered, reserve space for it
 	// in View() it's rendered with PaddingTop(1), so it's effectively 2 lines
@@ -33,6 +65,7 @@ func (m *model) relayout() {
 
 	// make sure the list doesn't overwrite the footer
 	m.lst.SetSize(m.width, max(0, m.height-footerLines))
+	m.syncTitleStyles()
 
 	// ensure the text input has enough width to render placeholder/prompt
 	// in bubbles/textinput, Width is the content width, not including the prompt

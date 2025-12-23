@@ -10,7 +10,7 @@ func seedMenu() (*menuItem, error) {
 	// try to build menu from config files
 	items, err := buildMenuFromConfigs()
 	if len(items) > 0 {
-		return &menuItem{kind: itemGroup, name: "home", children: items}, err
+		return &menuItem{kind: itemGroup, name: "HOME", children: items}, err
 	}
 
 	// fallback stub data so the UI still has something

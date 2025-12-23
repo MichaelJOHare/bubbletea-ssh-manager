@@ -18,7 +18,7 @@ const statusTTL = 8 * time.Second // duration for non-error info statuses
 const (
 	statusColor         = lipgloss.Color("250") // default status color (gray)
 	errorStatusColor    = lipgloss.Color("9")   // error status color (red)
-	searchLabelColor    = lipgloss.Color("74")  // blue
+	searchLabelColor    = lipgloss.Color("111") // blue
 	promptLabelColor    = lipgloss.Color("221") // yellow
 	spinnerColor        = lipgloss.Color("198") // pink
 	sshHostNameColor    = lipgloss.Color("10")  // green
@@ -248,6 +248,7 @@ func (m model) View() string {
 	statusTextStyle := lipgloss.NewStyle().Foreground(statusColor)
 	searchStyle := lipgloss.NewStyle().Foreground(searchLabelColor).Bold(true).PaddingLeft(footerPadLeft)
 	promptStyle := lipgloss.NewStyle().Foreground(promptLabelColor).Bold(true).PaddingLeft(footerPadLeft)
+	helpStyle := lipgloss.NewStyle().PaddingLeft(footerPadLeft)
 
 	// render status line
 	lines := []string{m.lst.View()}
@@ -260,11 +261,18 @@ func (m model) View() string {
 		lines = append(lines, statusPadStyle.Render(statusTextStyle.Render(m.status)))
 	}
 
-	// render search or prompt input
-	if m.promptingUser {
-		lines = append(lines, promptStyle.Render(m.prompt.View()))
+	// render full help modal or search/prompt input
+	if m.fullHelpOpen {
+		helpStyle = helpStyle.Border(lipgloss.RoundedBorder(), true).
+			BorderForeground(searchLabelColor).
+			PaddingRight(footerPadLeft)
+		lines = append(lines, helpStyle.Render(m.fullHelpText()))
 	} else {
-		lines = append(lines, searchStyle.Render(m.query.View()))
+		if m.promptingUser {
+			lines = append(lines, promptStyle.Render(m.prompt.View()))
+		} else {
+			lines = append(lines, searchStyle.Render(m.query.View()))
+		}
 	}
 
 	return strings.Join(lines, "\n")

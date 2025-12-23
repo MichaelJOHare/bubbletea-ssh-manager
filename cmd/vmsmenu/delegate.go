@@ -17,7 +17,8 @@ type menuDelegate struct {
 
 // newMenuDelegatePtr creates a new menuDelegate with default settings.
 //
-// It embeds the default delegate from bubbles/list to leverage existing functionality.
+// It embeds the default delegate from bubbles/list to extend it
+// while allowing us to override specific methods.
 func newMenuDelegatePtr() *menuDelegate {
 	d := list.NewDefaultDelegate()
 	return &menuDelegate{DefaultDelegate: d}
