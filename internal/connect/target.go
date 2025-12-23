@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// A Target represents a connection target for SSH or Telnet.
+// It includes the protocol and host specification.
 type Target struct {
 	protocol  string // "ssh" or "telnet"
 	host.Spec        // shared host fields (alias/hostname/port/user)

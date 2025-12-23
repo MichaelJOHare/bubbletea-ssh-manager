@@ -16,15 +16,16 @@ const preflightTimeout = 10 * time.Second
 // launchExecCmd returns a command that exits the TUI and starts
 // the given exec.Cmd in the main terminal.
 //
-// The explicit call to tea.ExitAltScreen causes previous output on the main
-// terminal screen to not persist after the command exits.
+// tea.ExitAltScreen is used to to make every connection login
+// session start fresh in the main terminal, avoiding issues
+// with leftover TUI artifacts.
 //
 // It sets the window title before starting the command, and sends a
 // connectFinishedMsg when the command exits, capturing any output from
 // the provided TailBuffer for error reporting.
 func launchExecCmd(windowTitle string, cmd *exec.Cmd, protocol string, target string, tail *connect.TailBuffer) tea.Cmd {
 	return tea.Sequence(
-		//tea.ExitAltScreen,
+		tea.ExitAltScreen,
 		tea.SetWindowTitle(windowTitle),
 		tea.ExecProcess(cmd, func(err error) tea.Msg {
 			out := ""
@@ -146,6 +147,5 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 	}
 
 	// no preflight needed; start connection immediately
-	m.executing = true
 	return m, launchExecCmd(tgt.WindowTitle(), cmd, protocol, display, tail), true
 }

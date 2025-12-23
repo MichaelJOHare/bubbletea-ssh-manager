@@ -176,12 +176,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// preflight succeeded; start connection
-		//m.executing = true
+		m.executing = true
 		return m, launchExecCmd(windowTitle, cmd, protocol, display, tail)
 
 	// handle connection finished messages
 	case connectFinishedMsg:
-		//m.executing = false
+		m.executing = false
 		titleCmd := tea.SetWindowTitle("MENU")
 		output := strings.TrimSpace(msg.output)
 		if msg.err != nil {
