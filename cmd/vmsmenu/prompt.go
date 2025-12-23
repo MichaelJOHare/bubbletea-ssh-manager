@@ -20,6 +20,7 @@ func (m model) beginUserPrompt(it *menuItem, title string) (model, tea.Cmd, bool
 	m.prompt.SetValue(strings.TrimSpace(it.spec.User))
 	m.prompt.Focus()
 	m.setStatus(title, false, 0)
+	m.toggleCursorKeys(false)
 	return m, nil, true
 }
 
@@ -53,6 +54,7 @@ func (m model) dismissPrompt() (model, tea.Cmd, bool) {
 	m.pendingHost = nil
 	m.prompt.SetValue("")
 	m.prompt.Blur()
+	m.toggleCursorKeys(true)
 	m.setStatus("", false, 0)
 	return m, nil, true
 }

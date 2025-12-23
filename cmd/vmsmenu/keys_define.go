@@ -148,19 +148,23 @@ func (m *model) initHelpKeys() {
 //
 // This is called from relayout() so help stays in sync as the user navigates.
 func (m *model) syncHelpKeys() {
+
 	if m == nil {
+		return
+	}
+	if m.promptingUser {
+		m.lst.AdditionalShortHelpKeys = promptHelpKeys
 		return
 	}
 	if m.inGroup() || m.query.Value() != "" {
 		m.lst.AdditionalShortHelpKeys = groupHelpKeys
 		return
-	} else if m.promptingUser {
-		m.lst.KeyMap.CursorUp.SetEnabled(false)
-		m.lst.KeyMap.CursorDown.SetEnabled(false)
-		m.lst.AdditionalShortHelpKeys = promptHelpKeys
-		return
 	}
-	m.lst.KeyMap.CursorUp.SetEnabled(true)
-	m.lst.KeyMap.CursorDown.SetEnabled(true)
 	m.lst.AdditionalShortHelpKeys = nil
+}
+
+// toggleCursorKeys enables or disables the cursor up/down keys.
+func (m *model) toggleCursorKeys(b bool) {
+	m.lst.KeyMap.CursorUp.SetEnabled(b)
+	m.lst.KeyMap.CursorDown.SetEnabled(b)
 }
