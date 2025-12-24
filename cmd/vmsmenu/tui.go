@@ -16,14 +16,15 @@ import (
 
 const statusTTL = 8 * time.Second // duration for non-error info statuses
 const (
-	statusColor         = lipgloss.Color("250") // default status color (gray)
-	errorStatusColor    = lipgloss.Color("9")   // error status color (red)
-	searchLabelColor    = lipgloss.Color("111") // blue
-	promptLabelColor    = lipgloss.Color("221") // yellow
-	spinnerColor        = lipgloss.Color("198") // pink
-	sshHostNameColor    = lipgloss.Color("10")  // green
-	telnetHostNameColor = lipgloss.Color("210") // pink
-	groupNameColor      = lipgloss.Color("208") // orange
+	statusColor         = lipgloss.Color("#bcbcbc") // default status color (gray)
+	errorStatusColor    = lipgloss.Color("#d03f3f") // error status color (red)
+	searchLabelColor    = lipgloss.Color("#6965de") // indigo
+	fullHelpBorderColor = lipgloss.Color("#0083b3") // cyan
+	promptLabelColor    = lipgloss.Color("#dec532") // yellow
+	spinnerColor        = lipgloss.Color("#ff0087") // pink
+	sshHostNameColor    = lipgloss.Color("#6fc36f") // green
+	telnetHostNameColor = lipgloss.Color("#f24f8a") // pink
+	groupNameColor      = lipgloss.Color("#e48315") // orange
 )
 
 // Init returns the initial command for the TUI (blinking cursor and window title).
@@ -242,55 +243,12 @@ func (m model) View() string {
 		return ""
 	}
 
-	// determine status color
-	statusColor := statusColor
-	if m.statusIsError {
-		statusColor = errorStatusColor
-	}
-
-	// set styles
-	statusPadStyle := lipgloss.NewStyle().PaddingLeft(footerPadLeft).PaddingTop(1)
-	statusTextStyle := lipgloss.NewStyle().Foreground(statusColor)
-	searchStyle := lipgloss.NewStyle().Foreground(searchLabelColor).Bold(true).PaddingLeft(footerPadLeft)
-	promptStyle := lipgloss.NewStyle().Foreground(promptLabelColor).Bold(true).PaddingLeft(footerPadLeft)
-	helpStyle := lipgloss.NewStyle().PaddingLeft(footerPadLeft)
-
-	// render list
-	listView := m.lst.View()
+	// Render mode-specific views to avoid scattered modal checks.
 	if m.fullHelpOpen {
-		selected := m.lst.SelectedItem()
-		if selected != nil {
-			lst := m.lst
-			lst.SetItems([]list.Item{selected})
-			lst.Select(0)
-			listView = lst.View()
-		}
+		return m.viewFullHelp()
 	}
-
-	// render status line
-	lines := []string{listView}
-	if m.preflighting && !m.statusIsError {
-		remaining := max(m.preflightRemaining, 0)
-		line := fmt.Sprintf("%s Checking %s %s (%ds)…", m.spinner.View(), m.preflightProtocol, m.preflightHostPort, remaining)
-		lines = append(lines, statusPadStyle.Render(statusTextStyle.Render(line)))
+	if m.preflighting {
+		return m.viewPreflight()
 	}
-	if strings.TrimSpace(m.status) != "" {
-		lines = append(lines, statusPadStyle.Render(statusTextStyle.Render(m.status)))
-	}
-
-	// render full help modal or search/prompt input
-	if m.fullHelpOpen {
-		helpStyle = helpStyle.Border(lipgloss.RoundedBorder(), true).
-			BorderForeground(searchLabelColor).
-			PaddingRight(footerPadLeft)
-		lines = append(lines, helpStyle.Render(m.fullHelpText()))
-	} else {
-		if m.promptingUser {
-			lines = append(lines, promptStyle.Render(m.prompt.View()))
-		} else {
-			lines = append(lines, searchStyle.Render(m.query.View()))
-		}
-	}
-
-	return strings.Join(lines, "\n")
+	return m.viewNormal()
 }

@@ -13,6 +13,8 @@ import (
 //                - include nickname, groupname, hostname, and the rest of host.Spec
 //          -- Remove can be a confirmation prompt
 //       swap from group.HOST to GROUP.host for consistency?
+// 	 	 check for empty list for opening full help
+//       take individual letters of D E A R menus out of help when their menu is open
 
 func main() {
 	p := tea.NewProgram(newModel(), tea.WithAltScreen())

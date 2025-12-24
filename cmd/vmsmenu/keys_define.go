@@ -76,6 +76,11 @@ var (
 
 // New key bindings for the TUI added using AdditionalShortHelpKeys.
 var (
+	// shift+Q to quit the application
+	qQuitKey = key.NewBinding(
+		key.WithKeys("shift+q"),
+		key.WithHelp(quitStyle, quitHelpStyle),
+	)
 	// esc to clear search if non-empty
 	escClearKey = key.NewBinding(
 		key.WithKeys("esc"),
@@ -116,9 +121,6 @@ var (
 
 	groupHelpKeys  = func() []key.Binding { return []key.Binding{leftBackKey} }
 	promptHelpKeys = func() []key.Binding { return []key.Binding{leftBackKey, escClearKey} }
-	moreHelpKeys   = func() []key.Binding {
-		return []key.Binding{leftCloseHelpKey, detailsKey, editKey, addKey, removeKey}
-	}
 
 	// Full help layout: one key per column (horizontal).
 	moreHelpColumns = [][]key.Binding{
@@ -148,23 +150,42 @@ func (m *model) initHelpKeys() {
 //
 // This is called from relayout() so help stays in sync as the user navigates.
 func (m *model) syncHelpKeys() {
-
 	if m == nil {
 		return
 	}
-	if m.promptingUser {
+
+	// treat certain states as modals where list navigation/help should not apply
+	modal := m.preflighting || m.promptingUsername || m.fullHelpOpen
+	canScroll := !modal && len(m.lst.Items()) > 1
+	if canScroll {
+		m.lst.KeyMap.CursorUp.SetKeys("up")
+		m.lst.KeyMap.CursorDown.SetKeys("down")
+	} else {
+		m.lst.KeyMap.CursorUp.SetKeys()
+		m.lst.KeyMap.CursorDown.SetKeys()
+	}
+
+	// during preflight we hide the help entirely (only quitting/cancel is allowed)
+	// during full help, the base list help is hidden (custom-rendered modal)
+	if m.preflighting || m.fullHelpOpen {
+		m.lst.SetShowHelp(false)
+	} else {
+		m.lst.SetShowHelp(true)
+	}
+
+	// set additional help keys based on state
+	if m.promptingUsername {
 		m.lst.AdditionalShortHelpKeys = promptHelpKeys
-		return
+		m.lst.KeyMap.Quit.SetKeys() // shift+Q gets captured by prompt modal
+		return                      // since a username can have a capital Q in it
+	} else {
+		m.lst.KeyMap.Quit.SetKeys("shift+q")
 	}
 	if m.inGroup() || m.query.Value() != "" {
 		m.lst.AdditionalShortHelpKeys = groupHelpKeys
 		return
 	}
-	m.lst.AdditionalShortHelpKeys = nil
-}
 
-// toggleCursorKeys enables or disables the cursor up/down keys.
-func (m *model) toggleCursorKeys(b bool) {
-	m.lst.KeyMap.CursorUp.SetEnabled(b)
-	m.lst.KeyMap.CursorDown.SetEnabled(b)
+	// default: no additional help keys
+	m.lst.AdditionalShortHelpKeys = nil
 }

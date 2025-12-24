@@ -37,13 +37,17 @@ type model struct {
 	width  int // window width
 	height int // window height
 
-	query         textinput.Model // search input box
-	prompt        textinput.Model // generic prompt input (reused for username/addhost/etc)
-	spinner       spinner.Model   // spinner for preflight checks
-	promptingUser bool            // whether we're currently prompting for a username
-	pendingHost   *menuItem       // host waiting for username input
-	fullHelpOpen  bool            // full help modal is open (custom-rendered)
-	delegate      *menuDelegate   // list delegate for rendering items
+	query             textinput.Model // search input box
+	prompt            textinput.Model // generic prompt input (reused for username/addhost/etc)
+	spinner           spinner.Model   // spinner for preflight checks
+	promptingUsername bool            // whether we're currently prompting for a username
+	pendingHost       *menuItem       // host waiting for username input
+	fullHelpOpen      bool            // full help modal is open (custom-rendered)
+	hostDetailsOpen   bool            // while full help is open, show selected host details instead of list
+	hostEditOpen      bool            // host edit modal is open (not yet implemented)
+	hostAddOpen       bool            // host add modal is open (not yet implemented)
+	hostRemoveOpen    bool            // host remove confirmation prompt is open (not yet implemented)
+	delegate          *menuDelegate   // list delegate for rendering items
 
 	root     *menuItem   // root menu item
 	path     []*menuItem // current navigation path

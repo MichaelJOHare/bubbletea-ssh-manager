@@ -2,7 +2,6 @@ package main
 
 import (
 	str "bubbletea-ssh-manager/internal/stringutil"
-	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -13,13 +12,28 @@ import (
 // It returns (newModel, cmd, handled). If handled is false, the caller should
 // pass the message through to the query + list components.
 func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
+	// handle full help first and by extension,
+	// also handle host details toggle, edit/add/remove host
 	if m.fullHelpOpen {
 		if nm, cmd, handled := m.handleFullHelpKeyMsg(msg); handled {
 			return nm, cmd, true
 		}
 	}
 
-	// keep full help available at any time except when it's already open
+	// preflight is a modal: ignore all keys except quitting/cancel
+	if m.preflighting {
+		switch msg.String() {
+		case "ctrl+c":
+			return m.cancelPreflightCmd()
+		case "Q", "shift+q":
+			m.quitting = true
+			return m, tea.Quit, true
+		default:
+			return m, nil, true
+		}
+	}
+
+	// keep full help available at any time except during preflight
 	if msg.String() == "?" {
 		m.fullHelpOpen = true     // open full help
 		m.lst.SetShowHelp(false)  // hide base help
@@ -28,7 +42,8 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		return m, nil, true
 	}
 
-	if m.promptingUser {
+	// handle prompt input before search input
+	if m.promptingUsername {
 		return m.handlePromptKeyMsg(msg)
 	}
 
@@ -48,28 +63,33 @@ func (m model) handleFullHelpKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	if m.fullHelpOpen {
 		switch msg.String() {
 		case "left":
-			m.fullHelpOpen = false
+			m.fullHelpOpen = false    // close full help and
+			m.hostDetailsOpen = false // hide host details at the same time
 			m.lst.SetShowHelp(true)
 			// if we were prompting for username, restore that status message
-			if m.promptingUser {
-				m.setStatus(fmt.Sprintf("Enter SSH username for %s", strings.TrimSpace(m.pendingHost.spec.Alias)), false, 0)
+			if m.promptingUsername {
+				m.setStatus(userPromptStatus(m.pendingHost.spec.Alias), false, 0)
 			}
 			m.relayout()
 			return m, nil, true
+
+		// while in full help, allow toggling host details, edit/add/remove host
 		case "D":
-			// toggle detailed host info
+			m.hostDetailsOpen = true
+			m.relayout()
 			return m, nil, true
+
 		case "E":
-			// toggle edit host
+			// open edit host
 			return m, nil, true
+
 		case "A":
-			// toggle add host
+			// open add host
 			return m, nil, true
+
 		case "R":
-			// toggle remove host
+			// open remove host
 			return m, nil, true
-		// maybe we should capture arrow keys to set a status message?
-		// it's easy to miss the fact that the help is open
 		default:
 			return m, nil, true
 		}
@@ -84,7 +104,7 @@ func (m model) handleFullHelpKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 func (m model) handlePromptKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	switch msg.String() {
 	case "esc":
-		return m.clearPromptValue()
+		return m.clearPrompt()
 
 	case "left":
 		return m.dismissPrompt()
@@ -96,11 +116,7 @@ func (m model) handlePromptKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 			return m, nil, true
 		}
 		it := m.pendingHost
-		m.promptingUser = false
-		m.pendingHost = nil
-		m.prompt.SetValue("")
-		m.prompt.Blur()
-		m.setStatus("", false, 0)
+		m.dismissPrompt()
 
 		if it == nil {
 			m.setStatus("No host selected.", true, 0)
@@ -164,7 +180,7 @@ func (m model) handleBaseKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 
 			// connect to host
 			if str.NormalizeString(it.protocol) == "ssh" {
-				return m.beginUserPrompt(it, fmt.Sprintf("Enter SSH username for %s", strings.TrimSpace(it.spec.Alias)))
+				return m.beginUserPrompt(it)
 			}
 			return m.startConnect(it)
 		}

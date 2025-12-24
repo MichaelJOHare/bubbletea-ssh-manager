@@ -54,6 +54,20 @@ func toListItems(items []*menuItem) []list.Item {
 	return out
 }
 
+// setActiveMenuItem updates the list view to show only the currently selected item.
+//
+// Used when displaying host details to focus the view on the selected host.
+func (m *model) setActiveMenuItem(listView string) string {
+	selected := m.lst.SelectedItem()
+	if selected != nil {
+		lst := m.lst
+		lst.SetItems([]list.Item{selected})
+		lst.Select(0)
+		listView = lst.View()
+	}
+	return listView
+}
+
 // current returns the current menu item (the last in the path).
 func (m *model) current() *menuItem {
 	return m.path[len(m.path)-1]
@@ -89,9 +103,5 @@ func (m *model) setCurrentMenu(items []*menuItem) {
 // the highlight may appear one tick late when filtering rapidly.
 func (m *model) setItemsSafely(items []list.Item) {
 	m.lst.SetItems(items)
-	if n := len(m.lst.Items()); n > 0 {
-		idx := m.lst.Index()
-		idx = min(max(idx, 0), n-1)
-		m.lst.Select(idx)
-	}
+	m.lst.Select(0) // reset selection to first item
 }

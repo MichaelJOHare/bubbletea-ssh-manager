@@ -116,6 +116,10 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 		m.preflightTail = tail
 		m.preflightDisplay = display
 
+		// clear any existing status to make room for preflight status
+		m.status = ""
+		m.statusIsError = false
+
 		m.relayout()
 
 		return m, tea.Batch(preflightDialCmd(tok, hostPort), preflightTickCmd(tok), m.spinner.Tick), true
@@ -129,7 +133,7 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 // the given exec.Cmd in the main terminal.
 //
 // tea.ExitAltScreen is used to to make every connection login
-// session start fresh in the main terminal, avoiding issues
+// session starts fresh in the main terminal, avoiding issues
 // with leftover TUI artifacts.
 //
 // It sets the window title before starting the command, and sends a
