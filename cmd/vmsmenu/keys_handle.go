@@ -33,7 +33,8 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		}
 	}
 
-	// keep full help available at any time except during preflight
+	// keep full help available at any time except
+	// during preflight or if already open
 	if msg.String() == "?" {
 		m.fullHelpOpen = true     // open full help
 		m.lst.SetShowHelp(false)  // hide base help

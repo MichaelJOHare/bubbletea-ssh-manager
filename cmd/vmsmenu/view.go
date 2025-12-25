@@ -76,10 +76,9 @@ func (m model) viewFullHelp() string {
 	}
 
 	lg := lipgloss.NewStyle()
-	panelW := max(0, m.width-footerPadLeft-4)
+	panelW := m.hostDetailsWidth()
 	statusPadStyle := lg.PaddingLeft(footerPadLeft).PaddingTop(1)
 	statusTextStyle := lg.Foreground(statusColor)
-	panelOuter := lg.PaddingLeft(footerPadLeft)
 	fullHelpStyle := lg.
 		Width(panelW).
 		Border(lipgloss.RoundedBorder(), true).
@@ -98,7 +97,14 @@ func (m model) viewFullHelp() string {
 	if strings.TrimSpace(m.status) != "" {
 		lines = append(lines, statusPadStyle.Render(statusTextStyle.Render(m.status)))
 	}
-	lines = append(lines, panelOuter.Render(fullHelpStyle.Render(m.fullHelpText())))
+
+	fullHelpView := fullHelpStyle.Render(m.fullHelpText())
+	if m.hostDetailsOpen {
+		lines = append(lines, lipgloss.PlaceHorizontal(m.width, lipgloss.Center, fullHelpView))
+	} else {
+		lines = append(lines, fullHelpView)
+	}
+
 	return strings.Join(lines, "\n")
 }
 
@@ -107,8 +113,7 @@ func (m model) viewFullHelp() string {
 // If no host is selected, it shows a placeholder message.
 func (m model) viewHostDetails() string {
 	lg := lipgloss.NewStyle()
-	panelW := max(0, m.width-footerPadLeft-4)
-	panelOuter := lg.PaddingLeft(footerPadLeft)
+	panelW := m.hostDetailsWidth()
 	box := lg.
 		Width(panelW).
 		Border(lipgloss.RoundedBorder(), true).
@@ -117,9 +122,42 @@ func (m model) viewHostDetails() string {
 		PaddingRight(footerPadLeft).
 		PaddingTop(1)
 
+	detailsView := box.Render(m.hostDetailsText())
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, detailsView)
+}
+
+// hostDetailsWidth returns the target width used for both the full help panel and the host details panel.
+//
+// The width is the larger of the two rendered panel widths (help vs host details), capped to the
+// available terminal width so it doesn't overflow.
+func (m model) hostDetailsWidth() int {
+	availableW := max(0, m.width)
+	if availableW == 0 {
+		return 0
+	}
+
+	fullHelpStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder(), true).
+		BorderForeground(fullHelpBorderColor).
+		PaddingLeft(footerPadLeft).
+		PaddingRight(footerPadLeft)
+
+	hostDetailsStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder(), true).
+		BorderForeground(fullHelpBorderColor).
+		PaddingLeft(1).
+		PaddingRight(footerPadLeft).
+		PaddingTop(1)
+
+	fullHelpW := lipgloss.Width(fullHelpStyle.Render(m.fullHelpText()))
+	hostDetailsW := lipgloss.Width(hostDetailsStyle.Render(m.hostDetailsText()))
+	return min(max(fullHelpW, hostDetailsW), availableW)
+}
+
+func (m model) hostDetailsText() string {
 	it, _ := m.lst.SelectedItem().(*menuItem)
 	if it == nil || it.kind != itemHost {
-		return panelOuter.Render(box.Render("Select a host to view details"))
+		return "Select a host to view details"
 	}
 
 	labelStyle := lipgloss.NewStyle().Foreground(fullHelpBorderColor).Bold(true)
@@ -190,6 +228,5 @@ func (m model) viewHostDetails() string {
 		lines = append(lines, "") // extra padding at bottom
 	}
 
-	detailsView := panelOuter.Render(box.Render(strings.Join(lines, "\n")))
-	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, detailsView)
+	return strings.Join(lines, "\n")
 }

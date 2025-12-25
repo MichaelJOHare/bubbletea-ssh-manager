@@ -10,6 +10,7 @@ import (
 // TODO: always format host names when displaying in status
 //       implement edit/remove/add host functionality
 //          -- Add and Edit can use textinputs components to gather info (see examples in bubbletea repo)
+//                - use bubbletea extension "huh" for adding/editing hosts
 //                - include nickname, groupname, hostname, and the rest of host.Spec
 //          -- Remove can be a confirmation prompt
 //       swap from group.HOST to GROUP.host for consistency?

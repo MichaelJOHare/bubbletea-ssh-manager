@@ -18,12 +18,12 @@ const statusTTL = 8 * time.Second // duration for non-error info statuses
 const (
 	statusColor         = lipgloss.Color("#bcbcbc") // default status color (gray)
 	errorStatusColor    = lipgloss.Color("#d03f3f") // error status color (red)
-	searchLabelColor    = lipgloss.Color("#6965de") // indigo
+	searchLabelColor    = lipgloss.Color("#736fe4") // indigo
 	fullHelpBorderColor = lipgloss.Color("#0083b3") // cyan
 	promptLabelColor    = lipgloss.Color("#dec532") // yellow
 	spinnerColor        = lipgloss.Color("#ff0087") // pink
 	sshHostNameColor    = lipgloss.Color("#6fc36f") // green
-	telnetHostNameColor = lipgloss.Color("#f24f8a") // pink
+	telnetHostNameColor = lipgloss.Color("#e15979") // pink
 	groupNameColor      = lipgloss.Color("#e48315") // orange
 )
 
