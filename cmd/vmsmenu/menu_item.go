@@ -84,7 +84,7 @@ func (m *model) setCurrentMenu(items []*menuItem) {
 	if m.delegate != nil {
 		m.delegate.groupHints = nil
 	}
-	m.setItemsSafely(toListItems(items))
+	m.updateItems(toListItems(items))
 
 	parts := make([]string, 0, len(m.path))
 	for _, p := range m.path {
@@ -97,11 +97,10 @@ func (m *model) setCurrentMenu(items []*menuItem) {
 	m.lst.Title = strings.Join(parts, " / ")
 }
 
-// setItemsSafely refreshes the list items and updates the selection index immediately.
+// updateItems sets the list items and resets selection to the first item.
 //
-// Without this, the previous index can be temporarily out of range and
-// the highlight may appear one tick late when filtering rapidly.
-func (m *model) setItemsSafely(items []list.Item) {
+// This ensures that the list state remains consistent after filtering or menu changes.
+func (m *model) updateItems(items []list.Item) {
 	m.lst.SetItems(items)
 	m.lst.Select(0) // reset selection to first item
 }

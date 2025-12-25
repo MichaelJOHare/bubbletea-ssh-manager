@@ -56,7 +56,7 @@ func (m *model) applyFilter(q string) {
 		if m.delegate != nil {
 			m.delegate.groupHints = nil
 		}
-		m.setItemsSafely(toListItems(m.allItems))
+		m.updateItems(toListItems(m.allItems))
 		return
 	}
 
@@ -125,7 +125,7 @@ func (m *model) applyFilter(q string) {
 	for _, sm := range matches {
 		filtered = append(filtered, sm.item)
 	}
-	m.setItemsSafely(filtered)
+	m.updateItems(filtered)
 }
 
 // fuzzyScore returns a simple subsequence match score
