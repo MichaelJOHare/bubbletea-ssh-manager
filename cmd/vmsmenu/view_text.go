@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bubbletea-ssh-manager/internal/sshopts"
+	"bubbletea-ssh-manager/internal/config"
 	str "bubbletea-ssh-manager/internal/stringutil"
 
 	"fmt"
@@ -9,26 +9,6 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 )
-
-// sshAlgoDisplay returns a human-readable summary for UI display.
-//
-// Example output:
-//   - HostKeyAlgorithms=ssh-ed25519,rsa-sha2-512
-//   - KexAlgorithms=curve25519-sha256
-//   - MACs=hmac-sha2-256
-func sshAlgoDisplay(o sshopts.Options) string {
-	parts := make([]string, 0, 3)
-	if v := strings.TrimSpace(o.HostKeyAlgorithms); v != "" {
-		parts = append(parts, "HostKeyAlgorithms="+v)
-	}
-	if v := strings.TrimSpace(o.KexAlgorithms); v != "" {
-		parts = append(parts, "KexAlgorithms="+v)
-	}
-	if v := strings.TrimSpace(o.MACs); v != "" {
-		parts = append(parts, "MACs="+v)
-	}
-	return strings.Join(parts, "\n")
-}
 
 // hostDetailsText returns the detailed text view for the currently selected host.
 //
@@ -91,21 +71,20 @@ func (m model) hostDetailsText() string {
 			Bold(true).
 			Render("SSH OPTIONS"))
 
-		optionsStyle := valueStyle.PaddingLeft(4)
+		optionsValueStyle := valueStyle.PaddingLeft(4)
+		optionsLabelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#ddb034")).Bold(true).PaddingLeft(4)
 		if it.options.IsZero() {
-			lines = append(lines, optionsStyle.Render("(none)"))
+			lines = append(lines, optionsValueStyle.Render("(none)"))
 		} else {
-			for line := range strings.SplitSeq(sshAlgoDisplay(it.options), "\n") {
-				line = strings.TrimSpace(line)
+			for _, line := range config.CreateSSHOptionsEntry(it.options, "") {
 				if line == "" {
 					continue
 				}
-				k, v, ok := strings.Cut(line, "=")
-				if !ok {
-					lines = append(lines, optionsStyle.Render(line))
+				k, v, ok := strings.Cut(line, " ")
+				if !ok || strings.TrimSpace(v) == "" {
 					continue
 				}
-				lines = append(lines, fmt.Sprintf("%s %s", labelStyle.Render(k+":"), valueStyle.Render(v)))
+				lines = append(lines, fmt.Sprintf("%s: %s", optionsLabelStyle.Render(k), valueStyle.Render(v)))
 			}
 		}
 		lines = append(lines, "") // extra padding at bottom

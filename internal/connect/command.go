@@ -76,10 +76,11 @@ func BuildCommand(req Request) (cmd *exec.Cmd, tgt Target, tail *TailBuffer, err
 	}
 
 	cmd = exec.Command(programPath, args...)
+
 	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
 
 	tail = NewTailBuffer(4096)
-	cmd.Stdout = os.Stdout
 	cmd.Stderr = io.MultiWriter(os.Stderr, tail)
 
 	return cmd, tgt, tail, nil
