@@ -92,3 +92,31 @@ func (m model) hostDetailsText() string {
 
 	return strings.Join(lines, "\n")
 }
+
+// hostDetailsWidth returns the target width used for both the full help panel and the host details panel.
+//
+// The width is the larger of the two rendered panel widths (help vs host details), capped to the
+// available terminal width so it doesn't overflow.
+func (m model) hostDetailsWidth() int {
+	availableW := max(0, m.width)
+	if availableW == 0 {
+		return 0
+	}
+
+	fullHelpStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder(), true).
+		BorderForeground(fullHelpBorderColor).
+		PaddingLeft(footerPadLeft).
+		PaddingRight(footerPadLeft)
+
+	hostDetailsStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder(), true).
+		BorderForeground(fullHelpBorderColor).
+		PaddingLeft(1).
+		PaddingRight(footerPadLeft).
+		PaddingTop(1)
+
+	fullHelpW := lipgloss.Width(fullHelpStyle.Render(m.fullHelpText()))
+	hostDetailsW := lipgloss.Width(hostDetailsStyle.Render(m.hostDetailsText()))
+	return min(max(fullHelpW, hostDetailsW), availableW)
+}

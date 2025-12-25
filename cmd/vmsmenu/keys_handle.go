@@ -81,15 +81,13 @@ func (m model) handleFullHelpKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 			return m, nil, true
 
 		case "E":
-			// open edit host
-			return m, nil, true
+			return m.openEditHostForm()
 
 		case "A":
-			// open add host
-			return m, nil, true
+			return m.openAddHostForm()
 
 		case "R":
-			// open remove host
+			m.setStatus("Remove not wired yet.", true, statusTTL)
 			return m, nil, true
 		default:
 			return m, nil, true

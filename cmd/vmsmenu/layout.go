@@ -78,4 +78,11 @@ func (m *model) relayout() {
 
 	// keep the list help in sync with our navigation state
 	m.syncHelpKeys()
+
+	// size host add/edit form to the window when open
+	if m.hostForm != nil {
+		w := max(0, m.width-6)
+		h := max(0, m.height-6)
+		m.hostForm = m.hostForm.WithWidth(w).WithHeight(h)
+	}
 }

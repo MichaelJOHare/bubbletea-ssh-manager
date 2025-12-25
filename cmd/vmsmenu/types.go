@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/huh"
 )
 
 type itemKind int // type of menu item : group or host
@@ -47,6 +48,10 @@ type model struct {
 	hostEditOpen      bool            // host edit modal is open (not yet implemented)
 	hostAddOpen       bool            // host add modal is open (not yet implemented)
 	hostRemoveOpen    bool            // host remove confirmation prompt is open (not yet implemented)
+	hostForm          *huh.Form       // add/edit host form (huh)
+	hostFormMode      hostFormMode    // add vs edit
+	hostFormProtocol  string          // "ssh" or "telnet"
+	hostFormOldAlias  string          // for edit/rename
 	delegate          *menuDelegate   // list delegate for rendering items
 
 	root     *menuItem   // root menu item
@@ -73,6 +78,28 @@ type model struct {
 	preflightCmd     *exec.Cmd           // command being run for preflight
 	preflightTail    *connect.TailBuffer // buffer for capturing command output
 	preflightDisplay string              // display target (eg. host:port) for status messages
+}
+
+type hostFormMode int // add vs edit mode for host form
+
+const (
+	hostFormAdd hostFormMode = iota
+	hostFormEdit
+)
+
+type hostFormSubmittedMsg struct {
+	mode     hostFormMode    // add vs edit
+	protocol string          // "ssh" or "telnet"
+	oldAlias string          // for edit/rename
+	spec     host.Spec       // shared host fields (alias/hostname/port/user)
+	opts     sshopts.Options // SSH options (only for SSH hosts)
+}
+
+type hostFormCanceledMsg struct{}
+
+type menuReloadedMsg struct {
+	root *menuItem // new root menu item
+	err  error     // error during reload
 }
 
 type statusClearMsg struct {

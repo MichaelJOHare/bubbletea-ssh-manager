@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -122,6 +123,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.relayout()
 		return m, nil
 
+	case hostFormCanceledMsg:
+		m, cmd := m.closeHostForm("Canceled.", false)
+		return m, cmd
+
+	case hostFormSubmittedMsg:
+		nm, cmd := m.handleHostFormSubmit(msg)
+		return nm, cmd
+
+	case hostFormSaveResultMsg:
+		nm, cmd := m.handleHostFormSaveResult(msg)
+		return nm, cmd
+
+	case menuReloadedMsg:
+		nm, cmd := m.applyReloadedMenu(msg)
+		return nm, cmd
+
 	// handle spinner animation during preflight
 	case spinner.TickMsg:
 		if !m.preflighting {
@@ -203,9 +220,41 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// handle key presses
 	case tea.KeyMsg:
+		// host add/edit is a modal: route keys to the form (with a couple of escapes)
+		if m.hostFormOpen() {
+			switch msg.String() {
+			case "esc", "left":
+				nm, cmd := m.closeHostForm("Canceled.", false)
+				return nm, cmd
+			}
+			var cmd tea.Cmd
+			if m.hostForm != nil {
+				mdl, c := m.hostForm.Update(msg)
+				if f, ok := mdl.(*huh.Form); ok {
+					m.hostForm = f
+				}
+				cmd = c
+			}
+			m.relayout()
+			return m, cmd
+		}
+
 		if nm, cmd, handled := m.handleKeyMsg(msg); handled {
 			return nm, cmd
 		}
+	}
+
+	// If the host form is open, all other messages update the form.
+	if m.hostFormOpen() {
+		if m.hostForm != nil {
+			mdl, cmd := m.hostForm.Update(msg)
+			if f, ok := mdl.(*huh.Form); ok {
+				m.hostForm = f
+			}
+			m.relayout()
+			return m, cmd
+		}
+		return m, nil
 	}
 
 	// always update query input first
@@ -243,7 +292,9 @@ func (m model) View() string {
 		return ""
 	}
 
-	// Render mode-specific views to avoid scattered modal checks.
+	if m.hostFormOpen() {
+		return m.viewHostForm()
+	}
 	if m.fullHelpOpen {
 		return m.viewFullHelp()
 	}

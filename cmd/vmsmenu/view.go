@@ -125,30 +125,22 @@ func (m model) viewHostDetails() string {
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, detailsView)
 }
 
-// hostDetailsWidth returns the target width used for both the full help panel and the host details panel.
+// viewHostForm renders the host add/edit form centered in the terminal window.
 //
-// The width is the larger of the two rendered panel widths (help vs host details), capped to the
-// available terminal width so it doesn't overflow.
-func (m model) hostDetailsWidth() int {
-	availableW := max(0, m.width)
-	if availableW == 0 {
-		return 0
+// If no form is open, it returns an empty string.
+func (m model) viewHostForm() string {
+	if m.hostForm == nil {
+		return ""
 	}
 
-	fullHelpStyle := lipgloss.NewStyle().
+	box := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), true).
 		BorderForeground(fullHelpBorderColor).
-		PaddingLeft(footerPadLeft).
-		PaddingRight(footerPadLeft)
+		PaddingLeft(2).
+		PaddingRight(2).
+		PaddingTop(1).
+		PaddingBottom(1)
 
-	hostDetailsStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(fullHelpBorderColor).
-		PaddingLeft(1).
-		PaddingRight(footerPadLeft).
-		PaddingTop(1)
-
-	fullHelpW := lipgloss.Width(fullHelpStyle.Render(m.fullHelpText()))
-	hostDetailsW := lipgloss.Width(hostDetailsStyle.Render(m.hostDetailsText()))
-	return min(max(fullHelpW, hostDetailsW), availableW)
+	content := box.Render(m.hostForm.View())
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
 }

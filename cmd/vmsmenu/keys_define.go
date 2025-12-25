@@ -155,7 +155,7 @@ func (m *model) syncHelpKeys() {
 	}
 
 	// treat certain states as modals where list navigation/help should not apply
-	modal := m.preflighting || m.promptingUsername || m.fullHelpOpen
+	modal := m.preflighting || m.promptingUsername || m.fullHelpOpen || m.hostFormOpen()
 	canScroll := !modal && len(m.lst.Items()) > 1
 	if canScroll {
 		m.lst.KeyMap.CursorUp.SetKeys("up")
@@ -167,7 +167,7 @@ func (m *model) syncHelpKeys() {
 
 	// during preflight we hide the help entirely (only quitting/cancel is allowed)
 	// during full help, the base list help is hidden (custom-rendered modal)
-	if m.preflighting || m.fullHelpOpen {
+	if m.preflighting || m.fullHelpOpen || m.hostFormOpen() {
 		m.lst.SetShowHelp(false)
 	} else {
 		m.lst.SetShowHelp(true)

@@ -16,6 +16,7 @@ import (
 //       swap from group.HOST to GROUP.host for consistency?
 // 	 	 check for empty list for opening full help
 //       take individual letters of D E A R menus out of help when their menu is open
+// split up Update into smaller functions for readability
 
 func main() {
 	p := tea.NewProgram(newModel(), tea.WithAltScreen())
