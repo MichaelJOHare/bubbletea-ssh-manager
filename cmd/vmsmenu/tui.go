@@ -162,7 +162,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.preflighting || msg.token != m.preflightToken {
 			return m, nil
 		}
-		// Keep this lightweight: update only the remaining seconds for display.
+		// keep this lightweight, update only the remaining seconds for display
 		remaining := max(int(time.Until(m.preflightEndsAt).Round(time.Second).Seconds()), 0)
 		m.preflightRemaining = remaining
 		if remaining > 0 {

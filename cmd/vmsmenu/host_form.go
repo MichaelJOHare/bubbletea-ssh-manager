@@ -241,7 +241,7 @@ func (m model) handleHostFormSubmit(msg hostFormSubmittedMsg) (model, tea.Cmd) {
 		return nm, cmd
 	}
 	if protocol == "telnet" && strings.TrimSpace(msg.spec.HostName) == "" {
-		// Close the form (simple behavior) and show error; can be refined later.
+		// close the form and show error, refine this later
 		nm, cmd := m.closeHostForm("HostName is required for telnet.", true)
 		return nm, cmd
 	}
