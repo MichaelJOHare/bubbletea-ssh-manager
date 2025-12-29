@@ -45,10 +45,17 @@ Update packages again, it probably won't find anything to update which is fine, 
 <br>
 <br>
 
-# Step 5: Copy .bash_profile, .bashrc, and .profile files
+# Step 5: Add the following to .bash_rc in MSYS2 Home
     
-This is optional, they just have some changes like allowing you to type vmsmenu at the command prompt instead of having to launch the .exe directly. 
-If you want, you can download Go and build/install this yourself and not worry about it (although you might run into $PATH issues).
+    # Add Go installation for Windows to PATH
+    program_files="$(cygpath -u "$PROGRAMFILES")"
+    GOWIN_DIR="$program_files/Go/bin"
+    if [[ -x "$GOWIN_DIR/go.exe" ]]; then
+        export PATH="$GOWIN_DIR:$PATH"
+    fi
+
+    # Add "menu" as a bash command that can be typed
+    menu() { clear; command menu.exe "$@"; }
 
 <br>
 <br>
@@ -67,7 +74,7 @@ __C:\msys64\msys2_shell.cmd -defterm -here -no-start -ucrt64__
 
 # 🎉 Finished! 🎉
 
-You should be able to type vmsmenu at the shell prompt to use the session manager to connect to your saved hosts. 
+You should be able to type menu at the shell prompt to use the session manager to connect to your saved hosts. 
 You can also type addhost to use an interactive menu to save sessions into the config files so that vmsmenu can use them.
 
 <img width="707" height="309" alt="Image" src="https://github.com/user-attachments/assets/c9653f11-ad14-4a8c-b381-2458a0c39b8c" />
