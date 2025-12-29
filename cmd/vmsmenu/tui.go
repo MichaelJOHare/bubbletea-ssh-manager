@@ -1,17 +1,14 @@
 package main
 
 import (
-	"bubbletea-ssh-manager/internal/connect"
-	str "bubbletea-ssh-manager/internal/stringutil"
-	"fmt"
-	"strings"
 	"time"
+
+	str "bubbletea-ssh-manager/internal/stringutil"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -101,6 +98,7 @@ func newModel() model {
 		root:     root,
 		path:     path,
 		lst:      lst,
+		mode:     modeMenu,
 	}
 
 	m.initHelpKeys()
@@ -117,144 +115,37 @@ func newModel() model {
 // It handles window resize, connection completion, key presses, and updates
 // to the text input and list components.
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
+	switch v := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.width, m.height = msg.Width, msg.Height
-		m.relayout()
-		return m, nil
-
-	case hostFormCanceledMsg:
-		m, cmd := m.closeHostForm("Canceled.", false)
-		return m, cmd
-
-	case hostFormSubmittedMsg:
-		nm, cmd := m.handleHostFormSubmit(msg)
+		nm, cmd, _ := m.handleWindowSizeMsg(v)
 		return nm, cmd
-
-	case hostFormSaveResultMsg:
-		nm, cmd := m.handleHostFormSaveResult(msg)
-		return nm, cmd
-
 	case menuReloadedMsg:
-		nm, cmd := m.applyReloadedMenu(msg)
+		nm, cmd, _ := m.handleMenuReloadedMsg(v)
 		return nm, cmd
-
-	// handle spinner animation during preflight
-	case spinner.TickMsg:
-		if !m.preflighting {
-			return m, nil
-		}
-		var cmd tea.Cmd
-		m.spinner, cmd = m.spinner.Update(msg)
-		return m, cmd
-
-	// handle status clear messages from temporary statuses
 	case statusClearMsg:
-		if msg.token == m.statusToken {
-			m.status = ""
-			m.statusIsError = false
-			m.relayout()
-		}
-		return m, nil
-
-	// handle preflight tick messages to update countdown
+		nm, cmd, _ := m.handleStatusClearMsg(v)
+		return nm, cmd
+	case spinner.TickMsg:
+		nm, cmd, _ := m.handleSpinnerTickMsg(v)
+		return nm, cmd
 	case preflightTickMsg:
-		if !m.preflighting || msg.token != m.preflightToken {
-			return m, nil
-		}
-		// keep this lightweight, update only the remaining seconds for display
-		remaining := max(int(time.Until(m.preflightEndsAt).Round(time.Second).Seconds()), 0)
-		m.preflightRemaining = remaining
-		if remaining > 0 {
-			return m, preflightTickCmd(msg.token)
-		}
-		return m, nil
-
-	// handle preflight result messages to start connection or show error
+		nm, cmd, _ := m.handlePreflightTickMsg(v)
+		return nm, cmd
 	case preflightResultMsg:
-		if !m.preflighting || msg.token != m.preflightToken {
-			return m, nil
-		}
-
-		// capture preflight state
-		protocol := m.preflightProtocol
-		hostPort := m.preflightHostPort
-		display := m.preflightDisplay
-		windowTitle := m.preflightWindowTitle
-		cmd := m.preflightCmd
-		tail := m.preflightTail
-
-		// clear stored preflight state
-		m.clearPreflightState()
-
-		// if preflight failed, return error status
-		if msg.err != nil {
-			statusCmd := m.setStatus(fmt.Sprintf("%s %s failed: \n%v", protocol, hostPort, msg.err), true, statusTTL)
-			return m, statusCmd
-		}
-
-		// preflight succeeded; start connection
-		m.executing = true
-		return m, launchExecCmd(windowTitle, cmd, protocol, display, tail)
-
-	// handle connection finished messages
+		nm, cmd, _ := m.handlePreflightResultMsg(v)
+		return nm, cmd
 	case connectFinishedMsg:
-		m.executing = false
-		titleCmd := tea.SetWindowTitle("MENU")
-		output := strings.TrimSpace(msg.output)
-		if msg.err != nil {
-			if output != "" {
-				statusCmd := m.setStatus(fmt.Sprintf("%s to %s exited:\n%s (%v)", msg.protocol, msg.target, output, msg.err), true, 0)
-				return m, tea.Batch(titleCmd, statusCmd)
-			}
-			if connect.IsConnectionAborted(msg.err) {
-				statusCmd := m.setStatus(fmt.Sprintf("%s to %s aborted.", msg.protocol, msg.target), true, statusTTL)
-				return m, tea.Batch(titleCmd, statusCmd)
-			}
-			statusCmd := m.setStatus(fmt.Sprintf("%s to %s exited:\n%v", msg.protocol, msg.target, msg.err), true, 0)
-			return m, tea.Batch(titleCmd, statusCmd)
-		}
-
-		statusCmd := m.setStatus(fmt.Sprintf("%s to %s ended.", msg.protocol, msg.target), false, statusTTL)
-		return m, tea.Batch(titleCmd, statusCmd)
-
-	// handle key presses
+		nm, cmd, _ := m.handleConnectFinishedMsg(v)
+		return nm, cmd
 	case tea.KeyMsg:
-		// host add/edit is a modal: route keys to the form (with a couple of escapes)
-		if m.hostFormOpen() {
-			switch msg.String() {
-			case "esc", "left":
-				nm, cmd := m.closeHostForm("Canceled.", false)
-				return nm, cmd
-			}
-			var cmd tea.Cmd
-			if m.hostForm != nil {
-				mdl, c := m.hostForm.Update(msg)
-				if f, ok := mdl.(*huh.Form); ok {
-					m.hostForm = f
-				}
-				cmd = c
-			}
-			m.relayout()
-			return m, cmd
-		}
-
-		if nm, cmd, handled := m.handleKeyMsg(msg); handled {
+		if nm, cmd, handled := m.handleKeyMsg(v); handled {
 			return nm, cmd
 		}
 	}
 
-	// If the host form is open, all other messages update the form.
-	if m.hostFormOpen() {
-		if m.hostForm != nil {
-			mdl, cmd := m.hostForm.Update(msg)
-			if f, ok := mdl.(*huh.Form); ok {
-				m.hostForm = f
-			}
-			m.relayout()
-			return m, cmd
-		}
-		return m, nil
+	// host form: handle lifecycle + non-key updates without needing special ordering
+	if nm, cmd, handled := m.handleHostFormMsg(msg); handled {
+		return nm, cmd
 	}
 
 	// always update query input first
@@ -288,18 +179,18 @@ func (m model) View() string {
 	if m.quitting {
 		return ""
 	}
-	if m.executing {
+	if m.mode == modeExecuting {
 		return ""
 	}
 
-	if m.hostFormOpen() {
+	switch m.mode {
+	case modeHostForm:
 		return m.viewHostForm()
-	}
-	if m.hostDetailsOpen {
+	case modeHostDetails:
 		return m.viewHostDetails()
-	}
-	if m.preflighting {
+	case modePreflight:
 		return m.viewPreflight()
+	default:
+		return m.viewNormal()
 	}
-	return m.viewNormal()
 }

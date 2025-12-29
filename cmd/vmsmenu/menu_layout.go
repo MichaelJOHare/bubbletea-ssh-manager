@@ -31,7 +31,7 @@ func (m *model) syncHelpKeys() {
 	}
 
 	// treat certain states as modals where list navigation/help should not apply
-	modal := m.preflighting || m.promptingUsername || m.hostDetailsOpen || m.hostFormOpen()
+	modal := m.mode == modePreflight || m.mode == modePromptUsername || m.mode == modeHostDetails || m.mode == modeHostForm
 	canScroll := !modal && len(m.lst.Items()) > 1
 	if canScroll {
 		m.lst.KeyMap.CursorUp.SetKeys("up")
@@ -43,19 +43,21 @@ func (m *model) syncHelpKeys() {
 
 	// during preflight we hide the help entirely (only quitting/cancel is allowed)
 	// during host details, the base list help is hidden (custom-rendered modal)
-	if m.preflighting || m.hostDetailsOpen || m.hostFormOpen() {
+	if m.mode == modePreflight || m.mode == modeHostDetails || m.mode == modeHostForm {
 		m.lst.SetShowHelp(false)
 	} else {
 		m.lst.SetShowHelp(true)
 	}
 
 	// set additional help keys based on state
-	if m.promptingUsername {
+	if m.mode == modePromptUsername {
 		m.lst.AdditionalShortHelpKeys = promptHelpKeys
-		m.lst.KeyMap.Quit.SetKeys() // shift+Q gets captured by prompt modal
-		return                      // since a username can have a capital Q in it
+		m.lst.KeyMap.Quit.SetKeys()         // shift+Q gets captured by prompt modal
+		m.lst.KeyMap.ShowFullHelp.SetKeys() // ? gets captured by prompt modal
+		return
 	} else {
 		m.lst.KeyMap.Quit.SetKeys("shift+q")
+		m.lst.KeyMap.ShowFullHelp.SetKeys("?")
 	}
 	if m.inGroup() || m.query.Value() != "" {
 		m.lst.AdditionalShortHelpKeys = groupHelpKeys
@@ -74,7 +76,7 @@ func (m *model) relayout() {
 	// - search/prompt input (hidden when host details modal is open)
 
 	footerLines := 0
-	if m.preflighting {
+	if m.mode == modePreflight {
 		// if preflight line is rendered, reserve space for it
 		// in viewPreflight() it's rendered with PaddingBottom(3) + PaddingTop(1),
 		//  so add 4 for the padding plus the actual rendered height of the
@@ -96,7 +98,7 @@ func (m *model) relayout() {
 
 	// ensure the text input has enough width to render placeholder/prompt
 	// in bubbles/textinput, Width is the content width, not including the prompt
-	if m.promptingUsername {
+	if m.mode == modePromptUsername {
 		promptW := lipgloss.Width(m.prompt.Prompt)
 		m.prompt.Width = max(0, m.width-footerPadLeft-promptW-1)
 	} else {
@@ -108,9 +110,9 @@ func (m *model) relayout() {
 	m.syncHelpKeys()
 
 	// size host add/edit form to the window when open
-	if m.hostForm != nil {
+	if m.ms.hostForm != nil {
 		w := max(0, m.width-6)
 		h := max(0, m.height-6)
-		m.hostForm = m.hostForm.WithWidth(w).WithHeight(h)
+		m.ms.hostForm = m.ms.hostForm.WithWidth(w).WithHeight(h)
 	}
 }

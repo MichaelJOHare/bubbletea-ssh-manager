@@ -23,7 +23,7 @@ func (m model) viewNormal() string {
 	promptStyle := lg.Foreground(promptLabelColor).Bold(true).PaddingLeft(footerPadLeft)
 
 	listView := m.lst.View()
-	if m.promptingUsername {
+	if m.mode == modePromptUsername {
 		listView = m.setActiveMenuItem(listView)
 	}
 
@@ -32,7 +32,7 @@ func (m model) viewNormal() string {
 		lines = append(lines, statusPadStyle.Render(statusTextStyle.Render(m.status)))
 	}
 
-	if m.promptingUsername {
+	if m.mode == modePromptUsername {
 		lines = append(lines, promptStyle.Render(m.prompt.View()))
 	} else {
 		lines = append(lines, searchStyle.Render(m.query.View()))
@@ -46,12 +46,12 @@ func (m model) viewNormal() string {
 // It shows a spinner and countdown timer.
 func (m model) viewPreflight() string {
 
-	remaining := max(m.preflightRemaining, 0)
+	remaining := max(m.ms.preflightRemaining, 0)
 	preflightStatusText := fmt.Sprintf(
 		"%s Checking %s %s (%ds)…\nctrl+c to cancel",
 		m.spinner.View(),
-		m.preflightProtocol,
-		m.preflightHostPort,
+		m.ms.preflightProtocol,
+		m.ms.preflightHostPort,
 		remaining,
 	)
 
@@ -100,7 +100,7 @@ func (m model) viewHostDetails() string {
 //
 // If no form is open, it returns an empty string.
 func (m model) viewHostForm() string {
-	if m.hostForm == nil {
+	if m.ms.hostForm == nil {
 		return ""
 	}
 
@@ -112,6 +112,6 @@ func (m model) viewHostForm() string {
 		PaddingTop(1).
 		PaddingBottom(1)
 
-	content := box.Render(m.hostForm.View())
+	content := box.Render(m.ms.hostForm.View())
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
 }

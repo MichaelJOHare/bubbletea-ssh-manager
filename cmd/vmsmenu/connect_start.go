@@ -1,12 +1,13 @@
 package main
 
 import (
-	"bubbletea-ssh-manager/internal/connect"
-	str "bubbletea-ssh-manager/internal/stringutil"
 	"fmt"
 	"os/exec"
 	"strings"
 	"time"
+
+	"bubbletea-ssh-manager/internal/connect"
+	str "bubbletea-ssh-manager/internal/stringutil"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -39,10 +40,10 @@ func preflightDialCmd(token int, hostPort string) tea.Cmd {
 // It returns the updated model, a command that sends a connectFinishedMsg
 // indicating the cancellation, and true if handled.
 func (m model) cancelPreflightCmd() (model, tea.Cmd, bool) {
-	protocol := strings.TrimSpace(m.preflightProtocol)
-	target := strings.TrimSpace(m.preflightDisplay)
+	protocol := strings.TrimSpace(m.ms.preflightProtocol)
+	target := strings.TrimSpace(m.ms.preflightDisplay)
 	if target == "" {
-		target = strings.TrimSpace(m.preflightHostPort)
+		target = strings.TrimSpace(m.ms.preflightHostPort)
 	}
 	m.clearPreflightState()
 	return m, func() tea.Msg {
@@ -52,15 +53,15 @@ func (m model) cancelPreflightCmd() (model, tea.Cmd, bool) {
 
 // clearPreflightState clears all stored preflight state in the model.
 func (m *model) clearPreflightState() {
-	m.preflighting = false
-	m.preflightEndsAt = time.Time{}
-	m.preflightRemaining = 0
-	m.preflightProtocol = ""
-	m.preflightHostPort = ""
-	m.preflightWindowTitle = ""
-	m.preflightCmd = nil
-	m.preflightTail = nil
-	m.preflightDisplay = ""
+	m.mode = modeMenu
+	m.ms.preflightEndsAt = time.Time{}
+	m.ms.preflightRemaining = 0
+	m.ms.preflightProtocol = ""
+	m.ms.preflightHostPort = ""
+	m.ms.preflightWindowTitle = ""
+	m.ms.preflightCmd = nil
+	m.ms.preflightTail = nil
+	m.ms.preflightDisplay = ""
 }
 
 // startConnect builds and starts the connection command for the given menu item.
@@ -69,7 +70,7 @@ func (m *model) clearPreflightState() {
 // If an error occurs while building the command, it sets an error status instead.
 func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 	// prevent multiple simultaneous connections
-	if m.preflighting {
+	if m.mode == modePreflight || m.mode == modeExecuting {
 		statusCmd := m.setStatus("Already connecting…", false, statusTTL)
 		return m, statusCmd, true
 	}
@@ -101,17 +102,17 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 			return m, statusCmd, true
 		}
 
-		m.preflighting = true
-		m.preflightToken++
-		tok := m.preflightToken
-		m.preflightRemaining = int(preflightTimeout.Seconds())
-		m.preflightEndsAt = time.Now().Add(preflightTimeout)
-		m.preflightProtocol = protocol
-		m.preflightHostPort = hostPort
-		m.preflightWindowTitle = tgt.WindowTitle()
-		m.preflightCmd = cmd
-		m.preflightTail = tail
-		m.preflightDisplay = display
+		m.mode = modePreflight
+		m.ms.preflightToken++
+		tok := m.ms.preflightToken
+		m.ms.preflightRemaining = int(preflightTimeout.Seconds())
+		m.ms.preflightEndsAt = time.Now().Add(preflightTimeout)
+		m.ms.preflightProtocol = protocol
+		m.ms.preflightHostPort = hostPort
+		m.ms.preflightWindowTitle = tgt.WindowTitle()
+		m.ms.preflightCmd = cmd
+		m.ms.preflightTail = tail
+		m.ms.preflightDisplay = display
 
 		// clear any existing status to make room for preflight status
 		m.status = ""
@@ -123,6 +124,7 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 	}
 
 	// no preflight needed; start connection immediately
+	m.mode = modeExecuting
 	return m, launchExecCmd(tgt.WindowTitle(), cmd, protocol, display, tail), true
 }
 

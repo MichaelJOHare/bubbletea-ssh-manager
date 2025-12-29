@@ -1,11 +1,11 @@
 package config
 
 import (
-	"bubbletea-ssh-manager/internal/host"
-	"bubbletea-ssh-manager/internal/sshopts"
-
 	"fmt"
 	"strings"
+
+	"bubbletea-ssh-manager/internal/host"
+	"bubbletea-ssh-manager/internal/sshopts"
 )
 
 // HostEntry is a minimal representation of a Host block from an SSH-style config.

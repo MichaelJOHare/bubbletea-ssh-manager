@@ -1,10 +1,12 @@
 package main
 
 import (
-	str "bubbletea-ssh-manager/internal/stringutil"
 	"strings"
 
+	str "bubbletea-ssh-manager/internal/stringutil"
+
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 )
 
 // handleKeyMsg handles app-specific keybindings.
@@ -12,15 +14,30 @@ import (
 // It returns (newModel, cmd, handled). If handled is false, the caller should
 // pass the message through to the query + list components.
 func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
-	// handle host-details modal first
-	if m.hostDetailsOpen {
-		if nm, cmd, handled := m.handleHostDetailsKeyMsg(msg); handled {
+	switch m.mode {
+	case modeHostForm:
+		// host add/edit is a modal: route keys to the form (with a couple of escapes)
+		switch msg.String() {
+		case "esc", "left":
+			nm, cmd := m.closeHostForm("Canceled.", false)
 			return nm, cmd, true
 		}
-	}
+		var cmd tea.Cmd
+		if m.ms.hostForm != nil {
+			mdl, c := m.ms.hostForm.Update(msg)
+			if f, ok := mdl.(*huh.Form); ok {
+				m.ms.hostForm = f
+			}
+			cmd = c
+		}
+		m.relayout()
+		return m, cmd, true
 
-	// preflight is a modal: ignore all keys except quitting/cancel
-	if m.preflighting {
+	case modeHostDetails:
+		return m.handleHostDetailsKeyMsg(msg)
+
+	case modePreflight:
+		// preflight is a modal: ignore all keys except quitting/cancel
 		switch msg.String() {
 		case "ctrl+c":
 			return m.cancelPreflightCmd()
@@ -30,20 +47,18 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		default:
 			return m, nil, true
 		}
+
+	case modePromptUsername:
+		return m.handlePromptKeyMsg(msg)
 	}
 
-	// keep host details available at any time except during preflight
+	// default/menu behavior
 	if msg.String() == "?" {
-		m.hostDetailsOpen = true  // open host details modal
+		m.mode = modeHostDetails
 		m.lst.SetShowHelp(false)  // hide base help
 		m.setStatus("", false, 0) // hide status
 		m.relayout()
 		return m, nil, true
-	}
-
-	// handle prompt input before search input
-	if m.promptingUsername {
-		return m.handlePromptKeyMsg(msg)
 	}
 
 	return m.handleBaseKeyMsg(msg)
@@ -59,33 +74,30 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 // It returns (newModel, cmd, handled). If handled is false, the caller should
 // pass the message through to the other handlers.
 func (m model) handleHostDetailsKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
-	if m.hostDetailsOpen {
-		switch msg.String() {
-		case "left":
-			m.hostDetailsOpen = false // close modal
-			m.lst.SetShowHelp(true)
-			// if we were prompting for username, restore that status message
-			if m.promptingUsername {
-				m.setStatus(userPromptStatus(m.pendingHost.spec.Alias), false, 0)
-			}
-			m.relayout()
-			return m, nil, true
-
-		case "E":
-			return m.openEditHostForm()
-
-		case "A":
-			return m.openAddHostForm()
-
-		case "R":
-			m.setStatus("Remove not wired yet.", true, statusTTL)
-			return m, nil, true
-		default:
-			return m, nil, true
+	switch msg.String() {
+	case "left":
+		m.mode = modeMenu // close modal
+		m.lst.SetShowHelp(true)
+		// if we were prompting for username, restore that status message
+		if m.ms.pendingHost != nil {
+			m.mode = modePromptUsername
+			m.setStatus(userPromptStatus(m.ms.pendingHost.spec.Alias), false, 0)
 		}
-	}
+		m.relayout()
+		return m, nil, true
 
-	return m, nil, false
+	case "E":
+		return m.openEditHostForm()
+
+	case "A":
+		return m.openAddHostForm()
+
+	case "R":
+		m.setStatus("Remove not wired yet.", true, statusTTL)
+		return m, nil, true
+	default:
+		return m, nil, true
+	}
 }
 
 // handlePromptKeyMsg handles key messages when prompting for username.
@@ -105,7 +117,7 @@ func (m model) handlePromptKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 			m.setStatus("Username required (left arrow to cancel)", true, 0)
 			return m, nil, true
 		}
-		it := m.pendingHost
+		it := m.ms.pendingHost
 		m.dismissPrompt()
 
 		if it == nil {
@@ -129,7 +141,7 @@ func (m model) handleBaseKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	switch msg.String() {
 	// cancel preflight or quit on Ctrl+C
 	case "ctrl+c":
-		if m.preflighting {
+		if m.mode == modePreflight {
 			return m.cancelPreflightCmd()
 		}
 		m.quitting = true

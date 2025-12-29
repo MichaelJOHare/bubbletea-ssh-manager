@@ -1,12 +1,13 @@
 package connect
 
 import (
-	"bubbletea-ssh-manager/internal/host"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"strings"
+
+	"bubbletea-ssh-manager/internal/host"
 )
 
 // BuildCommand builds the exec.Cmd to connect to the given Target.

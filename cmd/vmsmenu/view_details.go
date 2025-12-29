@@ -1,10 +1,11 @@
 package main
 
 import (
-	"bubbletea-ssh-manager/internal/config"
-	str "bubbletea-ssh-manager/internal/stringutil"
 	"fmt"
 	"strings"
+
+	"bubbletea-ssh-manager/internal/config"
+	str "bubbletea-ssh-manager/internal/stringutil"
 
 	"github.com/charmbracelet/lipgloss"
 )

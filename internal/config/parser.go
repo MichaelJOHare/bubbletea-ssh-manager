@@ -1,10 +1,11 @@
 package config
 
 import (
-	"bubbletea-ssh-manager/internal/host"
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"bubbletea-ssh-manager/internal/host"
 )
 
 // maxIncludeDepth is the maximum depth for recursive Include parsing.

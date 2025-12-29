@@ -1,15 +1,15 @@
 package main
 
 import (
-	"bubbletea-ssh-manager/internal/config"
-	str "bubbletea-ssh-manager/internal/stringutil"
-
 	"cmp"
 	"errors"
 	"fmt"
 	"os"
 	"slices"
 	"strings"
+
+	"bubbletea-ssh-manager/internal/config"
+	str "bubbletea-ssh-manager/internal/stringutil"
 )
 
 // formatGroupName formats a raw group name for display.

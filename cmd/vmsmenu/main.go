@@ -8,16 +8,12 @@ import (
 )
 
 // TODO: always format host names when displaying in status
-//       implement edit/remove/add host functionality
-//          -- Add and Edit can use textinputs components to gather info (see examples in bubbletea repo)
-//                - use bubbletea extension "huh" for adding/editing hosts
-//                - include nickname, groupname, hostname, and the rest of host.Spec
-//          -- Remove can be a confirmation prompt
-//       swap from group.HOST to GROUP.host for consistency?
-// 	 	 check for empty list for opening host details
-//       take individual letters D E A R out of help when their menu is open
-// split up Update into smaller functions for readability
-// fix double newline when adding/editing hosts
+//       implement remove host functionality
+//          	-- can be a confirmation prompt
+//       implement arrow keys for navigating HostForm fields
+// 	 	 check for empty list before opening host details
+//       fix double newline when adding/editing hosts
+//       consolidate color styles
 
 func main() {
 	p := tea.NewProgram(newModel(), tea.WithAltScreen())

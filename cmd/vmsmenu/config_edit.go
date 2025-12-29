@@ -1,13 +1,14 @@
 package main
 
 import (
-	"bubbletea-ssh-manager/internal/config"
-	"bubbletea-ssh-manager/internal/host"
-	"bubbletea-ssh-manager/internal/sshopts"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
+
+	"bubbletea-ssh-manager/internal/config"
+	"bubbletea-ssh-manager/internal/host"
+	"bubbletea-ssh-manager/internal/sshopts"
 )
 
 // getProtocolConfigPath returns the root config file for the given protocol.

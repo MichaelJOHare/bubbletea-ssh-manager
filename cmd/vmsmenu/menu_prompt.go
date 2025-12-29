@@ -20,8 +20,8 @@ func (m model) beginUserPrompt(it *menuItem) (model, tea.Cmd, bool) {
 		m.setStatus("No host selected.", true, 0)
 		return m, nil, true
 	}
-	m.promptingUsername = true
-	m.pendingHost = it
+	m.mode = modePromptUsername
+	m.ms.pendingHost = it
 	// prefill with existing user (from config or previous override) for convenience
 	m.prompt.SetValue(strings.TrimSpace(it.spec.User))
 	m.prompt.Focus()
@@ -55,8 +55,8 @@ func (m model) clearPrompt() (model, tea.Cmd, bool) {
 //
 // It returns the updated model, a nil command, and true if handled.
 func (m model) dismissPrompt() (model, tea.Cmd, bool) {
-	m.promptingUsername = false
-	m.pendingHost = nil
+	m.mode = modeMenu
+	m.ms.pendingHost = nil
 	m.prompt.SetValue("")
 	m.prompt.Blur()
 	m.setStatus("", false, 0)

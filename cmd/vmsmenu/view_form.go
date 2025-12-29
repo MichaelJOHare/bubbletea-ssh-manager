@@ -1,52 +1,57 @@
 package main
 
 import (
-	"bubbletea-ssh-manager/internal/host"
-	"bubbletea-ssh-manager/internal/sshopts"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
 
+	"bubbletea-ssh-manager/internal/host"
+	"bubbletea-ssh-manager/internal/sshopts"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 )
 
-type hostFormSaveResultMsg struct {
-	err error
+type hostFormValues struct {
+	protocol   string
+	alias      string
+	hostname   string
+	port       string
+	user       string
+	algHostKey string
+	algKex     string
+	algMACs    string
 }
 
-func (m model) hostFormOpen() bool {
-	return m.hostForm != nil && (m.hostAddOpen || m.hostEditOpen)
+func buildHostFormFromValues(mode hostFormMode, oldAlias string, v *hostFormValues) *huh.Form {
+	if v == nil {
+		v = &hostFormValues{}
+	}
+	return buildHostForm(
+		mode,
+		oldAlias,
+		&v.protocol,
+		&v.alias,
+		&v.hostname,
+		&v.port,
+		&v.user,
+		&v.algHostKey,
+		&v.algKex,
+		&v.algMACs,
+	)
 }
 
 func (m model) openAddHostForm() (model, tea.Cmd, bool) {
 	// close other modals
-	m.hostDetailsOpen = false
-	m.promptingUsername = false
-	m.pendingHost = nil
+	m.mode = modeHostForm
+	m.ms.pendingHost = nil
+	m.ms.hostFormOldAlias = ""
 
-	m.hostAddOpen = true
-	m.hostEditOpen = false
-	m.hostRemoveOpen = false
+	v := &hostFormValues{protocol: "ssh"}
+	form := buildHostFormFromValues(hostFormAdd, "", v)
 
-	m.hostFormMode = hostFormAdd
-	m.hostFormOldAlias = ""
-
-	// defaults
-	protocol := "ssh"
-	alias := ""
-	hostname := ""
-	port := ""
-	user := ""
-	algHostKey := ""
-	algKex := ""
-	algMACs := ""
-
-	form := buildHostForm(hostFormAdd, "", &protocol, &alias, &hostname, &port, &user, &algHostKey, &algKex, &algMACs)
-
-	m.hostForm = form
-	m.hostFormProtocol = protocol
+	m.ms.hostForm = form
 	m.relayout()
 	return m, form.Init(), true
 }
@@ -59,41 +64,31 @@ func (m model) openEditHostForm() (model, tea.Cmd, bool) {
 	}
 
 	// close other modals
-	m.hostDetailsOpen = false
-	m.promptingUsername = false
-	m.pendingHost = nil
+	m.mode = modeHostForm
+	m.ms.pendingHost = nil
+	m.ms.hostFormOldAlias = strings.TrimSpace(it.spec.Alias)
 
-	m.hostEditOpen = true
-	m.hostAddOpen = false
-	m.hostRemoveOpen = false
+	v := &hostFormValues{
+		protocol:   strings.TrimSpace(it.protocol),
+		alias:      strings.TrimSpace(it.spec.Alias),
+		hostname:   strings.TrimSpace(it.spec.HostName),
+		port:       strings.TrimSpace(it.spec.Port),
+		user:       strings.TrimSpace(it.spec.User),
+		algHostKey: strings.TrimSpace(it.options.HostKeyAlgorithms),
+		algKex:     strings.TrimSpace(it.options.KexAlgorithms),
+		algMACs:    strings.TrimSpace(it.options.MACs),
+	}
+	form := buildHostFormFromValues(hostFormEdit, m.ms.hostFormOldAlias, v)
 
-	m.hostFormMode = hostFormEdit
-	m.hostFormOldAlias = strings.TrimSpace(it.spec.Alias)
-	m.hostFormProtocol = strings.TrimSpace(it.protocol)
-
-	protocol := strings.TrimSpace(it.protocol)
-	alias := strings.TrimSpace(it.spec.Alias)
-	hostname := strings.TrimSpace(it.spec.HostName)
-	port := strings.TrimSpace(it.spec.Port)
-	user := strings.TrimSpace(it.spec.User)
-	algHostKey := strings.TrimSpace(it.options.HostKeyAlgorithms)
-	algKex := strings.TrimSpace(it.options.KexAlgorithms)
-	algMACs := strings.TrimSpace(it.options.MACs)
-
-	form := buildHostForm(hostFormEdit, m.hostFormOldAlias, &protocol, &alias, &hostname, &port, &user, &algHostKey, &algKex, &algMACs)
-
-	m.hostForm = form
+	m.ms.hostForm = form
 	m.relayout()
 	return m, form.Init(), true
 }
 
 func (m model) closeHostForm(status string, isErr bool) (model, tea.Cmd) {
-	m.hostAddOpen = false
-	m.hostEditOpen = false
-	m.hostRemoveOpen = false
-	m.hostForm = nil
-	m.hostFormProtocol = ""
-	m.hostFormOldAlias = ""
+	m.mode = modeMenu
+	m.ms.hostForm = nil
+	m.ms.hostFormOldAlias = ""
 	m.relayout()
 	if strings.TrimSpace(status) == "" {
 		return m, nil
@@ -185,7 +180,7 @@ func buildHostForm(
 		WithShowHelp(false).
 		WithShowErrors(true)
 
-	form.CancelCmd = func() tea.Msg { return hostFormCanceledMsg{} }
+	form.CancelCmd = func() tea.Msg { return hostFormResultMsg{kind: hostFormResultCanceled} }
 	form.SubmitCmd = func() tea.Msg {
 		p := strings.ToLower(strings.TrimSpace(*protocol))
 		s := host.Spec{
@@ -199,7 +194,7 @@ func buildHostForm(
 			KexAlgorithms:     strings.TrimSpace(*algKex),
 			MACs:              strings.TrimSpace(*algMACs),
 		}
-		return hostFormSubmittedMsg{mode: mode, protocol: p, oldAlias: strings.TrimSpace(oldAlias), spec: s, opts: opts}
+		return hostFormResultMsg{kind: hostFormResultSubmitted, mode: mode, protocol: p, oldAlias: strings.TrimSpace(oldAlias), spec: s, opts: opts}
 	}
 
 	return form
@@ -227,7 +222,10 @@ func (m model) applyReloadedMenu(msg menuReloadedMsg) (model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) handleHostFormSubmit(msg hostFormSubmittedMsg) (model, tea.Cmd) {
+func (m model) handleHostFormSubmit(msg hostFormResultMsg) (model, tea.Cmd) {
+	if msg.kind != hostFormResultSubmitted {
+		return m, nil
+	}
 	protocol := strings.ToLower(strings.TrimSpace(msg.protocol))
 	alias := strings.TrimSpace(msg.spec.Alias)
 	if alias == "" {
@@ -244,7 +242,7 @@ func (m model) handleHostFormSubmit(msg hostFormSubmittedMsg) (model, tea.Cmd) {
 		return nm, cmd
 	}
 
-	oldAlias := strings.TrimSpace(m.hostFormOldAlias)
+	oldAlias := strings.TrimSpace(m.ms.hostFormOldAlias)
 	if oldAlias == "" {
 		oldAlias = strings.TrimSpace(msg.oldAlias)
 	}

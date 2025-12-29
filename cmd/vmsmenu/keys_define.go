@@ -23,6 +23,7 @@ const (
 	infoHelp         = "details"
 
 	// Symbols for key bindings in the host details help view.
+
 	editSymbol   = "E"
 	editHelp     = "edit"
 	addSymbol    = "A"
@@ -43,6 +44,7 @@ var (
 	clearStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("188")).Render(clearSymbol)     // light grey
 
 	// Host details help key styles.
+
 	editStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Render(editSymbol) // orange
 	addStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(addSymbol)   // green
 	removeStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render(removeSymbol) // red
@@ -112,6 +114,7 @@ var (
 	promptHelpKeys = func() []key.Binding { return []key.Binding{leftBackKey, escClearKey} }
 
 	// Host details help layout: one key per column (horizontal).
+
 	moreHelpKeys = [][]key.Binding{
 		{leftCloseHelpKey},
 		{editKey},

@@ -1,9 +1,10 @@
 package connect
 
 import (
+	"strings"
+
 	"bubbletea-ssh-manager/internal/host"
 	str "bubbletea-ssh-manager/internal/stringutil"
-	"strings"
 )
 
 // A Target represents a connection target for SSH or Telnet.

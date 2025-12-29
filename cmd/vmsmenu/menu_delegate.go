@@ -1,10 +1,11 @@
 package main
 
 import (
-	str "bubbletea-ssh-manager/internal/stringutil"
 	"fmt"
 	"io"
 	"strings"
+
+	str "bubbletea-ssh-manager/internal/stringutil"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/x/ansi"
