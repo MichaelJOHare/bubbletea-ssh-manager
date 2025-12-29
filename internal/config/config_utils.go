@@ -124,14 +124,6 @@ func writeFileAtomic(path string, data []byte) error {
 	return os.Rename(tmp, path)
 }
 
-// appendNonNil appends extra to lines, initializing lines if nil.
-func appendNonNil(lines []string, extra ...string) []string {
-	if lines == nil {
-		return append([]string{}, extra...)
-	}
-	return append(lines, extra...)
-}
-
 // stripComment removes any comment from the given line.
 //
 // A comment starts with a '#' character.

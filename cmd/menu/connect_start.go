@@ -71,13 +71,13 @@ func (m *model) clearPreflightState() {
 func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 	// prevent multiple simultaneous connections
 	if m.mode == modePreflight || m.mode == modeExecuting {
-		statusCmd := m.setStatus("Already connecting…", false, statusTTL)
+		statusCmd := m.setStatusInfo("Already connecting…", statusTTL)
 		return m, statusCmd, true
 	}
 
 	// sanity check
 	if it == nil {
-		m.setStatus("No host selected.", true, 0)
+		m.setStatusError("No host selected.", 0)
 		return m, nil, true
 	}
 
@@ -87,7 +87,7 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 		Spec:     it.spec,
 	})
 	if err != nil {
-		m.setStatus(err.Error(), true, 0)
+		m.setStatusError(err.Error(), 0)
 		return m, nil, true
 	}
 
@@ -98,7 +98,7 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 	if connect.ShouldPreflight(tgt) {
 		hostPort := connect.GenerateHostPort(tgt)
 		if strings.TrimSpace(hostPort) == "" {
-			statusCmd := m.setStatus(fmt.Sprintf("%s: missing hostname", protocol), true, statusTTL)
+			statusCmd := m.setStatusError(fmt.Sprintf("%s: missing hostname", protocol), statusTTL)
 			return m, statusCmd, true
 		}
 
@@ -115,10 +115,7 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 		m.ms.preflightDisplay = display
 
 		// clear any existing status to make room for preflight status
-		m.status = ""
-		m.statusIsError = false
-
-		m.relayout()
+		m.setStatusInfo("", 0)
 
 		return m, tea.Batch(preflightDialCmd(tok, hostPort), preflightTickCmd(tok), m.spinner.Tick), true
 	}

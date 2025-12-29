@@ -61,59 +61,35 @@ type model struct {
 	mode uiMode    // current UI mode
 	ms   modeState // current mode state
 
-	status        string // status message
-	statusIsError bool   // is the status an error message?
-	statusToken   int    // increments on status updates; tracked to clear status
-	quitting      bool   // is the app quitting?
+	status      string     // status message
+	statusKind  statusKind // status style (info/success/error)
+	statusToken int        // increments on status updates; tracked to clear status
+	quitting    bool       // is the app quitting?
 }
 
-type itemKind int // type of menu item : group or host
+type formResultKind int // kind of result from host entry form (submit vs cancel)
 
 const (
-	itemGroup itemKind = iota
-	itemHost
+	formResultCancelled formResultKind = iota
+	formResultSubmitted
 )
 
-type menuItem struct {
-	// common fields
-	kind itemKind // item type: group or host
-	name string   // display name (host alias or group name)
+/*
+	MESSAGE TYPES
+*/
 
-	// host-only fields
-	protocol string          // "ssh" or "telnet"
-	spec     host.Spec       // shared host fields (alias/hostname/port/user)
-	options  sshopts.Options // SSH options (only for SSH hosts)
+type formResultMsg struct {
+	kind formResultKind
 
-	// group-only fields
-	children []*menuItem // child menu items
-}
-
-type hostFormMode int // add vs edit mode for host form
-
-const (
-	hostFormAdd hostFormMode = iota
-	hostFormEdit
-)
-
-type hostFormResultKind int
-
-const (
-	hostFormResultCanceled hostFormResultKind = iota
-	hostFormResultSubmitted
-)
-
-type hostFormResultMsg struct {
-	kind hostFormResultKind
-
-	// set when kind==hostFormResultSubmitted
-	mode     hostFormMode    // add vs edit
+	// set when kind==formResultSubmitted
+	mode     formMode        // add vs edit mode for host entry form
 	protocol string          // "ssh" or "telnet"
 	oldAlias string          // for edit/rename
 	spec     host.Spec       // shared host fields (alias/hostname/port/user)
 	opts     sshopts.Options // SSH options (only for SSH hosts)
 }
 
-type hostFormSaveResultMsg struct {
+type formSaveResultMsg struct {
 	err error // error during save IO operation
 }
 

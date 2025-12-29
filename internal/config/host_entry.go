@@ -26,11 +26,20 @@ func EntryFromSpec(spec host.Spec, opts sshopts.Options, sourcePath string) Host
 }
 
 // buildHostEntry creates config lines for a HostEntry.
-func buildHostEntry(entry HostEntry) []string {
+//
+// It centralizes spacing rules:
+//   - If preceding is non-empty and does not already end with a blank line, it
+//     adds exactly one blank line before the Host block.
+//   - It always adds a trailing blank line.
+func buildHostEntry(entry HostEntry, preceding []string) []string {
 	alias := strings.TrimSpace(entry.Spec.Alias)
 	indent := DefaultHostIndent
 
-	out := []string{fmt.Sprintf("Host %s", alias)}
+	out := make([]string, 0, 8)
+	if len(preceding) > 0 && preceding[len(preceding)-1] != "" {
+		out = append(out, "")
+	}
+	out = append(out, fmt.Sprintf("Host %s", alias))
 	if v := strings.TrimSpace(entry.Spec.HostName); v != "" {
 		out = append(out, indent+"HostName "+v)
 	}

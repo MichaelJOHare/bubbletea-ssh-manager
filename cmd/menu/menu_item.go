@@ -3,8 +3,32 @@ package main
 import (
 	"strings"
 
+	"bubbletea-ssh-manager/internal/host"
+	"bubbletea-ssh-manager/internal/sshopts"
+
 	"github.com/charmbracelet/bubbles/list"
 )
+
+type itemKind int // type of menu item: group or host
+
+const (
+	itemGroup itemKind = iota
+	itemHost
+)
+
+type menuItem struct {
+	// common fields
+	kind itemKind // item type: group or host
+	name string   // display name (host alias or group name)
+
+	// host-only fields
+	protocol string          // "ssh" or "telnet"
+	spec     host.Spec       // shared host fields (alias/hostname/port/user)
+	options  sshopts.Options // SSH options (only for SSH hosts)
+
+	// group-only fields
+	children []*menuItem // child menu items
+}
 
 // Title returns the main display name of the menu item.
 func (it *menuItem) Title() string {

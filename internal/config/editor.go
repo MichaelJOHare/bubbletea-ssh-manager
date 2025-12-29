@@ -66,8 +66,8 @@ func AddHostEntry(configPath string, entry HostEntry) error {
 		return fmt.Errorf("host %q already exists in %s", alias, configPath)
 	}
 
-	out := appendNonNil(lines, "")
-	out = append(out, buildHostEntry(entry)...)
+	out := lines
+	out = append(out, buildHostEntry(entry, out)...)
 	return writeLines(configPath, out)
 }
 
@@ -103,8 +103,8 @@ func UpdateHostEntry(configPath, oldAlias string, updated HostEntry) error {
 		return fmt.Errorf("host %q already exists in %s", newAlias, configPath)
 	}
 
-	out := appendNonNil(stripped, "")
-	out = append(out, buildHostEntry(updated)...)
+	out := stripped
+	out = append(out, buildHostEntry(updated, out)...)
 	return writeLines(configPath, out)
 }
 

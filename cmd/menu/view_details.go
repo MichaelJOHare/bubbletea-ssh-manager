@@ -32,13 +32,13 @@ func (m model) hostDetailsText() string {
 		return "Select a host to view details"
 	}
 
-	labelStyle := lipgloss.NewStyle().Foreground(fullHelpBorderColor).Bold(true).PaddingLeft(4)
-	valueStyle := lipgloss.NewStyle().Foreground(statusColor)
+	labelStyle := lipgloss.NewStyle().Foreground(cyanColor).Bold(true).PaddingLeft(4)
+	valueStyle := lipgloss.NewStyle().Foreground(grayStatusColor)
 
 	protocol := str.NormalizeString(it.protocol)
-	protoColor := sshHostNameColor
+	protoColor := greenColor
 	if protocol == "telnet" {
-		protoColor = telnetHostNameColor
+		protoColor = pinkColor
 	}
 	protoValueStyle := lipgloss.NewStyle().Foreground(protoColor).Bold(true)
 
@@ -58,7 +58,7 @@ func (m model) hostDetailsText() string {
 	header := lipgloss.NewStyle().
 		PaddingTop(1).
 		PaddingLeft(2).
-		Foreground(searchLabelColor).
+		Foreground(indigoColor).
 		Bold(true).
 		Render("HOST DETAILS")
 	lines = append(lines, header)
@@ -80,7 +80,7 @@ func (m model) hostDetailsText() string {
 			PaddingTop(1).
 			PaddingBottom(1).
 			PaddingLeft(2).
-			Foreground(searchLabelColor).
+			Foreground(indigoColor).
 			Bold(true).
 			Render("SSH OPTIONS"))
 
@@ -118,13 +118,13 @@ func (m model) hostDetailsWidth() int {
 
 	helpStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(fullHelpBorderColor).
+		BorderForeground(cyanColor).
 		PaddingLeft(footerPadLeft).
 		PaddingRight(footerPadLeft)
 
 	hostDetailsStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(fullHelpBorderColor).
+		BorderForeground(cyanColor).
 		PaddingLeft(1).
 		PaddingRight(footerPadLeft).
 		PaddingTop(1)

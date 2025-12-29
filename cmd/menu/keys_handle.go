@@ -19,7 +19,7 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		// host add/edit is a modal: route keys to the form (with a couple of escapes)
 		switch msg.String() {
 		case "esc", "left":
-			nm, cmd := m.closeHostForm("Canceled.", false)
+			nm, cmd := m.closeHostForm("Canceled.", statusInfo)
 			return nm, cmd, true
 		}
 		var cmd tea.Cmd
@@ -55,8 +55,8 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	// default/menu behavior
 	if msg.String() == "?" {
 		m.mode = modeHostDetails
-		m.lst.SetShowHelp(false)  // hide base help
-		m.setStatus("", false, 0) // hide status
+		m.lst.SetShowHelp(false) // hide base help
+		m.setStatusInfo("", 0)   // hide status
 		m.relayout()
 		return m, nil, true
 	}
@@ -81,7 +81,7 @@ func (m model) handleHostDetailsKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		// if we were prompting for username, restore that status message
 		if m.ms.pendingHost != nil {
 			m.mode = modePromptUsername
-			m.setStatus(userPromptStatus(m.ms.pendingHost.spec.Alias), false, 0)
+			m.setStatusInfo(userPromptStatus(m.ms.pendingHost.spec.Alias), 0)
 		}
 		m.relayout()
 		return m, nil, true
@@ -93,7 +93,7 @@ func (m model) handleHostDetailsKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		return m.openAddHostForm()
 
 	case "R":
-		m.setStatus("Remove not wired yet.", true, statusTTL)
+		m.setStatusError("Remove not wired yet.", statusTTL)
 		return m, nil, true
 	default:
 		return m, nil, true
@@ -114,14 +114,14 @@ func (m model) handlePromptKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	case "enter":
 		u := strings.TrimSpace(m.prompt.Value())
 		if u == "" {
-			m.setStatus("Username required (left arrow to cancel)", true, 0)
+			m.setStatusError("Username required (left arrow to cancel)", 0)
 			return m, nil, true
 		}
 		it := m.ms.pendingHost
 		m.dismissPrompt()
 
 		if it == nil {
-			m.setStatus("No host selected.", true, 0)
+			m.setStatusError("No host selected.", 0)
 			return m, nil, true
 		}
 		it.spec.User = u
@@ -162,7 +162,7 @@ func (m model) handleBaseKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 			m.path = m.path[:len(m.path)-1]
 			m.query.SetValue("")
 			m.setCurrentMenu(m.current().children)
-			m.setStatus("", false, 0)
+			m.setStatusInfo("", 0)
 		} else if m.query.Value() != "" {
 			return m.clearSearch()
 		}
@@ -176,7 +176,7 @@ func (m model) handleBaseKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 				m.path = append(m.path, it)
 				m.query.SetValue("")
 				m.setCurrentMenu(it.children)
-				m.setStatus("", false, 0)
+				m.setStatusInfo("", 0)
 				return m, nil, true
 			}
 

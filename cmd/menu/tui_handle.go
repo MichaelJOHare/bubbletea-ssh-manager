@@ -33,19 +33,19 @@ func (m model) handleHostFormMsg(msg tea.Msg) (model, tea.Cmd, bool) {
 	}
 
 	switch v := msg.(type) {
-	case hostFormResultMsg:
+	case formResultMsg:
 		switch v.kind {
-		case hostFormResultCanceled:
-			nm, cmd := m.closeHostForm("Canceled.", false)
+		case formResultCancelled:
+			nm, cmd := m.closeHostForm("Canceled.", statusError)
 			return nm, cmd, true
-		case hostFormResultSubmitted:
+		case formResultSubmitted:
 			nm, cmd := m.handleHostFormSubmit(v)
 			return nm, cmd, true
 		default:
 			return m, nil, true
 		}
 
-	case hostFormSaveResultMsg:
+	case formSaveResultMsg:
 		nm, cmd := m.handleHostFormSaveResult(v)
 		return nm, cmd, true
 	}
@@ -69,8 +69,18 @@ func (m model) handleHostFormMsg(msg tea.Msg) (model, tea.Cmd, bool) {
 // It applies the reloaded menu to the model and returns the updated model
 // and any command resulting from applying the new menu.
 func (m model) handleMenuReloadedMsg(msg menuReloadedMsg) (model, tea.Cmd, bool) {
-	nm, cmd := m.applyReloadedMenu(msg)
-	return nm, cmd, true
+	if msg.root == nil {
+		return m, m.setStatusError("Failed to reload menu.", statusTTL), true
+	}
+	m.root = msg.root
+	m.path = []*menuItem{msg.root}
+	m.query.SetValue("")
+	m.setCurrentMenu(msg.root.children)
+	m.relayout()
+	if msg.err != nil {
+		return m, m.setStatusError("Config: "+msg.err.Error(), statusTTL), true
+	}
+	return m, nil, true
 }
 
 // handleSpinnerTickMsg handles spinner tick messages.
@@ -91,7 +101,7 @@ func (m model) handleSpinnerTickMsg(msg spinner.TickMsg) (model, tea.Cmd, bool) 
 func (m model) handleStatusClearMsg(msg statusClearMsg) (model, tea.Cmd, bool) {
 	if msg.token == m.statusToken {
 		m.status = ""
-		m.statusIsError = false
+		m.statusKind = statusInfo
 		m.relayout()
 	}
 	return m, nil, true
@@ -132,7 +142,7 @@ func (m model) handlePreflightResultMsg(msg preflightResultMsg) (model, tea.Cmd,
 	m.clearPreflightState()
 
 	if msg.err != nil {
-		statusCmd := m.setStatus(fmt.Sprintf("%s %s failed: \n%v", protocol, hostPort, msg.err), true, statusTTL)
+		statusCmd := m.setStatusError(fmt.Sprintf("%s %s failed: \n%v", protocol, hostPort, msg.err), statusTTL)
 		return m, statusCmd, true
 	}
 
@@ -150,17 +160,17 @@ func (m model) handleConnectFinishedMsg(msg connectFinishedMsg) (model, tea.Cmd,
 	output := strings.TrimSpace(msg.output)
 	if msg.err != nil {
 		if output != "" {
-			statusCmd := m.setStatus(fmt.Sprintf("%s to %s exited:\n%s (%v)", msg.protocol, msg.target, output, msg.err), true, 0)
+			statusCmd := m.setStatusError(fmt.Sprintf("%s to %s exited:\n%s (%v)", msg.protocol, msg.target, output, msg.err), 0)
 			return m, tea.Batch(titleCmd, statusCmd), true
 		}
 		if connect.IsConnectionAborted(msg.err) {
-			statusCmd := m.setStatus(fmt.Sprintf("%s to %s aborted.", msg.protocol, msg.target), true, statusTTL)
+			statusCmd := m.setStatusError(fmt.Sprintf("%s to %s aborted.", msg.protocol, msg.target), statusTTL)
 			return m, tea.Batch(titleCmd, statusCmd), true
 		}
-		statusCmd := m.setStatus(fmt.Sprintf("%s to %s exited:\n%v", msg.protocol, msg.target, msg.err), true, 0)
+		statusCmd := m.setStatusError(fmt.Sprintf("%s to %s exited:\n%v", msg.protocol, msg.target, msg.err), 0)
 		return m, tea.Batch(titleCmd, statusCmd), true
 	}
 
-	statusCmd := m.setStatus(fmt.Sprintf("%s to %s ended.", msg.protocol, msg.target), false, statusTTL)
+	statusCmd := m.setStatusSuccess(fmt.Sprintf("%s to %s ended.", msg.protocol, msg.target), statusTTL)
 	return m, tea.Batch(titleCmd, statusCmd), true
 }

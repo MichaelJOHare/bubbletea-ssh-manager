@@ -17,7 +17,7 @@ func userPromptStatus(alias string) string {
 // It sets the prompt state and status message, and returns the updated model.
 func (m model) beginUserPrompt(it *menuItem) (model, tea.Cmd, bool) {
 	if it == nil {
-		m.setStatus("No host selected.", true, 0)
+		m.setStatusError("No host selected.", 0)
 		return m, nil, true
 	}
 	m.mode = modePromptUsername
@@ -25,7 +25,7 @@ func (m model) beginUserPrompt(it *menuItem) (model, tea.Cmd, bool) {
 	// prefill with existing user (from config or previous override) for convenience
 	m.prompt.SetValue(strings.TrimSpace(it.spec.User))
 	m.prompt.Focus()
-	m.setStatus(userPromptStatus(it.spec.Alias), false, 0)
+	m.setStatusInfo(userPromptStatus(it.spec.Alias), 0)
 	return m, nil, true
 }
 
@@ -59,6 +59,6 @@ func (m model) dismissPrompt() (model, tea.Cmd, bool) {
 	m.ms.pendingHost = nil
 	m.prompt.SetValue("")
 	m.prompt.Blur()
-	m.setStatus("", false, 0)
+	m.setStatusInfo("", 0)
 	return m, nil, true
 }

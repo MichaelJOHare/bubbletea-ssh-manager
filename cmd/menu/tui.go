@@ -14,44 +14,20 @@ import (
 
 const statusTTL = 8 * time.Second // duration for non-error info statuses
 const (
-	statusColor         = lipgloss.Color("#bcbcbc") // default status color (gray)
-	errorStatusColor    = lipgloss.Color("#d03f3f") // error status color (red)
-	searchLabelColor    = lipgloss.Color("#736fe4") // indigo
-	fullHelpBorderColor = lipgloss.Color("#0083b3") // cyan
-	promptLabelColor    = lipgloss.Color("#dec532") // yellow
-	spinnerColor        = lipgloss.Color("#ff0087") // pink
-	sshHostNameColor    = lipgloss.Color("#6fc36f") // green
-	telnetHostNameColor = lipgloss.Color("#e15979") // pink
-	groupNameColor      = lipgloss.Color("#e48315") // orange
+	grayStatusColor = lipgloss.Color("#bcbcbc") // default status color
+	redStatusColor  = lipgloss.Color("#d03f3f") // error status color
+	indigoColor     = lipgloss.Color("#736fe4") // indigo
+	cyanColor       = lipgloss.Color("#0083b3") // cyan
+	yellowColor     = lipgloss.Color("#dec532") // yellow
+	brightPinkColor = lipgloss.Color("#ff0087") // pink
+	greenColor      = lipgloss.Color("#6fc36f") // green
+	pinkColor       = lipgloss.Color("#e15979") // pink
+	orangeColor     = lipgloss.Color("#e48315") // orange
 )
 
 // Init returns the initial command for the TUI (blinking cursor and window title).
 func (m model) Init() tea.Cmd {
 	return tea.Batch(tea.SetWindowTitle("MENU"), textinput.Blink)
-}
-
-// setStatus sets the status message and error flag.
-//
-// It increments the status token to keep track of which status to clear
-// when using a duration. If d > 0, it returns a command to clear the status
-// after the specified duration. If d == 0, the status remains until changed.
-func (m *model) setStatus(text string, isError bool, d time.Duration) tea.Cmd {
-	if d < 0 {
-		d = 0
-	}
-
-	m.statusToken++
-	m.status = text
-	m.statusIsError = isError
-	m.relayout()
-
-	if d > 0 {
-		tok := m.statusToken
-		return tea.Tick(d, func(time.Time) tea.Msg {
-			return statusClearMsg{token: tok}
-		})
-	}
-	return nil
 }
 
 // newModel creates a new TUI model with initial state and seeded menu items.
@@ -73,7 +49,7 @@ func newModel() model {
 	// spinner for preflight checks
 	s := spinner.New()
 	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(spinnerColor)
+	s.Style = lipgloss.NewStyle().Foreground(brightPinkColor)
 
 	// seed menu and initial state
 	root, seedErr := seedMenu()
@@ -104,7 +80,7 @@ func newModel() model {
 	m.initHelpKeys()
 	m.setCurrentMenu(items)
 	if seedErr != nil {
-		m.setStatus("Config: "+str.LastNonEmptyLine(seedErr.Error()), true, 0)
+		m.setStatusError("Config: "+str.LastNonEmptyLine(seedErr.Error()), 0)
 	}
 	return m
 }

@@ -11,16 +11,19 @@ import (
 //
 // It focuses the active menu item if prompting for username.
 func (m model) viewNormal() string {
-	statusColor := statusColor
-	if m.statusIsError {
-		statusColor = errorStatusColor
+	statusColor := grayStatusColor
+	switch m.statusKind {
+	case statusError:
+		statusColor = redStatusColor
+	case statusSuccess:
+		statusColor = greenColor
 	}
 
 	lg := lipgloss.NewStyle()
 	statusPadStyle := lg.PaddingLeft(footerPadLeft).PaddingTop(1)
 	statusTextStyle := lg.Foreground(statusColor)
-	searchStyle := lg.Foreground(searchLabelColor).Bold(true).PaddingLeft(footerPadLeft)
-	promptStyle := lg.Foreground(promptLabelColor).Bold(true).PaddingLeft(footerPadLeft)
+	searchStyle := lg.Foreground(indigoColor).Bold(true).PaddingLeft(footerPadLeft)
+	promptStyle := lg.Foreground(yellowColor).Bold(true).PaddingLeft(footerPadLeft)
 
 	listView := m.lst.View()
 	if m.mode == modePromptUsername {
@@ -73,14 +76,14 @@ func (m model) viewHostDetails() string {
 	hostBox := lg.
 		Width(panelW).
 		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(fullHelpBorderColor).
+		BorderForeground(cyanColor).
 		PaddingLeft(footerPadLeft).
 		PaddingRight(footerPadLeft).
 		PaddingTop(1)
 	helpStyle := lg.
 		Width(panelW).
 		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(fullHelpBorderColor).
+		BorderForeground(cyanColor).
 		PaddingLeft(footerPadLeft).
 		PaddingRight(footerPadLeft).
 		Align(lipgloss.Center)
@@ -106,7 +109,7 @@ func (m model) viewHostForm() string {
 
 	box := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(fullHelpBorderColor).
+		BorderForeground(cyanColor).
 		PaddingLeft(2).
 		PaddingRight(2).
 		PaddingTop(1).

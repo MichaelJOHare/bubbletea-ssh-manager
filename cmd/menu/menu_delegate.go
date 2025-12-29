@@ -59,8 +59,8 @@ func (d *menuDelegate) Render(w io.Writer, m list.Model, index int, item list.It
 	if mi != nil {
 		switch mi.kind {
 		case itemGroup:
-			normalTitle = normalTitle.Foreground(groupNameColor)
-			selectedTitle = selectedTitle.Foreground(groupNameColor)
+			normalTitle = normalTitle.Foreground(orangeColor)
+			selectedTitle = selectedTitle.Foreground(orangeColor)
 		case itemHost:
 			if d.groupHints != nil {
 				if grp := strings.TrimSpace(d.groupHints[mi]); grp != "" {
@@ -69,12 +69,12 @@ func (d *menuDelegate) Render(w io.Writer, m list.Model, index int, item list.It
 			}
 			protocol := str.NormalizeString(mi.protocol)
 			if protocol == "telnet" {
-				normalTitle = normalTitle.Foreground(telnetHostNameColor)
-				selectedTitle = selectedTitle.Foreground(telnetHostNameColor)
+				normalTitle = normalTitle.Foreground(pinkColor)
+				selectedTitle = selectedTitle.Foreground(pinkColor)
 			} else {
 				// default to SSH color (green)
-				normalTitle = normalTitle.Foreground(sshHostNameColor)
-				selectedTitle = selectedTitle.Foreground(sshHostNameColor)
+				normalTitle = normalTitle.Foreground(greenColor)
+				selectedTitle = selectedTitle.Foreground(greenColor)
 			}
 		}
 	}
