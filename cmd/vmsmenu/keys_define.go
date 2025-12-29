@@ -20,18 +20,15 @@ const (
 	quitSymbol       = "Q"
 	quitHelp         = "quit"
 	infoSymbol       = "?"
-	infoHelp         = "more"
+	infoHelp         = "details"
 
-	// Symbols for key bindings in the "more (?)" help view.
-
-	detailsSymbol = "D"
-	detailsHelp   = "details"
-	editSymbol    = "E"
-	editHelp      = "edit"
-	addSymbol     = "A"
-	addHelp       = "add"
-	removeSymbol  = "R"
-	removeHelp    = "remove"
+	// Symbols for key bindings in the host details help view.
+	editSymbol   = "E"
+	editHelp     = "edit"
+	addSymbol    = "A"
+	addHelp      = "add"
+	removeSymbol = "R"
+	removeHelp   = "remove"
 )
 
 var (
@@ -45,12 +42,10 @@ var (
 	infoStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("75")).Render(infoSymbol)       // blue
 	clearStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("188")).Render(clearSymbol)     // light grey
 
-	// "More" help key styles.
-
-	detailsStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("75")).Render(detailsSymbol) // blue
-	editStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Render(editSymbol)   // orange
-	addStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(addSymbol)     // green
-	removeStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render(removeSymbol)   // red
+	// Host details help key styles.
+	editStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Render(editSymbol) // orange
+	addStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(addSymbol)   // green
+	removeStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render(removeSymbol) // red
 
 	// Help text color (for key descriptions)
 
@@ -65,10 +60,9 @@ var (
 	infoHelpStyle       = helpTextStyle.Render(infoHelp)
 	clearHelpStyle      = helpTextStyle.Render(clearHelp)
 
-	// "More" help text styles
+	// Host details help text styles
 
 	leftCloseHelpStyle = helpTextStyle.Render("close")
-	detailsHelpStyle   = helpTextStyle.Render(detailsHelp)
 	editHelpStyle      = helpTextStyle.Render(editHelp)
 	addHelpStyle       = helpTextStyle.Render(addHelp)
 	removeHelpStyle    = helpTextStyle.Render(removeHelp)
@@ -91,15 +85,10 @@ var (
 		key.WithKeys("left"),
 		key.WithHelp(leftBackStyle, leftBackHelpStyle),
 	)
-	// left arrow to close the full help view
+	// left arrow to close the host details modal
 	leftCloseHelpKey = key.NewBinding(
 		key.WithKeys("left"),
 		key.WithHelp(leftBackStyle, leftCloseHelpStyle),
-	)
-	// D to show more details about the selected host
-	detailsKey = key.NewBinding(
-		key.WithKeys("D"),
-		key.WithHelp(detailsStyle, detailsHelpStyle),
 	)
 	// E to edit the selected host
 	editKey = key.NewBinding(
@@ -122,10 +111,9 @@ var (
 	groupHelpKeys  = func() []key.Binding { return []key.Binding{leftBackKey} }
 	promptHelpKeys = func() []key.Binding { return []key.Binding{leftBackKey, escClearKey} }
 
-	// Full help layout: one key per column (horizontal).
-	moreHelpColumns = [][]key.Binding{
+	// Host details help layout: one key per column (horizontal).
+	moreHelpKeys = [][]key.Binding{
 		{leftCloseHelpKey},
-		{detailsKey},
 		{editKey},
 		{addKey},
 		{removeKey},
@@ -144,48 +132,4 @@ func (m *model) initHelpKeys() {
 	m.lst.KeyMap.ShowFullHelp.SetKeys("?")
 	m.lst.KeyMap.Quit.SetHelp(quitStyle, quitHelpStyle)
 	m.lst.KeyMap.Quit.SetKeys("shift+q")
-}
-
-// syncHelpKeys updates the list's additional help keys based on navigation state.
-//
-// This is called from relayout() so help stays in sync as the user navigates.
-func (m *model) syncHelpKeys() {
-	if m == nil {
-		return
-	}
-
-	// treat certain states as modals where list navigation/help should not apply
-	modal := m.preflighting || m.promptingUsername || m.fullHelpOpen || m.hostFormOpen()
-	canScroll := !modal && len(m.lst.Items()) > 1
-	if canScroll {
-		m.lst.KeyMap.CursorUp.SetKeys("up")
-		m.lst.KeyMap.CursorDown.SetKeys("down")
-	} else {
-		m.lst.KeyMap.CursorUp.SetKeys()
-		m.lst.KeyMap.CursorDown.SetKeys()
-	}
-
-	// during preflight we hide the help entirely (only quitting/cancel is allowed)
-	// during full help, the base list help is hidden (custom-rendered modal)
-	if m.preflighting || m.fullHelpOpen || m.hostFormOpen() {
-		m.lst.SetShowHelp(false)
-	} else {
-		m.lst.SetShowHelp(true)
-	}
-
-	// set additional help keys based on state
-	if m.promptingUsername {
-		m.lst.AdditionalShortHelpKeys = promptHelpKeys
-		m.lst.KeyMap.Quit.SetKeys() // shift+Q gets captured by prompt modal
-		return                      // since a username can have a capital Q in it
-	} else {
-		m.lst.KeyMap.Quit.SetKeys("shift+q")
-	}
-	if m.inGroup() || m.query.Value() != "" {
-		m.lst.AdditionalShortHelpKeys = groupHelpKeys
-		return
-	}
-
-	// default: no additional help keys
-	m.lst.AdditionalShortHelpKeys = nil
 }

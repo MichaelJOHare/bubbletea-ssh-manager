@@ -51,8 +51,6 @@ func (m model) cancelPreflightCmd() (model, tea.Cmd, bool) {
 }
 
 // clearPreflightState clears all stored preflight state in the model.
-//
-// It does not send any messages or commands.
 func (m *model) clearPreflightState() {
 	m.preflighting = false
 	m.preflightEndsAt = time.Time{}
@@ -83,22 +81,21 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 	}
 
 	// build the connection command
-	cmd, tgt, tail, err := connect.BuildCommand(connect.Request{
-		Protocol:    it.protocol,
-		DisplayName: it.name,
-		Spec:        it.spec,
+	cmd, tgt, tail, err := connect.BuildCommand(connect.Target{
+		Protocol: it.protocol,
+		Spec:     it.spec,
 	})
 	if err != nil {
 		m.setStatus(err.Error(), true, 0)
 		return m, nil, true
 	}
 
-	protocol := str.NormalizeString(tgt.Protocol())
+	protocol := str.NormalizeString(tgt.Protocol)
 	display := tgt.Display()
 
 	// check if we need to preflight
 	if connect.ShouldPreflight(tgt) {
-		hostPort := connect.HostPortForPreflight(tgt)
+		hostPort := connect.GenerateHostPort(tgt)
 		if strings.TrimSpace(hostPort) == "" {
 			statusCmd := m.setStatus(fmt.Sprintf("%s: missing hostname", protocol), true, statusTTL)
 			return m, statusCmd, true

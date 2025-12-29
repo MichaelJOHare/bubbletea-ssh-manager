@@ -3,12 +3,24 @@ package main
 import (
 	"bubbletea-ssh-manager/internal/config"
 	str "bubbletea-ssh-manager/internal/stringutil"
-
 	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
+
+// detailsHelpText renders the help text containing keys used for host CRUD actions.
+//
+// We use a local copy of the help model to ensure width is consistent.
+func (m model) detailsHelpText(width int) string {
+	h := m.lst.Help
+	h.Width = max(0, width)
+
+	// make the help view use the same dotted separators as short help
+	h.FullSeparator = h.ShortSeparator
+	h.Styles.FullSeparator = h.Styles.ShortSeparator
+	return h.FullHelpView(moreHelpKeys)
+}
 
 // hostDetailsText returns the detailed text view for the currently selected host.
 //
@@ -76,7 +88,7 @@ func (m model) hostDetailsText() string {
 		if it.options.IsZero() {
 			lines = append(lines, optionsValueStyle.Render("(none)"))
 		} else {
-			for _, line := range config.CreateSSHOptionsEntry(it.options, "") {
+			for _, line := range config.BuildSSHOptions(it.options, "") {
 				if line == "" {
 					continue
 				}
@@ -93,7 +105,7 @@ func (m model) hostDetailsText() string {
 	return strings.Join(lines, "\n")
 }
 
-// hostDetailsWidth returns the target width used for both the full help panel and the host details panel.
+// hostDetailsWidth returns the target width used for both the help panel and the host details panel.
 //
 // The width is the larger of the two rendered panel widths (help vs host details), capped to the
 // available terminal width so it doesn't overflow.
@@ -103,7 +115,7 @@ func (m model) hostDetailsWidth() int {
 		return 0
 	}
 
-	fullHelpStyle := lipgloss.NewStyle().
+	helpStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), true).
 		BorderForeground(fullHelpBorderColor).
 		PaddingLeft(footerPadLeft).
@@ -116,7 +128,7 @@ func (m model) hostDetailsWidth() int {
 		PaddingRight(footerPadLeft).
 		PaddingTop(1)
 
-	fullHelpW := lipgloss.Width(fullHelpStyle.Render(m.fullHelpText()))
+	helpW := lipgloss.Width(helpStyle.Render(m.detailsHelpText(max(0, m.width-footerPadLeft))))
 	hostDetailsW := lipgloss.Width(hostDetailsStyle.Render(m.hostDetailsText()))
-	return min(max(fullHelpW, hostDetailsW), availableW)
+	return min(max(helpW, hostDetailsW), availableW)
 }

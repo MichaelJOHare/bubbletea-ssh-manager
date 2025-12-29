@@ -295,8 +295,8 @@ func (m model) View() string {
 	if m.hostFormOpen() {
 		return m.viewHostForm()
 	}
-	if m.fullHelpOpen {
-		return m.viewFullHelp()
+	if m.hostDetailsOpen {
+		return m.viewHostDetails()
 	}
 	if m.preflighting {
 		return m.viewPreflight()

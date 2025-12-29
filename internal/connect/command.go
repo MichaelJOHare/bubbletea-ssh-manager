@@ -9,24 +9,15 @@ import (
 	"strings"
 )
 
-type Request struct {
-	Protocol    string // "ssh" or "telnet"
-	DisplayName string // optional; used only for friendlier error messages
-	host.Spec          // shared host fields (alias/hostname/port/user)
-}
-
-// BuildCommand builds the exec.Cmd to connect to the given Request.
+// BuildCommand builds the exec.Cmd to connect to the given Target.
 //
 // It returns a Target for display/title, and a TailBuffer that captures the last
 // part of the command output for error reporting.
-func BuildCommand(req Request) (cmd *exec.Cmd, tgt Target, tail *TailBuffer, err error) {
-	protocol := strings.ToLower(strings.TrimSpace(req.Protocol))
+func BuildCommand(trgt Target) (cmd *exec.Cmd, tgt Target, tail *TailBuffer, err error) {
+	protocol := strings.ToLower(strings.TrimSpace(trgt.Protocol))
 	if protocol != "ssh" && protocol != "telnet" {
-		name := strings.TrimSpace(req.DisplayName)
-		if name == "" {
-			name = strings.TrimSpace(req.Alias)
-		}
-		return nil, Target{}, nil, fmt.Errorf("unknown protocol for %s: %q", name, req.Protocol)
+		name := strings.TrimSpace(trgt.Alias)
+		return nil, Target{}, nil, fmt.Errorf("unknown protocol for %s: %q", name, trgt.Protocol)
 	}
 
 	programPath, err := PreferredProgramPath(protocol)
@@ -34,16 +25,16 @@ func BuildCommand(req Request) (cmd *exec.Cmd, tgt Target, tail *TailBuffer, err
 		return nil, Target{}, nil, fmt.Errorf("%s not found: %w", protocol, err)
 	}
 
-	alias := strings.TrimSpace(req.Alias)
-	user := strings.TrimSpace(req.User)
-	hostName := strings.TrimSpace(req.HostName)
-	portRaw := strings.TrimSpace(req.Port)
+	alias := strings.TrimSpace(trgt.Alias)
+	user := strings.TrimSpace(trgt.User)
+	hostName := strings.TrimSpace(trgt.HostName)
+	portRaw := strings.TrimSpace(trgt.Port)
 
 	if alias == "" {
 		return nil, Target{}, nil, fmt.Errorf("empty %s alias", protocol)
 	}
 
-	tgt = Target{protocol: protocol, Spec: host.Spec{Alias: alias, User: user, HostName: hostName}}
+	tgt = Target{Protocol: protocol, Spec: host.Spec{Alias: alias, User: user, HostName: hostName}}
 
 	var args []string
 	switch protocol {

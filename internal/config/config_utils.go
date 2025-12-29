@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
-// effectiveHomeDir returns the effective home directory for the current user.
+// getHomeDirectory returns the effective home directory for the current user.
 //
 // On Windows/MSYS2, prefer $HOME so this matches where MSYS2/OpenSSH tools
 // look for config files (eg. ~/.ssh/config).
-func effectiveHomeDir() (string, error) {
+func getHomeDirectory() (string, error) {
 	if h := strings.TrimSpace(os.Getenv("HOME")); h != "" {
 		return h, nil
 	}
@@ -21,6 +22,18 @@ func effectiveHomeDir() (string, error) {
 		return "", fmt.Errorf("get home dir: %w", err)
 	}
 	return home, nil
+}
+
+// GetConfigPath returns the full path to a config file under the user's home directory.
+//
+// On Windows/MSYS2, prefer $HOME so this matches where MSYS2/OpenSSH tools
+// look for config files (eg. ~/.ssh/config).
+func GetConfigPath(parts ...string) (string, error) {
+	home, err := getHomeDirectory()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(append([]string{home}, parts...)...), nil
 }
 
 // expandPath expands a given path, replacing ~ with the effective home directory.
@@ -33,7 +46,7 @@ func expandPath(path string) (string, error) {
 		return "", errors.New("empty path")
 	}
 	if strings.HasPrefix(path, "~") {
-		home, err := effectiveHomeDir()
+		home, err := getHomeDirectory()
 		if err != nil {
 			return "", err
 		}
@@ -58,6 +71,67 @@ func readLines(path string) ([]string, error) {
 	return strings.Split(s, "\n"), nil
 }
 
+// writeLines writes lines to path with LF endings.
+func writeLines(path string, lines []string) error {
+	content := strings.Join(lines, "\n")
+	if !strings.HasSuffix(content, "\n") {
+		content += "\n"
+	}
+	return writeFileAtomic(path, []byte(content))
+}
+
+// writeFileAtomic writes data to path atomically.
+//
+// It creates parent directories as needed and preserves existing file permissions.
+func writeFileAtomic(path string, data []byte) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+
+	var mode os.FileMode = 0o644
+	if st, err := os.Stat(path); err == nil {
+		mode = st.Mode()
+	}
+
+	f, err := os.CreateTemp(dir, ".tmp-config-*")
+	if err != nil {
+		return err
+	}
+	tmp := f.Name()
+	defer func() {
+		_ = f.Close()
+		_ = os.Remove(tmp)
+	}()
+
+	if err := f.Chmod(mode); err != nil {
+		return err
+	}
+	if _, err := f.Write(data); err != nil {
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+
+	// on Windows, os.Rename won't overwrite an existing destination
+	// remove first, this is not perfectly atomic but it's fine for this
+	if _, err := os.Stat(path); err == nil {
+		if err := os.Remove(path); err != nil {
+			return err
+		}
+	}
+	return os.Rename(tmp, path)
+}
+
+// appendNonNil appends extra to lines, initializing lines if nil.
+func appendNonNil(lines []string, extra ...string) []string {
+	if lines == nil {
+		return append([]string{}, extra...)
+	}
+	return append(lines, extra...)
+}
+
 // stripComment removes any comment from the given line.
 //
 // A comment starts with a '#' character.
@@ -77,4 +151,18 @@ func isSimpleAlias(s string) bool {
 		return false
 	}
 	return !strings.ContainsAny(s, "*?!")
+}
+
+// fileContainsAlias returns true if any Host header in lines contains alias.
+func fileContainsAlias(lines []string, alias string) bool {
+	for _, raw := range lines {
+		_, aliases, _, ok := parseHostHeader(raw)
+		if !ok {
+			continue
+		}
+		if slices.Contains(aliases, alias) {
+			return true
+		}
+	}
+	return false
 }

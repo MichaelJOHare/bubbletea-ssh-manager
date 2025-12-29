@@ -2,9 +2,9 @@
 
 <img width="302" height="94" alt="Image" src="https://github.com/user-attachments/assets/b557634a-5b74-4d58-b6e2-b69baac26c60" />
 
-This changes your "Home" to be in C:\msys64\home\username\ when using a bash shell, keep that in mind. You should have the .bin folder that contains the .exe for this project in that "Home" not the Windows home. Also be sure that the .bashrc, .bash_profile, and .profile files are there too.
+This changes your "Home" to be in C:\msys64\home\username\ when using a bash shell, keep that in mind. You should have the .bin folder that contains the .exe for this project in that "Home" not the Windows home. Also be sure that the .bashrc, and .bash_profile files are there too.
 
-__IMPORTANT__: If you already have an SSH config make sure to copy the .ssh folder from your Windows home to the MSYS2 home otherwise your saved hosts etc. won't show up and you'll have to add them manually.
+__IMPORTANT__: If you already have an SSH config make sure to copy the .ssh folder from your Windows home to the MSYS2 home otherwise your saved hosts etc. won't show up and you'll have to add them manually.  You can also use the "Include" directive to point to your config file(s) if you'd rather do that.
 
 🟩 Correct: C:\msys64\home\username\\.bin\vmsmenu.exe  <--- MSYS2 Home
 
@@ -47,7 +47,7 @@ Update packages again, it probably won't find anything to update which is fine, 
 
 # Step 5: Copy .bash_profile, .bashrc, and .profile files
     
-This is entirely optional, they just have some changes like allowing you to type vmsmenu at the command prompt instead of having to launch the .exe directly. 
+This is optional, they just have some changes like allowing you to type vmsmenu at the command prompt instead of having to launch the .exe directly. 
 If you want, you can download Go and build/install this yourself and not worry about it (although you might run into $PATH issues).
 
 <br>

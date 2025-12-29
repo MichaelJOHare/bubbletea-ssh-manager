@@ -65,64 +65,35 @@ func (m model) viewPreflight() string {
 	return strings.Join(lines, "\n")
 }
 
-// viewFullHelp renders the full help view with list, status, and full help text.
-//
-// It focuses the active menu item if host details aren't open.
-func (m model) viewFullHelp() string {
-	statusColor := statusColor
-	if m.statusIsError {
-		statusColor = errorStatusColor
-	}
+// viewHostDetails renders the host details modal with details + CRUD help keys.
+func (m model) viewHostDetails() string {
 
 	lg := lipgloss.NewStyle()
 	panelW := m.hostDetailsWidth()
-	statusPadStyle := lg.PaddingLeft(footerPadLeft).PaddingTop(1)
-	statusTextStyle := lg.Foreground(statusColor)
-	fullHelpStyle := lg.
+	hostBox := lg.
 		Width(panelW).
 		Border(lipgloss.RoundedBorder(), true).
 		BorderForeground(fullHelpBorderColor).
 		PaddingLeft(footerPadLeft).
-		PaddingRight(footerPadLeft)
-
-	listView := m.lst.View()
-	if m.hostDetailsOpen {
-		listView = m.viewHostDetails()
-	} else {
-		listView = m.setActiveMenuItem(listView)
-	}
-
-	lines := []string{listView}
-	if strings.TrimSpace(m.status) != "" {
-		lines = append(lines, statusPadStyle.Render(statusTextStyle.Render(m.status)))
-	}
-
-	fullHelpView := fullHelpStyle.Render(m.fullHelpText())
-	if m.hostDetailsOpen {
-		lines = append(lines, lipgloss.PlaceHorizontal(m.width, lipgloss.Center, fullHelpView))
-	} else {
-		lines = append(lines, fullHelpView)
-	}
-
-	return strings.Join(lines, "\n")
-}
-
-// viewHostDetails renders the host details box for the currently selected host.
-//
-// If no host is selected, it shows a placeholder message.
-func (m model) viewHostDetails() string {
-	lg := lipgloss.NewStyle()
-	panelW := m.hostDetailsWidth()
-	box := lg.
+		PaddingRight(footerPadLeft).
+		PaddingTop(1)
+	helpStyle := lg.
 		Width(panelW).
 		Border(lipgloss.RoundedBorder(), true).
 		BorderForeground(fullHelpBorderColor).
-		PaddingLeft(1).
+		PaddingLeft(footerPadLeft).
 		PaddingRight(footerPadLeft).
-		PaddingTop(1)
+		Align(lipgloss.Center)
 
-	detailsView := box.Render(m.hostDetailsText())
-	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, detailsView)
+	detailsView := hostBox.Render(m.hostDetailsText())
+	detailsView = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, detailsView)
+	// render help at the inner content width so it can be centered inside the padded box
+	innerHelpW := max(0, panelW-2-(footerPadLeft*2))
+	helpView := helpStyle.Render(m.detailsHelpText(innerHelpW))
+	lines := []string{detailsView}
+	lines = append(lines, lipgloss.PlaceHorizontal(m.width, lipgloss.Center, helpView))
+
+	return strings.Join(lines, "\n")
 }
 
 // viewHostForm renders the host add/edit form centered in the terminal window.

@@ -2,34 +2,13 @@ package config
 
 import (
 	"bubbletea-ssh-manager/internal/host"
-	"bubbletea-ssh-manager/internal/sshopts"
 	"fmt"
 	"path/filepath"
 	"strings"
 )
 
-// HostEntry is a minimal representation of a Host block from an SSH-style config.
-// It intentionally contains only the fields this project currently supports.
-type HostEntry struct {
-	Spec       host.Spec       // host fields that are shared between SSH and Telnet (alias/hostname/port/user)
-	SSHOptions sshopts.Options // SSH-specific options for this host
-	SourcePath string          // path to the config file this entry was read from
-}
-
 // maxIncludeDepth is the maximum depth for recursive Include parsing.
 const maxIncludeDepth = 5
-
-// UserConfigPath returns a path under the effective home directory.
-//
-// On Windows/MSYS2, prefer $HOME so this matches where MSYS2/OpenSSH tools
-// look for config files (eg. ~/.ssh/config).
-func UserConfigPath(parts ...string) (string, error) {
-	home, err := effectiveHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(append([]string{home}, parts...)...), nil
-}
 
 // ParseConfigRecursively parses an SSH-style config file at the given path,
 // following Include directives recursively (up to a small depth limit).
@@ -63,29 +42,10 @@ func parseConfigRecursively(path string, depth int) ([]HostEntry, error) {
 	localOrder := []string{}
 	localSeen := map[string]bool{}
 	values := map[string]*HostEntry{}
-
-	// helper to get or create a HostEntry for the given alias
-	getOrCreate := func(alias string) *HostEntry {
-		if it, ok := values[alias]; ok && it != nil {
-			return it
-		}
-		it := &HostEntry{Spec: host.Spec{Alias: alias}, SourcePath: path}
-		values[alias] = it
-		return it
-	}
-	// helper to apply a function to all current aliases' HostEntrys
-	applyToCurrent := func(apply func(*HostEntry)) {
-		for _, a := range currentAliases {
-			if it := values[a]; it != nil {
-				apply(it)
-			}
-		}
-	}
-
 	// directory of the current config file (for relative includes)
 	relDir := filepath.Dir(path)
 
-	// parse lines and split into directives
+	// parse lines and split into directives, stripping comments and blank lines
 	for _, raw := range lines {
 		line := strings.TrimSpace(stripComment(raw))
 		if line == "" {
@@ -101,19 +61,19 @@ func parseConfigRecursively(path string, depth int) ([]HostEntry, error) {
 		switch key {
 		case "include":
 			for _, incRaw := range fields[1:] {
-				inc, err := expandPath(incRaw)
+				inc, err := expandPath(incRaw) // expand ~ in include path
 				if err != nil {
 					continue
 				}
 				if !filepath.IsAbs(inc) {
-					inc = filepath.Join(relDir, inc)
+					inc = filepath.Join(relDir, inc) // make relative to current config file
 				}
 				matches, err := filepath.Glob(inc)
 				if err != nil {
 					continue
 				}
 				for _, m := range matches {
-					more, err := parseConfigRecursively(m, depth+1)
+					more, err := parseConfigRecursively(m, depth+1) // recurse into included files
 					if err != nil {
 						continue
 					}
@@ -126,8 +86,11 @@ func parseConfigRecursively(path string, depth int) ([]HostEntry, error) {
 				if !isSimpleAlias(a) {
 					continue
 				}
+				// if new alias, create new HostEntry, else reuse existing
 				currentAliases = append(currentAliases, a)
-				getOrCreate(a)
+				if it, ok := values[a]; !ok || it == nil {
+					values[a] = &HostEntry{Spec: host.Spec{Alias: a}, SourcePath: path}
+				}
 				if !localSeen[a] {
 					localSeen[a] = true
 					localOrder = append(localOrder, a)
@@ -140,9 +103,11 @@ func parseConfigRecursively(path string, depth int) ([]HostEntry, error) {
 				continue
 			}
 			value := strings.Join(fields[1:], " ")
-			applyToCurrent(func(it *HostEntry) {
-				parseHostBlockDirective(key, value, it)
-			})
+			for _, a := range currentAliases {
+				if it := values[a]; it != nil {
+					setHostDirective(key, value, it)
+				}
+			}
 		}
 	}
 
@@ -156,38 +121,46 @@ func parseConfigRecursively(path string, depth int) ([]HostEntry, error) {
 	return out, nil
 }
 
-// parseHostBlockDirective parses and applies a single Host block directive
-// to the given HostEntry.
+// parseHostHeader returns (indent, aliases, comment, ok).
 //
-// It returns true if the directive was recognized and applied.
-func parseHostBlockDirective(key string, value string, entry *HostEntry) bool {
-	if entry == nil {
-		return false
+// - indent is leading whitespace on the original line
+// - comment includes the leading '#' if present
+func parseHostHeader(line string) (string, []string, string, bool) {
+	if strings.TrimSpace(line) == "" {
+		return "", nil, "", false
 	}
 
-	// standard host directives shared between SSH and Telnet
-	switch key {
-	case "hostname":
-		entry.Spec.HostName = value
-		return true
-	case "port":
-		entry.Spec.Port = value
-		return true
-	case "user":
-		entry.Spec.User = value
-		return true
+	// preserve indent
+	trimmedLeft := strings.TrimLeft(line, " \t")
+	indent := line[:len(line)-len(trimmedLeft)]
 
-	// SSH options (a small subset), values are usually comma separated
-	case "hostkeyalgorithms":
-		entry.SSHOptions.HostKeyAlgorithms = value
-		return true
-	case "kexalgorithms":
-		entry.SSHOptions.KexAlgorithms = value
-		return true
-	case "macs":
-		entry.SSHOptions.MACs = value
-		return true
+	// split comment (preserve it)
+	before, after, hasComment := strings.Cut(trimmedLeft, "#")
+	comment := ""
+	if hasComment {
+		comment = "#" + after
 	}
-
-	return false
+	before = strings.TrimSpace(before)
+	if before == "" {
+		return "", nil, "", false
+	}
+	fields := strings.Fields(before) // split on whitespace
+	if len(fields) < 2 {             // need at least "Host" and one alias
+		return "", nil, "", false
+	}
+	if strings.ToLower(fields[0]) != "host" {
+		return "", nil, "", false
+	}
+	aliases := make([]string, 0, len(fields)-1)
+	for _, a := range fields[1:] {
+		a = strings.TrimSpace(a)
+		if a == "" {
+			continue
+		}
+		aliases = append(aliases, a)
+	}
+	if len(aliases) == 0 {
+		return "", nil, "", false
+	}
+	return indent, aliases, strings.TrimRight(comment, "\r\n"), true
 }

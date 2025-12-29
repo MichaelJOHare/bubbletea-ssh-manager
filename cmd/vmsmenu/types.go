@@ -38,26 +38,25 @@ type model struct {
 	width  int // window width
 	height int // window height
 
-	query             textinput.Model // search input box
-	prompt            textinput.Model // generic prompt input (reused for username/addhost/etc)
-	spinner           spinner.Model   // spinner for preflight checks
-	promptingUsername bool            // whether we're currently prompting for a username
-	pendingHost       *menuItem       // host waiting for username input
-	fullHelpOpen      bool            // full help modal is open (custom-rendered)
-	hostDetailsOpen   bool            // while full help is open, show selected host details instead of list
-	hostEditOpen      bool            // host edit modal is open (not yet implemented)
-	hostAddOpen       bool            // host add modal is open (not yet implemented)
-	hostRemoveOpen    bool            // host remove confirmation prompt is open (not yet implemented)
-	hostForm          *huh.Form       // add/edit host form (huh)
-	hostFormMode      hostFormMode    // add vs edit
-	hostFormProtocol  string          // "ssh" or "telnet"
-	hostFormOldAlias  string          // for edit/rename
-	delegate          *menuDelegate   // list delegate for rendering items
+	root     *menuItem       // root menu item
+	path     []*menuItem     // current navigation path
+	allItems []*menuItem     // all items in the current menu
+	lst      list.Model      // list of current menu items
+	delegate *menuDelegate   // list delegate for rendering items
+	query    textinput.Model // search input box
+	prompt   textinput.Model // generic prompt input (reused for username/addhost/etc)
+	spinner  spinner.Model   // spinner for preflight checks
 
-	root     *menuItem   // root menu item
-	path     []*menuItem // current navigation path
-	allItems []*menuItem // all items in the current menu
-	lst      list.Model  // list of current menu items
+	promptingUsername bool         // whether we're currently prompting for a username
+	pendingHost       *menuItem    // host waiting for username input
+	hostDetailsOpen   bool         // host details modal is open (custom-rendered)
+	hostEditOpen      bool         // host edit modal is open
+	hostAddOpen       bool         // host add modal is open
+	hostRemoveOpen    bool         // host remove confirmation prompt is open (not yet implemented)
+	hostForm          *huh.Form    // add/edit host form (huh)
+	hostFormMode      hostFormMode // add vs edit
+	hostFormProtocol  string       // "ssh" or "telnet"
+	hostFormOldAlias  string       // for edit/rename
 
 	status        string // status message
 	statusIsError bool   // is the status an error message?

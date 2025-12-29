@@ -60,11 +60,11 @@ func addMenuItem(ungrouped *[]*menuItem, groups map[string]*menuItem, host *menu
 // SSH items connect by alias (ssh reads ~/.ssh/config).
 // Telnet items connect by HostName/Port because telnet typically does not use aliases.
 func buildMenuFromConfigs() ([]*menuItem, error) {
-	sshPath, err := config.UserConfigPath(".ssh", "config")
+	sshPath, err := config.GetConfigPath(".ssh", "config")
 	if err != nil {
 		return nil, err
 	}
-	telnetPath, err := config.UserConfigPath(".telnet", "config")
+	telnetPath, err := config.GetConfigPath(".telnet", "config")
 	if err != nil {
 		return nil, err
 	}

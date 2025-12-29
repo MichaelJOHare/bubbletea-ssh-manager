@@ -11,7 +11,7 @@ import (
 // Telnet always requires preflight (host/port).
 // SSH requires preflight if a hostname is set (host/port for display & checks).
 func ShouldPreflight(t Target) bool {
-	switch strings.TrimSpace(t.protocol) {
+	switch strings.TrimSpace(t.Protocol) {
 	case "telnet":
 		return true
 	case "ssh":
@@ -21,8 +21,8 @@ func ShouldPreflight(t Target) bool {
 	}
 }
 
-// HostPortForPreflight returns the host or host:port string used for preflight.
-func HostPortForPreflight(t Target) string {
+// GenerateHostPort returns the host or host:port string used for preflight.
+func GenerateHostPort(t Target) string {
 	host := strings.TrimSpace(t.HostName)
 	port := strings.TrimSpace(t.Port)
 	if host == "" {

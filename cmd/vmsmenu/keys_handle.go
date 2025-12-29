@@ -12,10 +12,9 @@ import (
 // It returns (newModel, cmd, handled). If handled is false, the caller should
 // pass the message through to the query + list components.
 func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
-	// handle full help first and by extension,
-	// also handle host details toggle, edit/add/remove host
-	if m.fullHelpOpen {
-		if nm, cmd, handled := m.handleFullHelpKeyMsg(msg); handled {
+	// handle host-details modal first
+	if m.hostDetailsOpen {
+		if nm, cmd, handled := m.handleHostDetailsKeyMsg(msg); handled {
 			return nm, cmd, true
 		}
 	}
@@ -33,10 +32,9 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		}
 	}
 
-	// keep full help available at any time except
-	// during preflight or if already open
+	// keep host details available at any time except during preflight
 	if msg.String() == "?" {
-		m.fullHelpOpen = true     // open full help
+		m.hostDetailsOpen = true  // open host details modal
 		m.lst.SetShowHelp(false)  // hide base help
 		m.setStatus("", false, 0) // hide status
 		m.relayout()
@@ -51,32 +49,25 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	return m.handleBaseKeyMsg(msg)
 }
 
-// handleFullHelpKeyMsg handles key messages related to the full help view.
+// handleHostDetailsKeyMsg handles key messages related to the host details modal.
 //
-// Full help behaves like a modal:
+// Host details behaves like a modal:
 //   - '?' opens it (no-op if already open)
 //   - 'left' closes it
 //   - while open, ignore all other keys so search/prompt don't change
 //
 // It returns (newModel, cmd, handled). If handled is false, the caller should
 // pass the message through to the other handlers.
-func (m model) handleFullHelpKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
-	if m.fullHelpOpen {
+func (m model) handleHostDetailsKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
+	if m.hostDetailsOpen {
 		switch msg.String() {
 		case "left":
-			m.fullHelpOpen = false    // close full help and
-			m.hostDetailsOpen = false // hide host details at the same time
+			m.hostDetailsOpen = false // close modal
 			m.lst.SetShowHelp(true)
 			// if we were prompting for username, restore that status message
 			if m.promptingUsername {
 				m.setStatus(userPromptStatus(m.pendingHost.spec.Alias), false, 0)
 			}
-			m.relayout()
-			return m, nil, true
-
-		// while in full help, allow toggling host details, edit/add/remove host
-		case "D":
-			m.hostDetailsOpen = true
 			m.relayout()
 			return m, nil, true
 

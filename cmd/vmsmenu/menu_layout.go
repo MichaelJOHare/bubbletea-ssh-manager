@@ -8,18 +8,6 @@ import (
 
 const footerPadLeft = 2
 
-// fullHelpText renders a custom full help view containing only our app-level keys.
-// We use a local copy of the help model to ensure width is consistent.
-func (m model) fullHelpText() string {
-	h := m.lst.Help
-	h.Width = max(0, m.width-footerPadLeft)
-
-	// Make full help use the same dotted separators as short help.
-	h.FullSeparator = h.ShortSeparator
-	h.Styles.FullSeparator = h.Styles.ShortSeparator
-	return h.FullHelpView(moreHelpColumns)
-}
-
 // syncTitleStyles updates the list title and title bar styles based on the current width.
 func (m *model) syncTitleStyles() {
 	if m == nil {
@@ -36,19 +24,59 @@ func (m *model) syncTitleStyles() {
 		Padding(0, 2)
 }
 
+// syncHelpKeys updates the list's additional help keys based on navigation state.
+func (m *model) syncHelpKeys() {
+	if m == nil {
+		return
+	}
+
+	// treat certain states as modals where list navigation/help should not apply
+	modal := m.preflighting || m.promptingUsername || m.hostDetailsOpen || m.hostFormOpen()
+	canScroll := !modal && len(m.lst.Items()) > 1
+	if canScroll {
+		m.lst.KeyMap.CursorUp.SetKeys("up")
+		m.lst.KeyMap.CursorDown.SetKeys("down")
+	} else {
+		m.lst.KeyMap.CursorUp.SetKeys()
+		m.lst.KeyMap.CursorDown.SetKeys()
+	}
+
+	// during preflight we hide the help entirely (only quitting/cancel is allowed)
+	// during host details, the base list help is hidden (custom-rendered modal)
+	if m.preflighting || m.hostDetailsOpen || m.hostFormOpen() {
+		m.lst.SetShowHelp(false)
+	} else {
+		m.lst.SetShowHelp(true)
+	}
+
+	// set additional help keys based on state
+	if m.promptingUsername {
+		m.lst.AdditionalShortHelpKeys = promptHelpKeys
+		m.lst.KeyMap.Quit.SetKeys() // shift+Q gets captured by prompt modal
+		return                      // since a username can have a capital Q in it
+	} else {
+		m.lst.KeyMap.Quit.SetKeys("shift+q")
+	}
+	if m.inGroup() || m.query.Value() != "" {
+		m.lst.AdditionalShortHelpKeys = groupHelpKeys
+		return
+	}
+
+	// default: no additional help keys
+	m.lst.AdditionalShortHelpKeys = nil
+}
+
 // relayout recalculates the sizes of the list and text input based on the current window size.
 func (m *model) relayout() {
 	// footer consumes lines at the bottom:
 	// - optional preflight line (spinner + countdown)
 	// - optional status line
-	// - search/prompt input (hidden when full help is open)
+	// - search/prompt input (hidden when host details modal is open)
 
 	footerLines := 0
-	if m.fullHelpOpen {
-		footerLines += lipgloss.Height(m.fullHelpText()) + 2 // +2 for padding above and border
-	} else if m.preflighting {
+	if m.preflighting {
 		// if preflight line is rendered, reserve space for it
-		// in viewPreflight() it's rendered with PaddingBottom(3) and PaddingTop(1),
+		// in viewPreflight() it's rendered with PaddingBottom(3) + PaddingTop(1),
 		//  so add 4 for the padding plus the actual rendered height of the
 		// preflight status text (2).
 		footerLines = 4 + 2

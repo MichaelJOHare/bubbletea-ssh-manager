@@ -24,7 +24,7 @@ func (it *menuItem) Description() string {
 
 // FilterValue returns the string used for filtering this item.
 //
-// For host items, it's a combination of name, protocol, alias, hostname, and port.
+// For host items, it's a combination of name, protocol, alias, username, and hostname.
 // For group items, it's just the name.
 func (it *menuItem) FilterValue() string {
 	if it.kind == itemHost {
@@ -43,6 +43,16 @@ func (it *menuItem) FilterValue() string {
 	return it.name
 }
 
+// current returns the current menu item (the last in the path).
+func (m *model) current() *menuItem {
+	return m.path[len(m.path)-1]
+}
+
+// inGroup returns true if the current path is inside a group (not at root).
+func (m *model) inGroup() bool {
+	return len(m.path) > 1
+}
+
 // toListItems converts a slice of menuItem pointers to a slice of list.Item.
 //
 // Used to turn custom menu items into list items for the Bubble Tea list component.
@@ -56,7 +66,7 @@ func toListItems(items []*menuItem) []list.Item {
 
 // setActiveMenuItem updates the list view to show only the currently selected item.
 //
-// Used when displaying host details to focus the view on the selected host.
+// Used when displaying more info on (or connecting to) a host to focus the view on the selected host.
 func (m *model) setActiveMenuItem(listView string) string {
 	selected := m.lst.SelectedItem()
 	if selected != nil {
@@ -68,17 +78,9 @@ func (m *model) setActiveMenuItem(listView string) string {
 	return listView
 }
 
-// current returns the current menu item (the last in the path).
-func (m *model) current() *menuItem {
-	return m.path[len(m.path)-1]
-}
-
-// inGroup returns true if the current path is inside a group (not at root).
-func (m *model) inGroup() bool {
-	return len(m.path) > 1
-}
-
 // setCurrentMenu sets the current menu items and updates the list title.
+//
+// Used when navigating into or out of groups.
 func (m *model) setCurrentMenu(items []*menuItem) {
 	m.allItems = items
 	if m.delegate != nil {

@@ -9,21 +9,15 @@ import (
 // A Target represents a connection target for SSH or Telnet.
 // It includes the protocol and host specification.
 type Target struct {
-	protocol  string // "ssh" or "telnet"
+	Protocol  string // "ssh" or "telnet"
 	host.Spec        // shared host fields (alias/hostname/port/user)
-}
-
-// Protocol returns the connection protocol: "ssh" or "telnet".
-func (t Target) Protocol() string {
-	return t.protocol
 }
 
 // Display returns the human-readable target for status messages.
 //
 // Examples:
 //   - ssh:    mike@krabby <10.0.0.147:22>
-//   - ssh:    krabby
-//   - telnet: router <router:23>
+//   - telnet: router <10.0.0.1:23>
 func (t Target) Display() string {
 	alias := strings.TrimSpace(t.Alias)
 	user := strings.TrimSpace(t.User)
@@ -43,7 +37,7 @@ func (t Target) Display() string {
 // WindowTitle returns a stable short title for the terminal/tab.
 // Format: "ssh mike@KRABBY" (or group.HOST with host uppercased).
 func (t Target) WindowTitle() string {
-	protocol := strings.TrimSpace(t.protocol)
+	protocol := strings.TrimSpace(t.Protocol)
 	alias := strings.TrimSpace(t.Alias)
 	user := strings.TrimSpace(t.User)
 

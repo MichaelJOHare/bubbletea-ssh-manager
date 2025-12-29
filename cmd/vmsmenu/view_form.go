@@ -22,7 +22,6 @@ func (m model) hostFormOpen() bool {
 
 func (m model) openAddHostForm() (model, tea.Cmd, bool) {
 	// close other modals
-	m.fullHelpOpen = false
 	m.hostDetailsOpen = false
 	m.promptingUsername = false
 	m.pendingHost = nil
@@ -60,7 +59,6 @@ func (m model) openEditHostForm() (model, tea.Cmd, bool) {
 	}
 
 	// close other modals
-	m.fullHelpOpen = false
 	m.hostDetailsOpen = false
 	m.promptingUsername = false
 	m.pendingHost = nil
