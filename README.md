@@ -46,13 +46,6 @@ Update packages again, it probably won't find anything to update which is fine, 
 <br>
 
 # Step 5: Add the following to .bash_rc in MSYS2 Home
-    
-    # Add Go installation for Windows to PATH
-    program_files="$(cygpath -u "$PROGRAMFILES")"
-    GOWIN_DIR="$program_files/Go/bin"
-    if [[ -x "$GOWIN_DIR/go.exe" ]]; then
-        export PATH="$GOWIN_DIR:$PATH"
-    fi
 
     # Add "menu" as a bash command that can be typed
     menu() { clear; command menu.exe "$@"; }

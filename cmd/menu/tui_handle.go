@@ -35,7 +35,7 @@ func (m model) handleHostFormMsg(msg tea.Msg) (model, tea.Cmd, bool) {
 	switch v := msg.(type) {
 	case formResultMsg:
 		switch v.kind {
-		case formResultCancelled:
+		case formResultCanceled:
 			nm, cmd := m.closeHostForm("Canceled.", statusError)
 			return nm, cmd, true
 		case formResultSubmitted:

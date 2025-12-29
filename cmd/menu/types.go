@@ -70,7 +70,7 @@ type model struct {
 type formResultKind int // kind of result from host entry form (submit vs cancel)
 
 const (
-	formResultCancelled formResultKind = iota
+	formResultCanceled formResultKind = iota
 	formResultSubmitted
 )
 

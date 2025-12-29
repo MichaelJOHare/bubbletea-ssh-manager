@@ -19,7 +19,7 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		// host add/edit is a modal: route keys to the form (with a couple of escapes)
 		switch msg.String() {
 		case "esc", "left":
-			nm, cmd := m.closeHostForm("Canceled.", statusInfo)
+			nm, cmd := m.closeHostForm("Canceled.", statusError)
 			return nm, cmd, true
 		}
 		var cmd tea.Cmd

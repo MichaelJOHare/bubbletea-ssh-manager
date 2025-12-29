@@ -99,7 +99,7 @@ func buildHostForm(mode formMode, oldAlias string, v *form) *huh.Form {
 		WithShowHelp(false).
 		WithShowErrors(true)
 
-	form.CancelCmd = func() tea.Msg { return formResultMsg{kind: formResultCancelled} }
+	form.CancelCmd = func() tea.Msg { return formResultMsg{kind: formResultCanceled} }
 	form.SubmitCmd = func() tea.Msg {
 		p := strings.ToLower(strings.TrimSpace(v.protocol))
 		s := host.Spec{
