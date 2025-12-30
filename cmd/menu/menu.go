@@ -12,17 +12,18 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const statusTTL = 8 * time.Second // duration for non-error info statuses
+const statusTTL = 10 * time.Second // duration for non-error info statuses
 const (
-	grayStatusColor = lipgloss.Color("#bcbcbc") // default status color
-	redStatusColor  = lipgloss.Color("#d03f3f") // error status color
-	indigoColor     = lipgloss.Color("#736fe4") // indigo
-	cyanColor       = lipgloss.Color("#0083b3") // cyan
-	yellowColor     = lipgloss.Color("#dec532") // yellow
-	brightPinkColor = lipgloss.Color("#ff0087") // pink
-	greenColor      = lipgloss.Color("#6fc36f") // green
-	pinkColor       = lipgloss.Color("#e15979") // pink
-	orangeColor     = lipgloss.Color("#e48315") // orange
+	grayStatusColor  = lipgloss.Color("#bcbcbc") // default status color
+	redStatusColor   = lipgloss.Color("#d03f3f") // error status color
+	greenStatusColor = lipgloss.Color("#1aff00") // success status color
+	indigoColor      = lipgloss.Color("#736fe4") // indigo
+	cyanColor        = lipgloss.Color("#0083b3") // cyan
+	yellowColor      = lipgloss.Color("#dec532") // yellow
+	brightPinkColor  = lipgloss.Color("#ff0087") // pink
+	greenColor       = lipgloss.Color("#6fc36f") // green
+	pinkColor        = lipgloss.Color("#e15979") // pink
+	orangeColor      = lipgloss.Color("#e48315") // orange
 )
 
 // Init returns the initial command for the TUI (blinking cursor and window title).

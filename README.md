@@ -6,9 +6,9 @@ This changes your "Home" to be in C:\msys64\home\username\ when using a bash she
 
 __IMPORTANT__: If you already have an SSH config make sure to copy the .ssh folder from your Windows home to the MSYS2 home otherwise your saved hosts etc. won't show up and you'll have to add them manually.  You can also use the "Include" directive to point to your config file(s) if you'd rather do that.
 
-🟩 Correct: C:\msys64\home\username\\.bin\vmsmenu.exe  <--- MSYS2 Home
+🟩 Correct: C:\msys64\home\username\\.bin\menu.exe  <--- MSYS2 Home
 
-🟥 Incorrect: C:\Users\username\\.bin\vmsmenu.exe  <--- Windows Home
+🟥 Incorrect: C:\Users\username\\.bin\menu.exe  <--- Windows Home
 
 <br>
 <br>

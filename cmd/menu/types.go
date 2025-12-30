@@ -67,19 +67,18 @@ type model struct {
 	quitting    bool       // is the app quitting?
 }
 
-type formResultKind int // kind of result from host entry form (submit vs cancel)
+/*
+	MESSAGE TYPES
+*/
 
 const (
 	formResultCanceled formResultKind = iota
 	formResultSubmitted
 )
 
-/*
-	MESSAGE TYPES
-*/
-
+type formResultKind int // kind of result from host entry form (submit vs cancel)
 type formResultMsg struct {
-	kind formResultKind
+	kind formResultKind // kind of result (canceled vs submitted)
 
 	// set when kind==formResultSubmitted
 	mode     formMode        // add vs edit mode for host entry form
@@ -90,7 +89,10 @@ type formResultMsg struct {
 }
 
 type formSaveResultMsg struct {
-	err error // error during save IO operation
+	err        error     // error during save IO operation
+	protocol   string    // "ssh" or "telnet"
+	spec       host.Spec // saved host spec
+	configPath string    // config file written to (best-effort; set on success)
 }
 
 type menuReloadedMsg struct {
