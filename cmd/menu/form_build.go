@@ -18,7 +18,7 @@ const (
 	modeEdit
 )
 
-func buildHostForm(mode formMode, oldAlias string, v *form) *huh.Form {
+func buildHostForm(theme Theme, mode formMode, oldAlias string, v *form) *huh.Form {
 	if v == nil {
 		v = &form{}
 	}
@@ -76,7 +76,7 @@ func buildHostForm(mode formMode, oldAlias string, v *form) *huh.Form {
 		Title("MACs").
 		Value(&v.algMACs)
 
-	greenEnter := lipgloss.NewStyle().Foreground(greenColor).Render("Enter")
+	greenEnter := lipgloss.NewStyle().Foreground(theme.KeyEnter).Render("Enter")
 	fields := []huh.Field{
 		huh.NewNote().Title(title).Description("Enter host details and press " + greenEnter + " to save."),
 	}

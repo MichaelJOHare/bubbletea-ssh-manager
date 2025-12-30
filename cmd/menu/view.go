@@ -11,19 +11,19 @@ import (
 //
 // It focuses the active menu item if prompting for username.
 func (m model) viewNormal() string {
-	statusColor := grayStatusColor
+	statusColor := m.theme.StatusDefault
 	switch m.statusKind {
 	case statusError:
-		statusColor = redStatusColor
+		statusColor = m.theme.StatusError
 	case statusSuccess:
-		statusColor = greenColor
+		statusColor = m.theme.StatusSuccess
 	}
 
 	lg := lipgloss.NewStyle()
 	statusPadStyle := lg.PaddingLeft(footerPadLeft).PaddingTop(1)
 	statusTextStyle := lg.Foreground(statusColor)
-	searchStyle := lg.Foreground(indigoColor).Bold(true).PaddingLeft(footerPadLeft)
-	promptStyle := lg.Foreground(yellowColor).Bold(true).PaddingLeft(footerPadLeft)
+	searchStyle := lg.Foreground(m.theme.SearchLabel).Bold(true).PaddingLeft(footerPadLeft)
+	promptStyle := lg.Foreground(m.theme.UsernamePrompt).Bold(true).PaddingLeft(footerPadLeft)
 
 	listView := m.lst.View()
 	if m.mode == modePromptUsername {
@@ -60,7 +60,7 @@ func (m model) viewPreflight() string {
 
 	lg := lipgloss.NewStyle()
 	preflightPadStyle := lg.PaddingLeft(footerPadLeft + 4).PaddingBottom(3).PaddingTop(1)
-	preflightTextStyle := lg.Foreground(lipgloss.Color("#8d8d8d"))
+	preflightTextStyle := lg.Foreground(m.theme.PreflightText)
 
 	lines := []string{m.lst.View()}
 	lines = append(lines, preflightPadStyle.Render(preflightTextStyle.Render(preflightStatusText)))
@@ -76,14 +76,14 @@ func (m model) viewHostDetails() string {
 	hostBox := lg.
 		Width(panelW).
 		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(cyanColor).
+		BorderForeground(m.theme.DetailsBorder).
 		PaddingLeft(footerPadLeft).
 		PaddingRight(footerPadLeft).
 		PaddingTop(1)
 	helpStyle := lg.
 		Width(panelW).
 		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(cyanColor).
+		BorderForeground(m.theme.DetailsBorder).
 		PaddingLeft(footerPadLeft).
 		PaddingRight(footerPadLeft).
 		Align(lipgloss.Center)
@@ -109,7 +109,7 @@ func (m model) viewHostForm() string {
 
 	box := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(cyanColor).
+		BorderForeground(m.theme.DetailsBorder).
 		PaddingLeft(2).
 		PaddingRight(2).
 		PaddingTop(1).

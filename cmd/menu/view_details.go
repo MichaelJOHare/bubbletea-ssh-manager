@@ -20,7 +20,7 @@ func (m model) detailsHelpText(width int) string {
 	// make the help view use the same dotted separators as short help
 	h.FullSeparator = h.ShortSeparator
 	h.Styles.FullSeparator = h.Styles.ShortSeparator
-	return h.FullHelpView(moreHelpKeys)
+	return h.FullHelpView(m.moreHelpKeys())
 }
 
 // hostDetailsText returns the detailed text view for the currently selected host.
@@ -32,13 +32,13 @@ func (m model) hostDetailsText() string {
 		return "Select a host to view details"
 	}
 
-	labelStyle := lipgloss.NewStyle().Foreground(cyanColor).Bold(true).PaddingLeft(4)
-	valueStyle := lipgloss.NewStyle().Foreground(grayStatusColor)
+	labelStyle := lipgloss.NewStyle().Foreground(m.theme.DetailsBorder).Bold(true).PaddingLeft(4)
+	valueStyle := lipgloss.NewStyle().Foreground(m.theme.StatusDefault)
 
 	protocol := str.NormalizeString(it.protocol)
-	protoColor := greenColor
+	protoColor := m.theme.ProtocolSSH
 	if protocol == "telnet" {
-		protoColor = pinkColor
+		protoColor = m.theme.ProtocolTelnet
 	}
 	protoValueStyle := lipgloss.NewStyle().Foreground(protoColor).Bold(true)
 
@@ -58,7 +58,7 @@ func (m model) hostDetailsText() string {
 	header := lipgloss.NewStyle().
 		PaddingTop(1).
 		PaddingLeft(2).
-		Foreground(indigoColor).
+		Foreground(m.theme.DetailsHeader).
 		Bold(true).
 		Render("HOST DETAILS")
 	lines = append(lines, header)
@@ -80,12 +80,12 @@ func (m model) hostDetailsText() string {
 			PaddingTop(1).
 			PaddingBottom(1).
 			PaddingLeft(2).
-			Foreground(indigoColor).
+			Foreground(m.theme.DetailsHeader).
 			Bold(true).
 			Render("SSH OPTIONS"))
 
 		optionsValueStyle := valueStyle.PaddingLeft(4)
-		optionsLabelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#ddb034")).Bold(true).PaddingLeft(4)
+		optionsLabelStyle := lipgloss.NewStyle().Foreground(m.theme.OptionsLabel).Bold(true).PaddingLeft(4)
 		if it.options.IsZero() {
 			lines = append(lines, optionsValueStyle.Render("(none)"))
 		} else {
@@ -118,13 +118,13 @@ func (m model) hostDetailsWidth() int {
 
 	helpStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(cyanColor).
+		BorderForeground(m.theme.DetailsBorder).
 		PaddingLeft(footerPadLeft).
 		PaddingRight(footerPadLeft)
 
 	hostDetailsStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(cyanColor).
+		BorderForeground(m.theme.DetailsBorder).
 		PaddingLeft(1).
 		PaddingRight(footerPadLeft).
 		PaddingTop(1)

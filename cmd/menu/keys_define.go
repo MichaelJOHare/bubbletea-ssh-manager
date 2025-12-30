@@ -7,7 +7,7 @@ import (
 
 const (
 
-	// Symbols for key bindings in the main help view.
+	// Symbols for help keys
 
 	cursorUpSymbol   = "🡩 "
 	cursorUpHelp     = "up"
@@ -17,122 +17,133 @@ const (
 	leftBackHelp     = "back"
 	clearSymbol      = "esc"
 	clearHelp        = "clear"
+	addSymbol        = "A"
+	addHelp          = "add"
 	quitSymbol       = "Q"
 	quitHelp         = "quit"
 	infoSymbol       = "?"
 	infoHelp         = "details"
-
-	// Symbols for key bindings in the host details help view.
-
-	editSymbol   = "E"
-	editHelp     = "edit"
-	addSymbol    = "A"
-	addHelp      = "add"
-	removeSymbol = "R"
-	removeHelp   = "remove"
+	editSymbol       = "E"
+	editHelp         = "edit"
+	removeSymbol     = "R"
+	removeHelp       = "remove"
 )
 
-var (
+func (m *model) keySymbolStyle(color lipgloss.Color, symbol string) string {
+	return lipgloss.NewStyle().Foreground(color).Render(symbol)
+}
 
-	// Main help key styles.
+func (m *model) keyHelpTextStyle(text string) string {
+	return lipgloss.NewStyle().Foreground(m.theme.HelpText).Render(text)
+}
 
-	cursorUpStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(cursorUpSymbol)   // green
-	cursorDownStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(cursorDownSymbol) // green
-	leftBackStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("141")).Render(leftBackSymbol)  // purple
-	quitStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render(quitSymbol)        // red
-	infoStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("75")).Render(infoSymbol)       // blue
-	clearStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("188")).Render(clearSymbol)     // light grey
+// Key bindings used by the list help.
 
-	// Host details help key styles.
-
-	editStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Render(editSymbol) // orange
-	addStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(addSymbol)   // green
-	removeStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render(removeSymbol) // red
-
-	// Help text color (for key descriptions)
-
-	helpTextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("246")) // gray
-
-	// Main help text styles
-
-	cursorUpHelpStyle   = helpTextStyle.Render(cursorUpHelp)
-	cursorDownHelpStyle = helpTextStyle.Render(cursorDownHelp)
-	leftBackHelpStyle   = helpTextStyle.Render(leftBackHelp)
-	quitHelpStyle       = helpTextStyle.Render(quitHelp)
-	infoHelpStyle       = helpTextStyle.Render(infoHelp)
-	clearHelpStyle      = helpTextStyle.Render(clearHelp)
-
-	// Host details help text styles
-
-	leftCloseHelpStyle = helpTextStyle.Render("close")
-	editHelpStyle      = helpTextStyle.Render(editHelp)
-	addHelpStyle       = helpTextStyle.Render(addHelp)
-	removeHelpStyle    = helpTextStyle.Render(removeHelp)
-)
-
-// New key bindings for the TUI added using AdditionalShortHelpKeys.
-var (
-	// shift+Q to quit the application
-	qQuitKey = key.NewBinding(
+func (m *model) qQuitKey() key.Binding {
+	return key.NewBinding(
 		key.WithKeys("shift+q"),
-		key.WithHelp(quitStyle, quitHelpStyle),
+		key.WithHelp(
+			m.keySymbolStyle(m.theme.KeyQuit, quitSymbol),
+			m.keyHelpTextStyle(quitHelp),
+		),
 	)
-	// esc to clear search if non-empty
-	escClearKey = key.NewBinding(
+}
+
+func (m *model) escClearKey() key.Binding {
+	return key.NewBinding(
 		key.WithKeys("esc"),
-		key.WithHelp(clearStyle, clearHelpStyle),
+		key.WithHelp(
+			m.keySymbolStyle(m.theme.KeyClear, clearSymbol),
+			m.keyHelpTextStyle(clearHelp),
+		),
 	)
-	// left arrow to go back if in a group
-	leftBackKey = key.NewBinding(
+}
+
+func (m *model) leftBackKey() key.Binding {
+	return key.NewBinding(
 		key.WithKeys("left"),
-		key.WithHelp(leftBackStyle, leftBackHelpStyle),
+		key.WithHelp(
+			m.keySymbolStyle(m.theme.KeyBack, leftBackSymbol),
+			m.keyHelpTextStyle(leftBackHelp),
+		),
 	)
-	// left arrow to close the host details modal
-	leftCloseHelpKey = key.NewBinding(
+}
+
+func (m *model) leftCloseHelpKey() key.Binding {
+	return key.NewBinding(
 		key.WithKeys("left"),
-		key.WithHelp(leftBackStyle, leftCloseHelpStyle),
+		key.WithHelp(
+			m.keySymbolStyle(m.theme.KeyBack, leftBackSymbol),
+			m.keyHelpTextStyle("close"),
+		),
 	)
-	// E to edit the selected host
-	editKey = key.NewBinding(
+}
+
+func (m *model) editKey() key.Binding {
+	return key.NewBinding(
 		key.WithKeys("E"),
-		key.WithHelp(editStyle, editHelpStyle),
+		key.WithHelp(
+			m.keySymbolStyle(m.theme.KeyEdit, editSymbol),
+			m.keyHelpTextStyle(editHelp),
+		),
 	)
-	// A to add a new host or group
-	addKey = key.NewBinding(
+}
+
+func (m *model) addKey() key.Binding {
+	return key.NewBinding(
 		key.WithKeys("A"),
-		key.WithHelp(addStyle, addHelpStyle),
+		key.WithHelp(
+			m.keySymbolStyle(m.theme.KeyAdd, addSymbol),
+			m.keyHelpTextStyle(addHelp),
+		),
 	)
-	// R to remove the selected host or group
-	removeKey = key.NewBinding(
+}
+
+func (m *model) removeKey() key.Binding {
+	return key.NewBinding(
 		key.WithKeys("R"),
-		key.WithHelp(removeStyle, removeHelpStyle),
+		key.WithHelp(
+			m.keySymbolStyle(m.theme.KeyRemove, removeSymbol),
+			m.keyHelpTextStyle(removeHelp),
+		),
 	)
+}
 
-	// Functions returning slices of key bindings for different contexts.
-
-	groupHelpKeys  = func() []key.Binding { return []key.Binding{leftBackKey} }
-	promptHelpKeys = func() []key.Binding { return []key.Binding{leftBackKey, escClearKey} }
-
-	// Host details help layout: one key per column (horizontal).
-
-	moreHelpKeys = [][]key.Binding{
-		{leftCloseHelpKey},
-		{editKey},
-		{addKey},
-		{removeKey},
+func (m *model) mainHelpKeys() []key.Binding  { return []key.Binding{m.addKey()} }
+func (m *model) groupHelpKeys() []key.Binding { return []key.Binding{m.leftBackKey()} }
+func (m *model) promptHelpKeys() []key.Binding {
+	return []key.Binding{m.leftBackKey(), m.escClearKey()}
+}
+func (m model) moreHelpKeys() [][]key.Binding {
+	return [][]key.Binding{
+		{m.leftCloseHelpKey()},
+		{m.editKey()},
+		{m.removeKey()},
 	}
-)
+}
 
 // initHelpKeys initializes the list's help keys.
 //
 // This is called once during model initialization.
 func (m *model) initHelpKeys() {
-	m.lst.KeyMap.CursorUp.SetHelp(cursorUpStyle, cursorUpHelpStyle)
+	m.lst.KeyMap.CursorUp.SetHelp(
+		m.keySymbolStyle(m.theme.KeyCursor, cursorUpSymbol),
+		m.keyHelpTextStyle(cursorUpHelp),
+	)
 	m.lst.KeyMap.CursorUp.SetKeys("up")
-	m.lst.KeyMap.CursorDown.SetHelp(cursorDownStyle, cursorDownHelpStyle)
+	m.lst.KeyMap.CursorDown.SetHelp(
+		m.keySymbolStyle(m.theme.KeyCursor, cursorDownSymbol),
+		m.keyHelpTextStyle(cursorDownHelp),
+	)
 	m.lst.KeyMap.CursorDown.SetKeys("down")
-	m.lst.KeyMap.ShowFullHelp.SetHelp(infoStyle, infoHelpStyle)
+	m.lst.KeyMap.ShowFullHelp.SetHelp(
+		m.keySymbolStyle(m.theme.KeyInfo, infoSymbol),
+		m.keyHelpTextStyle(infoHelp),
+	)
 	m.lst.KeyMap.ShowFullHelp.SetKeys("?")
-	m.lst.KeyMap.Quit.SetHelp(quitStyle, quitHelpStyle)
+	m.lst.KeyMap.Quit.SetHelp(
+		m.keySymbolStyle(m.theme.KeyQuit, quitSymbol),
+		m.keyHelpTextStyle(quitHelp),
+	)
 	m.lst.KeyMap.Quit.SetKeys("shift+q")
 }

@@ -13,18 +13,6 @@ import (
 )
 
 const statusTTL = 10 * time.Second // duration for non-error info statuses
-const (
-	grayStatusColor  = lipgloss.Color("#bcbcbc") // default status color
-	redStatusColor   = lipgloss.Color("#d03f3f") // error status color
-	greenStatusColor = lipgloss.Color("#1aff00") // success status color
-	indigoColor      = lipgloss.Color("#736fe4") // indigo
-	cyanColor        = lipgloss.Color("#0083b3") // cyan
-	yellowColor      = lipgloss.Color("#dec532") // yellow
-	brightPinkColor  = lipgloss.Color("#ff0087") // pink
-	greenColor       = lipgloss.Color("#6fc36f") // green
-	pinkColor        = lipgloss.Color("#e15979") // pink
-	orangeColor      = lipgloss.Color("#e48315") // orange
-)
 
 // Init returns the initial command for the TUI (blinking cursor and window title).
 func (m model) Init() tea.Cmd {
@@ -35,6 +23,8 @@ func (m model) Init() tea.Cmd {
 //
 // It also initializes the text input and list components.
 func newModel() model {
+	theme := DefaultTheme()
+
 	// text input for search query
 	q := textinput.New()
 	q.Placeholder = "type to search"
@@ -50,7 +40,7 @@ func newModel() model {
 	// spinner for preflight checks
 	s := spinner.New()
 	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(brightPinkColor)
+	s.Style = lipgloss.NewStyle().Foreground(theme.PreflightSpinner)
 
 	// seed menu and initial state
 	root, seedErr := seedMenu()
@@ -59,7 +49,7 @@ func newModel() model {
 	litems := toListItems(items)
 
 	// setup list to display menu items
-	d := newMenuDelegatePtr()
+	d := newMenuDelegatePtr(theme)
 	lst := list.New(litems, d, 0, 0)
 	lst.InfiniteScrolling = true
 	lst.SetShowStatusBar(false)
@@ -68,6 +58,7 @@ func newModel() model {
 
 	// build initial bubbletea model
 	m := model{
+		theme:    theme,
 		query:    q,
 		prompt:   u,
 		spinner:  s,

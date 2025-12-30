@@ -14,15 +14,16 @@ import (
 type menuDelegate struct {
 	list.DefaultDelegate                      // embed default delegate to reuse its functionality
 	groupHints           map[*menuItem]string // optional group hints per host item
+	theme                Theme
 }
 
 // newMenuDelegatePtr creates a new menuDelegate with default settings.
 //
 // It embeds the default delegate from bubbles/list to extend it
 // while allowing us to override specific methods.
-func newMenuDelegatePtr() *menuDelegate {
+func newMenuDelegatePtr(theme Theme) *menuDelegate {
 	d := list.NewDefaultDelegate()
-	return &menuDelegate{DefaultDelegate: d}
+	return &menuDelegate{DefaultDelegate: d, theme: theme}
 }
 
 // Render renders a menu item with custom styles based on its kind and state.
@@ -59,8 +60,8 @@ func (d *menuDelegate) Render(w io.Writer, m list.Model, index int, item list.It
 	if mi != nil {
 		switch mi.kind {
 		case itemGroup:
-			normalTitle = normalTitle.Foreground(orangeColor)
-			selectedTitle = selectedTitle.Foreground(orangeColor)
+			normalTitle = normalTitle.Foreground(d.theme.GroupName)
+			selectedTitle = selectedTitle.Foreground(d.theme.GroupName)
 		case itemHost:
 			if d.groupHints != nil {
 				if grp := strings.TrimSpace(d.groupHints[mi]); grp != "" {
@@ -69,12 +70,12 @@ func (d *menuDelegate) Render(w io.Writer, m list.Model, index int, item list.It
 			}
 			protocol := str.NormalizeString(mi.protocol)
 			if protocol == "telnet" {
-				normalTitle = normalTitle.Foreground(pinkColor)
-				selectedTitle = selectedTitle.Foreground(pinkColor)
+				normalTitle = normalTitle.Foreground(d.theme.ProtocolTelnet)
+				selectedTitle = selectedTitle.Foreground(d.theme.ProtocolTelnet)
 			} else {
 				// default to SSH color (green)
-				normalTitle = normalTitle.Foreground(greenColor)
-				selectedTitle = selectedTitle.Foreground(greenColor)
+				normalTitle = normalTitle.Foreground(d.theme.ProtocolSSH)
+				selectedTitle = selectedTitle.Foreground(d.theme.ProtocolSSH)
 			}
 		}
 	}

@@ -24,7 +24,7 @@ func (m model) openAddHostForm() (model, tea.Cmd, bool) {
 	m.ms.hostFormOldAlias = ""
 
 	v := &form{protocol: "ssh"}
-	form := buildHostForm(modeAdd, "", v)
+	form := buildHostForm(m.theme, modeAdd, "", v)
 
 	m.ms.hostForm = form
 	m.relayout()
@@ -54,7 +54,7 @@ func (m model) openEditHostForm() (model, tea.Cmd, bool) {
 		algKex:     strings.TrimSpace(it.options.KexAlgorithms),
 		algMACs:    strings.TrimSpace(it.options.MACs),
 	}
-	form := buildHostForm(modeEdit, m.ms.hostFormOldAlias, v)
+	form := buildHostForm(m.theme, modeEdit, m.ms.hostFormOldAlias, v)
 
 	m.ms.hostForm = form
 	m.relayout()

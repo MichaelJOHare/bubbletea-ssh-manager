@@ -51,7 +51,7 @@ func (m *model) syncHelpKeys() {
 
 	// set additional help keys based on state
 	if m.mode == modePromptUsername {
-		m.lst.AdditionalShortHelpKeys = promptHelpKeys
+		m.lst.AdditionalShortHelpKeys = m.promptHelpKeys
 		m.lst.KeyMap.Quit.SetKeys()         // shift+Q gets captured by prompt modal
 		m.lst.KeyMap.ShowFullHelp.SetKeys() // ? gets captured by prompt modal
 		return
@@ -60,12 +60,12 @@ func (m *model) syncHelpKeys() {
 		m.lst.KeyMap.ShowFullHelp.SetKeys("?")
 	}
 	if m.inGroup() || m.query.Value() != "" {
-		m.lst.AdditionalShortHelpKeys = groupHelpKeys
+		m.lst.AdditionalShortHelpKeys = m.groupHelpKeys
 		return
 	}
 
 	// default: no additional help keys
-	m.lst.AdditionalShortHelpKeys = nil
+	m.lst.AdditionalShortHelpKeys = m.mainHelpKeys
 }
 
 // relayout recalculates the sizes of the list and text input based on the current window size.

@@ -49,6 +49,8 @@ type model struct {
 	width  int // window width
 	height int // window height
 
+	theme Theme // active UI theme
+
 	root     *menuItem       // root menu item
 	path     []*menuItem     // current navigation path
 	allItems []*menuItem     // all items in the current menu

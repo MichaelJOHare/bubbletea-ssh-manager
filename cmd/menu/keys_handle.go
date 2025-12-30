@@ -18,8 +18,8 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	case modeHostForm:
 		// host add/edit is a modal: route keys to the form (with a couple of escapes)
 		switch msg.String() {
-		case "esc", "left":
-			nm, cmd := m.closeHostForm("Canceled.", statusError)
+		case "esc":
+			nm, cmd := m.closeHostForm("Canceled add/edit host.", statusError)
 			return nm, cmd, true
 		}
 		var cmd tea.Cmd
@@ -89,9 +89,6 @@ func (m model) handleHostDetailsKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	case "E":
 		return m.openEditHostForm()
 
-	case "A":
-		return m.openAddHostForm()
-
 	case "R":
 		m.setStatusError("Remove not wired yet.", statusTTL)
 		return m, nil, true
@@ -146,6 +143,10 @@ func (m model) handleBaseKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		}
 		m.quitting = true
 		return m, tea.Quit, true
+
+	// open add host form on 'A'
+	case "A":
+		return m.openAddHostForm()
 
 	// quit on 'Q'
 	case "Q":

@@ -36,7 +36,7 @@ func (m model) handleHostFormMsg(msg tea.Msg) (model, tea.Cmd, bool) {
 	case formResultMsg:
 		switch v.kind {
 		case formResultCanceled:
-			nm, cmd := m.closeHostForm("Canceled.", statusError)
+			nm, cmd := m.closeHostForm("Unexpected add/edit host cancellation.", statusError)
 			return nm, cmd, true
 		case formResultSubmitted:
 			nm, cmd := m.handleHostFormSubmit(v)
@@ -159,12 +159,12 @@ func (m model) handleConnectFinishedMsg(msg connectFinishedMsg) (model, tea.Cmd,
 	titleCmd := tea.SetWindowTitle("MENU")
 	output := strings.TrimSpace(msg.output)
 	if msg.err != nil {
-		if output != "" {
-			statusCmd := m.setStatusError(fmt.Sprintf("%s to %s exited:\n%s (%v)", msg.protocol, msg.target, output, msg.err), 0)
-			return m, tea.Batch(titleCmd, statusCmd), true
-		}
 		if connect.IsConnectionAborted(msg.err) {
 			statusCmd := m.setStatusError(fmt.Sprintf("%s to %s aborted.", msg.protocol, msg.target), statusTTL)
+			return m, tea.Batch(titleCmd, statusCmd), true
+		}
+		if output != "" {
+			statusCmd := m.setStatusError(fmt.Sprintf("%s to %s exited:\n%s (%v)", msg.protocol, msg.target, output, msg.err), 0)
 			return m, tea.Batch(titleCmd, statusCmd), true
 		}
 		statusCmd := m.setStatusError(fmt.Sprintf("%s to %s exited:\n%v", msg.protocol, msg.target, msg.err), 0)
