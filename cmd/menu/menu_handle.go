@@ -64,6 +64,81 @@ func (m model) handleHostFormMsg(msg tea.Msg) (model, tea.Cmd, bool) {
 	return m, cmd, true
 }
 
+// handleConfirmMsg handles confirmation dialog messages.
+//
+// It processes confirm result messages and routes non-key messages to the form.
+func (m model) handleConfirmMsg(msg tea.Msg) (model, tea.Cmd, bool) {
+	if _, ok := msg.(tea.KeyMsg); ok {
+		return m, nil, false
+	}
+
+	switch v := msg.(type) {
+	case confirmResultMsg:
+		return m.handleConfirmResult(v)
+
+	case removeHostResultMsg:
+		return m.handleRemoveHostResult(v)
+	}
+
+	if m.mode != modeConfirm {
+		return m, nil, false
+	}
+	if m.ms.confirmForm == nil {
+		return m, nil, true
+	}
+	mdl, cmd := m.ms.confirmForm.Update(msg)
+	if f, ok := mdl.(*huh.Form); ok {
+		m.ms.confirmForm = f
+	}
+	m.relayout()
+	return m, cmd, true
+}
+
+// handleConfirmResult processes the result of a confirmation dialog.
+//
+// It dispatches to the appropriate handler based on confirmKind.
+func (m model) handleConfirmResult(msg confirmResultMsg) (model, tea.Cmd, bool) {
+	// close the confirm dialog first
+	m, _ = m.closeConfirm()
+
+	if !msg.confirmed {
+		// user canceled - just return to previous mode (already done by closeConfirm)
+		return m, nil, true
+	}
+
+	// dispatch based on what was being confirmed
+	switch msg.kind {
+	case confirmRemoveHost:
+		removeCmd := func() tea.Msg {
+			err := RemoveHostFromConfig(msg.protocol, msg.alias)
+			return removeHostResultMsg{
+				protocol: msg.protocol,
+				alias:    msg.alias,
+				err:      err,
+			}
+		}
+		return m, tea.Cmd(removeCmd), true
+	default:
+		return m, nil, true
+	}
+}
+
+// handleRemoveHostResult processes the result of a host removal operation.
+func (m model) handleRemoveHostResult(msg removeHostResultMsg) (model, tea.Cmd, bool) {
+	if msg.err != nil {
+		statusCmd := m.setStatusError(fmt.Sprintf("Failed to remove %s: %v", msg.alias, msg.err), 0)
+		return m, statusCmd, true
+	}
+
+	// reload menu to reflect the removal
+	statusCmd := m.setStatusSuccess(fmt.Sprintf("Removed %s host: %s", msg.protocol, msg.alias), statusTTL)
+	reloadCmd := func() tea.Msg {
+		root, err := seedMenu()
+		return menuReloadedMsg{root: root, err: err}
+	}
+	return m, tea.Batch(statusCmd, reloadCmd), true
+}
+
 // handleMenuReloadedMsg handles menu reloaded messages.
 //
 // It applies the reloaded menu to the model and returns the updated model

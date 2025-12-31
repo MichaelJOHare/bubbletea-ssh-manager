@@ -120,6 +120,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return nm, cmd
 	}
 
+	// confirm dialog: handle lifecycle + non-key updates
+	if nm, cmd, handled := m.handleConfirmMsg(msg); handled {
+		return nm, cmd
+	}
+
 	// always update query input first
 	prevQuery := m.query.Value()
 	var cmd1 tea.Cmd
@@ -160,6 +165,8 @@ func (m model) View() string {
 		return m.viewHostForm()
 	case modeHostDetails:
 		return m.viewHostDetails()
+	case modeConfirm:
+		return m.viewConfirm()
 	case modePreflight:
 		return m.viewPreflight()
 	default:

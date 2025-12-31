@@ -24,6 +24,11 @@ type modeState struct {
 	hostFormProtocol string    // "ssh" or "telnet" (used for header/config path)
 	hostFormOldAlias string    // for edit/rename
 
+	// confirmation dialog state (generic, used for remove/cancel/save confirmations)
+	confirmForm *huh.Form   // confirmation dialog form
+	confirmKind confirmKind // what action is being confirmed
+	confirmHost *menuItem   // host context (for remove/cancel/save host operations)
+
 	// preflight state
 	preflightToken       int                 // increments on preflight starts; for tick/result matching
 	preflightRemaining   int                 // remaining seconds in preflight (for display)
@@ -45,6 +50,7 @@ const (
 	modeHostForm
 	modePreflight
 	modeExecuting
+	modeConfirm
 )
 
 type model struct {
@@ -77,6 +83,15 @@ type formMode int // add vs edit mode for host entry form
 const (
 	modeAdd formMode = iota
 	modeEdit
+)
+
+type confirmKind int // what action is being confirmed
+
+const (
+	confirmNone confirmKind = iota
+	confirmRemoveHost
+	confirmCancelHostForm
+	confirmSaveHostForm
 )
 
 type form struct {
@@ -146,4 +161,21 @@ type preflightResultMsg struct {
 	// should match model's preflightToken
 	token int   // token to identify which preflight to complete
 	err   error // error from preflight check
+}
+
+// confirmResultMsg is sent when a confirmation dialog completes (confirmed or canceled).
+// The handler should check `kind` to determine what action was being confirmed.
+type confirmResultMsg struct {
+	confirmed bool        // true if user confirmed, false if canceled
+	kind      confirmKind // what action was being confirmed
+	// context fields (set based on kind)
+	protocol string    // "ssh" or "telnet" (for host operations)
+	alias    string    // alias of host (for host operations)
+	host     *menuItem // full host context (for host operations)
+}
+
+type removeHostResultMsg struct {
+	protocol string // "ssh" or "telnet"
+	alias    string // alias of host that was removed
+	err      error  // error during removal
 }

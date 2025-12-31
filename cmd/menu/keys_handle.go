@@ -22,6 +22,9 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	case modeHostDetails:
 		return m.handleHostDetailsKeyMsg(msg)
 
+	case modeConfirm:
+		return m.handleConfirmKeyMsg(msg)
+
 	case modePreflight:
 		// preflight is a modal: ignore all keys except quitting/cancel
 		switch {
@@ -56,9 +59,12 @@ func (m model) handleHostFormKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	}
 
 	if key.Matches(msg, m.keys.FormSubmit) {
+		// if focused field is not a select (i.e. protocol selector)
 		if _, ok := m.ms.hostForm.GetFocusedField().(*huh.Select[string]); !ok {
+			// and is an input, attempt to submit the form
 			if _, ok := m.ms.hostForm.GetFocusedField().(*huh.Input); ok {
 				mdl, cmd := m.ms.hostForm.Update(msg)
+				// update model's form reference
 				if f, ok := mdl.(*huh.Form); ok {
 					m.ms.hostForm = f
 				}
@@ -67,6 +73,7 @@ func (m model) handleHostFormKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 					m.relayout()
 					return m, cmd, true
 				}
+				// if there are validation errors, don't submit
 				if len(m.ms.hostForm.Errors()) > 0 {
 					m.relayout()
 					return m, cmd, true
@@ -111,11 +118,31 @@ func (m model) handleHostDetailsKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		return m.openEditHostForm()
 
 	case key.Matches(msg, m.keys.Remove):
-		m.setStatusError("Remove not wired yet.", statusTTL)
-		return m, nil, true
+		return m.openRemoveConfirm()
+
 	default:
 		return m, nil, true
 	}
+}
+
+// handleConfirmKeyMsg handles key messages when a confirmation prompt is displayed.
+//
+// It returns (newModel, cmd, handled). Always returns handled=true.
+func (m model) handleConfirmKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
+	if m.ms.confirmForm == nil {
+		// no form, return to previous mode based on confirmKind
+		m.mode = modeHostDetails
+		m.relayout()
+		return m, nil, true
+	}
+
+	// update the confirm form with the key message
+	mdl, cmd := m.ms.confirmForm.Update(msg)
+	if f, ok := mdl.(*huh.Form); ok {
+		m.ms.confirmForm = f
+	}
+	m.relayout()
+	return m, cmd, true
 }
 
 // handlePromptKeyMsg handles key messages when prompting for username.

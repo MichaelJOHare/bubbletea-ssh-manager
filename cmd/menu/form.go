@@ -80,3 +80,45 @@ func (m model) closeHostForm(status string, kind statusKind) (model, tea.Cmd) {
 	}
 	return m, m.setStatus(status, kind, statusTTL)
 }
+
+// openRemoveConfirm opens a confirmation dialog for removing the selected host.
+//
+// It displays a huh.Confirm prompt below the details box.
+func (m model) openRemoveConfirm() (model, tea.Cmd, bool) {
+	it, _ := m.lst.SelectedItem().(*menuItem)
+	if it == nil || it.kind != itemHost {
+		m.setStatusError("Select a host to remove.", statusTTL)
+		return m, nil, true
+	}
+
+	m.mode = modeConfirm
+	m.ms.confirmKind = confirmRemoveHost
+	m.ms.confirmHost = it
+
+	protocol := str.NormalizeString(it.protocol)
+	alias := strings.TrimSpace(it.spec.Alias)
+	form := buildConfirmForm(
+		confirmRemoveHost,
+		"Remove "+alias+"?",
+		"This will remove the host from the config file.",
+		protocol,
+		alias,
+		it,
+		m.theme,
+	)
+	m.ms.confirmForm = form
+
+	m.relayout()
+	return m, form.Init(), true
+}
+
+// closeConfirm closes the confirmation dialog and returns to the appropriate mode.
+func (m model) closeConfirm() (model, tea.Cmd) {
+	// always return to menu mode for now
+	m.mode = modeMenu
+	m.ms.confirmForm = nil
+	m.ms.confirmKind = confirmNone
+	m.ms.confirmHost = nil
+	m.relayout()
+	return m, nil
+}

@@ -31,8 +31,8 @@ const (
 	removeSymbol  = "R"
 	removeHelp    = "remove"
 
-	leftRightSymbol = "🡨/🡪 "
-	leftRightHelp   = "make selection"
+	leftRightSymbol = "🡨 |🡪 "
+	leftRightHelp   = "choose selection"
 
 	enterSymbol = "enter"
 	saveHelp    = "save"
@@ -45,20 +45,21 @@ const (
 )
 
 type KeyMap struct {
-	Quit         key.Binding
-	Details      key.Binding
-	Add          key.Binding
-	Back         key.Binding
-	Clear        key.Binding
-	CloseDetails key.Binding
-	CloseForm    key.Binding
-	FormNext     key.Binding
-	FormPrev     key.Binding
-	FormSelect   key.Binding
-	FormSubmit   key.Binding
-	Edit         key.Binding
-	Remove       key.Binding
-	LeftRight    key.Binding
+	Quit          key.Binding
+	Details       key.Binding
+	Add           key.Binding
+	Back          key.Binding
+	Clear         key.Binding
+	CloseDetails  key.Binding
+	CloseForm     key.Binding
+	FormNext      key.Binding
+	FormPrev      key.Binding
+	FormSelect    key.Binding
+	FormSubmit    key.Binding
+	Edit          key.Binding
+	Remove        key.Binding
+	ConfirmSelect key.Binding
+	LeftRight     key.Binding
 }
 
 // newKeyMap creates a new KeyMap with bindings customized to the provided theme.
@@ -164,6 +165,13 @@ func newKeyMap(theme Theme) KeyMap {
 				keyHelpTextStyle(removeHelp),
 			),
 		),
+		ConfirmSelect: key.NewBinding(
+			key.WithKeys("enter"),
+			key.WithHelp(
+				keySymbolStyle(theme.KeyEnter, enterSymbol),
+				keyHelpTextStyle(selectHelp),
+			),
+		),
 		LeftRight: key.NewBinding(
 			key.WithKeys("left", "right"),
 			key.WithHelp(
@@ -204,6 +212,9 @@ func (m model) detailsHelpKeys() []key.Binding {
 }
 func (m model) formHelpKeys() []key.Binding {
 	return []key.Binding{m.keys.CloseForm, m.keys.FormPrev, m.keys.FormNext}
+}
+func (m model) confirmHelpKeys() []key.Binding {
+	return []key.Binding{m.keys.LeftRight, m.keys.ConfirmSelect}
 }
 
 // initHelpKeys initializes the list's help keys.

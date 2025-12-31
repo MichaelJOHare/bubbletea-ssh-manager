@@ -18,6 +18,56 @@ const (
 	hostFormStatusGap        = 1                            // gap between form and status panel
 )
 
+// buildConfirmForm returns a generic confirmation form.
+//
+// The form sends a confirmResultMsg when completed (confirmed or canceled).
+// Context fields (protocol, alias, host) are passed through to the result message.
+func buildConfirmForm(
+	kind confirmKind,
+	title string,
+	description string,
+	protocol string,
+	alias string,
+	host *menuItem,
+	appTheme Theme,
+) *huh.Form {
+	var confirmed bool
+
+	confirmField := huh.NewConfirm().
+		Key("confirm").
+		Title(title).
+		Description(description).
+		Affirmative("Yes").
+		Negative("No").
+		Value(&confirmed)
+
+	form := huh.NewForm(huh.NewGroup(confirmField)).
+		WithShowHelp(false).
+		WithShowErrors(false).
+		WithTheme(confirmFormTheme(appTheme))
+
+	form.SubmitCmd = func() tea.Msg {
+		return confirmResultMsg{
+			confirmed: confirmed,
+			kind:      kind,
+			protocol:  protocol,
+			alias:     alias,
+			host:      host,
+		}
+	}
+	form.CancelCmd = func() tea.Msg {
+		return confirmResultMsg{
+			confirmed: false,
+			kind:      kind,
+			protocol:  protocol,
+			alias:     alias,
+			host:      host,
+		}
+	}
+
+	return form
+}
+
 // buildHostForm returns a Form which represents the data model for the host add/edit form.
 //
 // It holds the input values for the various fields.

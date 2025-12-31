@@ -31,3 +31,23 @@ func hostFormTheme(app Theme) *huh.Theme {
 
 	return t
 }
+
+// confirmFormTheme returns a huh.Theme customized for confirmation dialogs
+func confirmFormTheme(app Theme) *huh.Theme {
+	t := huh.ThemeCharm()
+
+	t.Focused.Title = t.Focused.Title.Foreground(app.StatusError)
+	t.Blurred.Title = t.Blurred.Title.Foreground(app.StatusDefault)
+
+	t.Focused.Description = t.Focused.Description.Foreground(app.StatusDefault)
+	t.Blurred.Description = t.Blurred.Description.Foreground(app.StatusDefault)
+
+	// selected/unselected option colors for Yes/No
+	t.Focused.SelectedOption = t.Focused.SelectedOption.Foreground(app.StatusSuccess)
+	t.Focused.UnselectedOption = t.Focused.UnselectedOption.Foreground(app.StatusDefault)
+
+	// ">" indicator
+	t.Focused.SelectSelector = t.Focused.SelectSelector.Foreground(app.PreflightSpinner)
+
+	return t
+}

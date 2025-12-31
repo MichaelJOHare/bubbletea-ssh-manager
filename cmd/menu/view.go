@@ -4,8 +4,57 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/lipgloss"
 )
+
+// viewCenteredModal renders 1-2 boxed panels centered vertically, plus a short help line.
+//
+// If secondaryContent is empty, only the primary box is rendered.
+func (m model) viewCenteredModal(
+	primaryBox lipgloss.Style,
+	primaryContent string,
+	secondaryBox lipgloss.Style,
+	secondaryContent string,
+	helpKeys []key.Binding,
+) string {
+	lg := lipgloss.NewStyle()
+	renderHelp := func(width int) string {
+		h := m.lst.Help
+		h.Width = max(0, width)
+		return h.ShortHelpView(helpKeys)
+	}
+
+	availableW := max(0, m.width)
+	panelW := availableW
+	if availableW > 0 {
+		boxW := lipgloss.Width(primaryBox.Render(primaryContent))
+		helpW := lipgloss.Width(renderHelp(availableW))
+		panelW = min(max(boxW, helpW), availableW)
+		if strings.TrimSpace(secondaryContent) != "" {
+			secondaryW := lipgloss.Width(secondaryBox.Render(secondaryContent))
+			panelW = min(max(panelW, secondaryW), availableW)
+		}
+	}
+
+	primary := primaryBox.Width(panelW)
+	helpText := renderHelp(max(0, panelW))
+	helpText = lg.Width(panelW).Align(lipgloss.Center).PaddingBottom(2).Render(helpText)
+	helpH := lipgloss.Height(helpText)
+	contentH := max(0, m.height-helpH)
+
+	primaryRendered := primary.Render(primaryContent)
+	stacked := primaryRendered
+	if strings.TrimSpace(secondaryContent) != "" {
+		secondary := secondaryBox.Width(panelW)
+		secondaryRendered := secondary.Render(secondaryContent)
+		stacked = lipgloss.JoinVertical(lipgloss.Center, primaryRendered, secondaryRendered)
+	}
+
+	stackedView := lipgloss.Place(m.width, contentH, lipgloss.Center, lipgloss.Center, stacked)
+	helpView := lipgloss.PlaceHorizontal(m.width, lipgloss.Center, helpText)
+	return strings.Join([]string{stackedView, helpView}, "\n")
+}
 
 // viewMenu renders the normal menu view with list, status, and search/prompt.
 //
@@ -71,12 +120,6 @@ func (m model) viewPreflight() string {
 // viewHostDetails renders the host details modal with details + edit/remove help keys.
 func (m model) viewHostDetails() string {
 	lg := lipgloss.NewStyle()
-	renderHelp := func(width int) string {
-		h := m.lst.Help
-		h.Width = max(0, width)
-		return h.ShortHelpView(m.detailsHelpKeys())
-	}
-
 	detailsBox := lg.
 		Border(lipgloss.RoundedBorder(), true).
 		BorderForeground(m.theme.DetailsBorder).
@@ -84,24 +127,35 @@ func (m model) viewHostDetails() string {
 		PaddingRight(footerPadLeft).
 		PaddingTop(1)
 
-	availableW := max(0, m.width)
-	panelW := availableW
-	if availableW > 0 {
-		boxW := lipgloss.Width(detailsBox.Render(m.buildHostDetails()))
-		helpW := lipgloss.Width(renderHelp(availableW))
-		panelW = min(max(boxW, helpW), availableW)
-	}
-	details := detailsBox.Width(panelW)
+	// secondary box is unused here but required by helper signature.
+	unusedSecondary := lg
+	return m.viewCenteredModal(detailsBox, m.buildHostDetails(), unusedSecondary, "", m.detailsHelpKeys())
+}
 
-	helpText := renderHelp(max(0, panelW))
-	helpText = lg.Width(panelW).Align(lipgloss.Center).PaddingBottom(2).Render(helpText)
-	helpH := lipgloss.Height(helpText)
-	contentH := max(0, m.height-helpH)
+// viewConfirm renders a confirmation dialog.
+//
+// Today this is used under host details; future confirmations (e.g. form save/cancel)
+// can reuse the same layout by changing the primary content.
+func (m model) viewConfirm() string {
+	lg := lipgloss.NewStyle()
+	primaryBox := lg.
+		Border(lipgloss.RoundedBorder(), true).
+		BorderForeground(m.theme.DetailsBorder).
+		PaddingLeft(footerPadLeft).
+		PaddingRight(footerPadLeft).
+		PaddingTop(1)
 
-	detailsView := details.Render(m.buildHostDetails())
-	detailsView = lipgloss.Place(m.width, contentH, lipgloss.Center, lipgloss.Center, detailsView)
-	helpView := lipgloss.PlaceHorizontal(m.width, lipgloss.Center, helpText)
-	return strings.Join([]string{detailsView, helpView}, "\n")
+	// render confirm form (if present)
+	confirmContent := m.ms.confirmForm.View()
+	confirmBox := lg.
+		Border(lipgloss.RoundedBorder(), true).
+		BorderForeground(m.theme.StatusError).
+		Align(lipgloss.Center)
+
+	// For now, confirm is shown beneath host details.
+	// When you add confirmations in other contexts, swap this to the appropriate base view.
+	primaryContent := m.buildHostDetails()
+	return m.viewCenteredModal(primaryBox, primaryContent, confirmBox, confirmContent, m.confirmHelpKeys())
 }
 
 // viewHostForm renders the host add/edit form centered in the terminal window.

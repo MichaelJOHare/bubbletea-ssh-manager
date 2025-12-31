@@ -11,6 +11,8 @@ import (
 //
 //        *** Short-term ideas ***
 //
+//       check what no confirm on cancel does
+//       can never get a X on host form validation panel?
 //       maybe make E edit also global (makes editing group names a possibility)?
 // 	 	 check for empty list before opening host details
 //       check menu_handle.go handleConnectFinishedMsg comment
@@ -43,6 +45,7 @@ import (
 //       refactor menu package to only contain main
 //          - move everything else to internal (eg. internal/tui/model.go, internal/tui/keys(views, forms), etc.)
 //       make protocol a type with constants
+//       add --version flag
 
 func main() {
 	p := tea.NewProgram(newModel(), tea.WithAltScreen())
