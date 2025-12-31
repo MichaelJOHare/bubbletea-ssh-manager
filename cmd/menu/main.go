@@ -13,7 +13,7 @@ import (
 //
 //       maybe make E edit also global (makes editing group names a possibility)?
 // 	 	 check for empty list before opening host details
-//       change details help to use short help instead of full help
+//       check menu_handle.go handleConnectFinishedMsg comment
 //
 //
 //       *** Medium-term ideas ***
@@ -35,6 +35,14 @@ import (
 //            - should be able to be focused and navigated (maybe tab to switch between)
 //       always format host names when displaying in status
 //       add icon for executable
+//       add config file for environment settings (eg. default user, default port, paths, etc.)
+//       fix silent errors in parser.go
+//       change model pointer receiver methods to value receivers where possible
+//       look into context.Context for managing preflight timeouts/cancellations
+//       refactor modeState/formState into separate structs for each mode (discriminated union?)
+//       refactor menu package to only contain main
+//          - move everything else to internal (eg. internal/tui/model.go, internal/tui/keys(views, forms), etc.)
+//       make protocol a type with constants
 
 func main() {
 	p := tea.NewProgram(newModel(), tea.WithAltScreen())

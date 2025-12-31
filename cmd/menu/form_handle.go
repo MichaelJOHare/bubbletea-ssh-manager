@@ -19,7 +19,7 @@ func (m model) handleHostFormSubmit(msg formResultMsg) (model, tea.Cmd) {
 	if msg.kind != formResultSubmitted {
 		return m, nil
 	}
-	protocol := strings.ToLower(strings.TrimSpace(msg.protocol))
+	protocol := str.NormalizeString(msg.protocol)
 
 	alias, err := str.BuildAliasFromGroupNickname(msg.group, msg.nickname)
 	if err != nil {

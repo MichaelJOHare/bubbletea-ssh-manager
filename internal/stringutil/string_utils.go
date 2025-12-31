@@ -19,7 +19,7 @@ func NormalizeString(s string) string {
 //   - If port is numeric, validates it's within 1..65535 and returns it.
 func NormalizePort(port string, protocol string) (string, error) {
 	port = strings.TrimSpace(port)
-	protocol = strings.ToLower(strings.TrimSpace(protocol))
+	protocol = NormalizeString(protocol)
 
 	if port == "" {
 		switch protocol {
@@ -38,15 +38,6 @@ func NormalizePort(port string, protocol string) (string, error) {
 		return "", fmt.Errorf("port out of range: %d", n)
 	}
 	return strconv.Itoa(n), nil
-}
-
-// SplitStringOnNewline normalizes line endings to Unix-style LF then splits.
-//
-// Returns a slice of lines.
-func SplitStringOnNewline(s string) []string {
-	s = strings.ReplaceAll(s, "\r\n", "\n")
-	s = strings.ReplaceAll(s, "\r", "\n")
-	return strings.Split(s, "\n")
 }
 
 // SplitStringOnDelim splits an alias of the form "group.nickname" into its parts.
@@ -69,7 +60,9 @@ func SplitStringOnDelim(alias string) (substring1, substring2 string, ok bool) {
 //
 // Used to extract error messages from command output and parse errors.
 func LastNonEmptyLine(s string) string {
-	lines := SplitStringOnNewline(s)
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+	lines := strings.Split(s, "\n")
 	for i := len(lines) - 1; i >= 0; i-- {
 		line := NormalizeString(lines[i])
 		if line != "" {
@@ -90,8 +83,8 @@ func BuildAliasFromGroupNickname(group string, nickname string) (string, error) 
 	if err := ValidateHostNickname(nickname); err != nil {
 		return "", err
 	}
-	g := strings.ToLower(FormatAliasForConfig(group))
-	n := strings.ToLower(FormatAliasForConfig(nickname))
+	g := NormalizeString(FormatAliasForConfig(group))
+	n := NormalizeString(FormatAliasForConfig(nickname))
 	if g == "" || n == "" {
 		return "", errors.New("group and nickname are required")
 	}
@@ -102,7 +95,6 @@ func BuildAliasFromGroupNickname(group string, nickname string) (string, error) 
 //
 // It trims whitespace, replaces spaces with hyphens, and collapses multiple hyphens.
 func FormatAliasForConfig(s string) string {
-	s = strings.TrimSpace(s)
 	if s == "" {
 		return ""
 	}
@@ -115,7 +107,7 @@ func FormatAliasForConfig(s string) string {
 //
 // It formats each part for display (hyphens to spaces, trimming, case).
 func SplitAliasForDisplay(alias string) (groupName string, nickname string) {
-	alias = strings.TrimSpace(alias)
+	alias = NormalizeString(alias)
 	if alias == "" {
 		return "", ""
 	}

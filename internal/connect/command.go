@@ -16,7 +16,7 @@ import (
 // It returns a Target for display/title, and a TailBuffer that captures the last
 // part of the command output for error reporting.
 func BuildCommand(trgt Target) (cmd *exec.Cmd, tgt Target, tail *TailBuffer, err error) {
-	protocol := strings.ToLower(strings.TrimSpace(trgt.Protocol))
+	protocol := str.NormalizeString(trgt.Protocol)
 	if protocol != "ssh" && protocol != "telnet" {
 		name := strings.TrimSpace(trgt.Alias)
 		return nil, Target{}, nil, fmt.Errorf("unknown protocol for %s: %q", name, trgt.Protocol)

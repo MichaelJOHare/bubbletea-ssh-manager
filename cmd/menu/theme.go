@@ -57,7 +57,7 @@ func DefaultTheme() Theme {
 		SelectedItemTitle:  lipgloss.Color("#ad58b4"),
 		SearchLabel:        lipgloss.Color("#8787ff"),
 		UsernamePrompt:     lipgloss.Color("#ddb034"),
-		GroupName:          lipgloss.Color("#e48315"),
+		GroupName:          lipgloss.Color("#f38a13"),
 		PreflightText:      lipgloss.Color("#8d8d8d"),
 		PreflightSpinner:   lipgloss.Color("#ff0087"),
 		DetailsHeader:      lipgloss.Color("#8787ff"),

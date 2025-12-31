@@ -86,6 +86,7 @@ func newModel() model {
 //
 // It returns the updated model and any command to be executed.
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// handle different message types
 	switch v := msg.(type) {
 	case tea.WindowSizeMsg:
 		nm, cmd, _ := m.handleWindowSizeMsg(v)

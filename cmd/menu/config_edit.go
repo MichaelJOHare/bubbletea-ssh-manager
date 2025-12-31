@@ -9,6 +9,7 @@ import (
 	"bubbletea-ssh-manager/internal/config"
 	"bubbletea-ssh-manager/internal/host"
 	"bubbletea-ssh-manager/internal/sshopts"
+	str "bubbletea-ssh-manager/internal/stringutil"
 )
 
 // getProtocolConfigPath returns the root config file for the given protocol.
@@ -16,7 +17,7 @@ import (
 //   - ssh: ~/.ssh/config
 //   - telnet: ~/.telnet/config
 func getProtocolConfigPath(protocol string) (string, error) {
-	switch strings.ToLower(strings.TrimSpace(protocol)) {
+	switch str.NormalizeString(protocol) {
 	case "ssh":
 		return config.GetConfigPath(".ssh", "config")
 	case "telnet":

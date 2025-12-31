@@ -77,12 +77,12 @@ func (r formStatusRenderers) formatUnvalidated(s string) string {
 //
 // It checks the live form value in add mode.
 func (m model) hostFormProtocol() string {
-	protocol := strings.ToLower(strings.TrimSpace(m.ms.hostFormProtocol))
+	protocol := str.NormalizeString(m.ms.hostFormProtocol)
 	if protocol == "" {
 		protocol = "ssh"
 	}
 	if m.ms.hostFormMode == modeAdd && m.ms.hostForm != nil {
-		if p := strings.ToLower(strings.TrimSpace(m.ms.hostForm.GetString("protocol"))); p != "" {
+		if p := str.NormalizeString(m.ms.hostForm.GetString("protocol")); p != "" {
 			protocol = p
 		}
 	}

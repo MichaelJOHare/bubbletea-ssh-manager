@@ -159,8 +159,8 @@ func (m model) handleConnectFinishedMsg(msg connectFinishedMsg) (model, tea.Cmd,
 	titleCmd := tea.SetWindowTitle("MENU")
 	output := strings.TrimSpace(msg.output)
 	if msg.err != nil {
-		if connect.IsConnectionAborted(msg.err) {
-			statusCmd := m.setStatusError(fmt.Sprintf("%s to %s aborted.", msg.protocol, msg.target), statusTTL)
+		if connect.IsConnectionAborted(msg.err) { // test if switching this is correct (may have to change launchExecCmd instead)
+			statusCmd := m.setStatusError(fmt.Sprintf("%s to %s aborted.", msg.protocol, msg.target), statusTTL) // eg. if tail != nil && connect.IsConnectionAborted
 			return m, tea.Batch(titleCmd, statusCmd), true
 		}
 		if output != "" {

@@ -100,7 +100,7 @@ func buildHostForm(mode formMode, oldAlias string, v *form, appTheme Theme) *huh
 
 	sshOptsGroup := huh.NewGroup(hostKeyField, kexField, macsField).
 		WithHideFunc(func() bool {
-			return strings.ToLower(strings.TrimSpace(v.protocol)) != "ssh"
+			return str.NormalizeString(v.protocol) != "ssh"
 		})
 
 	form := huh.NewForm(mainGroup, sshOptsGroup).
@@ -111,7 +111,7 @@ func buildHostForm(mode formMode, oldAlias string, v *form, appTheme Theme) *huh
 
 	form.CancelCmd = func() tea.Msg { return formResultMsg{kind: formResultCanceled} }
 	form.SubmitCmd = func() tea.Msg {
-		p := strings.ToLower(strings.TrimSpace(v.protocol))
+		p := str.NormalizeString(v.protocol)
 		s := host.Spec{
 			HostName: strings.TrimSpace(v.hostname),
 			Port:     strings.TrimSpace(v.port),
@@ -141,13 +141,13 @@ func (m model) buildHostFormHeader() (header string) {
 		action = "Editing"
 	}
 
-	protocol := strings.ToLower(strings.TrimSpace(m.ms.hostFormProtocol))
+	protocol := str.NormalizeString(m.ms.hostFormProtocol)
 	if protocol == "" {
 		protocol = "ssh"
 	}
 	if m.ms.hostFormMode == modeAdd && m.ms.hostForm != nil {
 		// protocol select exists in add mode, so prefer the live value.
-		if p := strings.ToLower(strings.TrimSpace(m.ms.hostForm.GetString("protocol"))); p != "" {
+		if p := str.NormalizeString(m.ms.hostForm.GetString("protocol")); p != "" {
 			protocol = p
 		}
 	}
