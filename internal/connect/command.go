@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"bubbletea-ssh-manager/internal/host"
+	str "bubbletea-ssh-manager/internal/stringutil"
 )
 
 // BuildCommand builds the exec.Cmd to connect to the given Target.
@@ -42,7 +43,7 @@ func BuildCommand(trgt Target) (cmd *exec.Cmd, tgt Target, tail *TailBuffer, err
 	case "ssh":
 		// ssh connects by alias; hostname/port are only for display/preflight
 		if hostName != "" {
-			p, err := NormalizePort(portRaw, "ssh")
+			p, err := str.NormalizePort(portRaw, "ssh")
 			if err != nil {
 				return nil, Target{}, nil, err
 			}
@@ -59,7 +60,7 @@ func BuildCommand(trgt Target) (cmd *exec.Cmd, tgt Target, tail *TailBuffer, err
 		if hostName == "" {
 			return nil, Target{}, nil, fmt.Errorf("telnet %q: empty hostname", alias)
 		}
-		p, err := NormalizePort(portRaw, "telnet")
+		p, err := str.NormalizePort(portRaw, "telnet")
 		if err != nil {
 			return nil, Target{}, nil, err
 		}

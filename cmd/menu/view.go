@@ -7,10 +7,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// viewNormal renders the normal menu view with list, status, and search/prompt.
+// viewMenu renders the normal menu view with list, status, and search/prompt.
 //
 // It focuses the active menu item if prompting for username.
-func (m model) viewNormal() string {
+func (m model) viewMenu() string {
 	statusColor := m.theme.StatusDefault
 	switch m.statusKind {
 	case statusError:
@@ -68,35 +68,40 @@ func (m model) viewPreflight() string {
 	return strings.Join(lines, "\n")
 }
 
-// viewHostDetails renders the host details modal with details + CRUD help keys.
+// viewHostDetails renders the host details modal with details + edit/remove help keys.
 func (m model) viewHostDetails() string {
-
 	lg := lipgloss.NewStyle()
-	panelW := m.hostDetailsWidth()
-	hostBox := lg.
-		Width(panelW).
+	renderHelp := func(width int) string {
+		h := m.lst.Help
+		h.Width = max(0, width)
+		return h.ShortHelpView(m.detailsHelpKeys())
+	}
+
+	detailsBox := lg.
 		Border(lipgloss.RoundedBorder(), true).
 		BorderForeground(m.theme.DetailsBorder).
 		PaddingLeft(footerPadLeft).
 		PaddingRight(footerPadLeft).
 		PaddingTop(1)
-	helpStyle := lg.
-		Width(panelW).
-		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(m.theme.DetailsBorder).
-		PaddingLeft(footerPadLeft).
-		PaddingRight(footerPadLeft).
-		Align(lipgloss.Center)
 
-	detailsView := hostBox.Render(m.hostDetailsText())
-	detailsView = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, detailsView)
-	// render help at the inner content width so it can be centered inside the padded box
-	innerHelpW := max(0, panelW-2-(footerPadLeft*2))
-	helpView := helpStyle.Render(m.detailsHelpText(innerHelpW))
-	lines := []string{detailsView}
-	lines = append(lines, lipgloss.PlaceHorizontal(m.width, lipgloss.Center, helpView))
+	availableW := max(0, m.width)
+	panelW := availableW
+	if availableW > 0 {
+		boxW := lipgloss.Width(detailsBox.Render(m.buildHostDetails()))
+		helpW := lipgloss.Width(renderHelp(availableW))
+		panelW = min(max(boxW, helpW), availableW)
+	}
+	details := detailsBox.Width(panelW)
 
-	return strings.Join(lines, "\n")
+	helpText := renderHelp(max(0, panelW))
+	helpText = lg.Width(panelW).Align(lipgloss.Center).PaddingBottom(2).Render(helpText)
+	helpH := lipgloss.Height(helpText)
+	contentH := max(0, m.height-helpH)
+
+	detailsView := details.Render(m.buildHostDetails())
+	detailsView = lipgloss.Place(m.width, contentH, lipgloss.Center, lipgloss.Center, detailsView)
+	helpView := lipgloss.PlaceHorizontal(m.width, lipgloss.Center, helpText)
+	return strings.Join([]string{detailsView, helpView}, "\n")
 }
 
 // viewHostForm renders the host add/edit form centered in the terminal window.
@@ -107,14 +112,26 @@ func (m model) viewHostForm() string {
 		return ""
 	}
 
-	box := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(m.theme.DetailsBorder).
-		PaddingLeft(2).
+	formBox := lipgloss.NewStyle().
 		PaddingRight(2).
-		PaddingTop(1).
 		PaddingBottom(1)
 
-	content := box.Render(m.ms.hostForm.View())
-	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
+	formContent := formBox.Render(m.ms.hostForm.View())
+	panelW := lipgloss.Width(formContent)
+
+	header := m.buildHostFormHeader()
+	headerH := lipgloss.Height(header)
+
+	footer := m.buildHostFormFooter(panelW)
+	footerH := lipgloss.Height(footer)
+
+	bodyH := max(0, m.height-headerH-footerH)
+
+	right := m.buildFormStatusPanel(bodyH)
+
+	leftW := max(0, m.width-hostFormStatusOuterWidth-hostFormStatusGap)
+	left := lipgloss.NewStyle().Width(leftW).Height(bodyH).Render(formContent)
+	body := lipgloss.JoinHorizontal(lipgloss.Top, left, strings.Repeat(" ", hostFormStatusGap), right)
+
+	return strings.Join([]string{header, body, footer}, "\n")
 }

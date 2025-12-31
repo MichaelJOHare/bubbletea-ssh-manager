@@ -8,22 +8,6 @@ import (
 
 const footerPadLeft = 2
 
-// syncTitleStyles updates the list title and title bar styles based on the current width.
-func (m *model) syncTitleStyles() {
-	if m == nil {
-		return
-	}
-
-	// Default bubbles/list styles:
-	// - TitleBar padding: (top=0, right=0, bottom=1, left=1)
-	// - Title padding: (vertical=0, horizontal=1)
-	m.lst.Styles.TitleBar = m.lst.Styles.TitleBar.
-		Padding(1, 0, 1, 1)
-
-	m.lst.Styles.Title = m.lst.Styles.Title.
-		Padding(0, 2)
-}
-
 // syncHelpKeys updates the list's additional help keys based on navigation state.
 func (m *model) syncHelpKeys() {
 	if m == nil {
@@ -52,11 +36,11 @@ func (m *model) syncHelpKeys() {
 	// set additional help keys based on state
 	if m.mode == modePromptUsername {
 		m.lst.AdditionalShortHelpKeys = m.promptHelpKeys
-		m.lst.KeyMap.Quit.SetKeys()         // shift+Q gets captured by prompt modal
+		m.lst.KeyMap.Quit.SetKeys()         // Q gets captured by prompt modal
 		m.lst.KeyMap.ShowFullHelp.SetKeys() // ? gets captured by prompt modal
 		return
 	} else {
-		m.lst.KeyMap.Quit.SetKeys("shift+q")
+		m.lst.KeyMap.Quit.SetKeys("Q")
 		m.lst.KeyMap.ShowFullHelp.SetKeys("?")
 	}
 	if m.inGroup() || m.query.Value() != "" {
@@ -68,7 +52,9 @@ func (m *model) syncHelpKeys() {
 	m.lst.AdditionalShortHelpKeys = m.mainHelpKeys
 }
 
-// relayout recalculates the sizes of the list and text input based on the current window size.
+// relayout resizes the list and form components based on the current window size.
+//
+// It accounts for footer space used by status, preflight, and search/prompt.
 func (m *model) relayout() {
 	// footer consumes lines at the bottom:
 	// - optional preflight line (spinner + countdown)
@@ -94,7 +80,6 @@ func (m *model) relayout() {
 
 	// make sure the list doesn't overwrite the footer
 	m.lst.SetSize(m.width, max(0, m.height-footerLines))
-	m.syncTitleStyles()
 
 	// ensure the text input has enough width to render placeholder/prompt
 	// in bubbles/textinput, Width is the content width, not including the prompt
@@ -111,8 +96,8 @@ func (m *model) relayout() {
 
 	// size host add/edit form to the window when open
 	if m.ms.hostForm != nil {
-		w := max(0, m.width-6)
-		h := max(0, m.height-6)
+		w := max(0, m.width-hostFormStatusOuterWidth-hostFormStatusGap-6)
+		h := max(0, m.height-4) // header(1) + footer(1) + padding(2)
 		m.ms.hostForm = m.ms.hostForm.WithWidth(w).WithHeight(h)
 	}
 }

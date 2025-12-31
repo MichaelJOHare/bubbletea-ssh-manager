@@ -12,17 +12,6 @@ import (
 	str "bubbletea-ssh-manager/internal/stringutil"
 )
 
-// formatGroupName formats a raw group name for display.
-//
-// It replaces hyphens with spaces, trims whitespace, collapses
-// multiple spaces, and converts to uppercase.
-func formatGroupName(raw string) string {
-	s := strings.ReplaceAll(raw, "-", " ")
-	s = strings.TrimSpace(s)
-	s = strings.Join(strings.Fields(s), " ")
-	return strings.ToUpper(s)
-}
-
 // addMenuItem adds a host/group menu item to the root or a group, based on the alias format.
 func addMenuItem(ungrouped *[]*menuItem, groups map[string]*menuItem, host *menuItem) {
 	if host == nil {
@@ -36,8 +25,8 @@ func addMenuItem(ungrouped *[]*menuItem, groups map[string]*menuItem, host *menu
 	// grouped alias: add to group (create group if needed)
 	groupRaw, nickRaw, ok := str.SplitStringOnDelim(alias)
 	if ok {
-		groupName := formatGroupName(groupRaw)
-		displayName := str.NormalizeString(nickRaw)
+		groupName := str.FormatDisplayName(groupRaw, true)
+		displayName := str.FormatDisplayName(nickRaw, false)
 		host.name = displayName
 
 		g, exists := groups[groupName]
@@ -50,7 +39,7 @@ func addMenuItem(ungrouped *[]*menuItem, groups map[string]*menuItem, host *menu
 	}
 
 	// ungrouped alias: lowercase it for display and add to root
-	displayName := str.NormalizeString(alias)
+	displayName := str.FormatDisplayName(alias, false)
 	host.name = displayName
 	*ungrouped = append(*ungrouped, host)
 }

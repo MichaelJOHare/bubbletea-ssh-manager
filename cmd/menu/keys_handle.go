@@ -5,6 +5,7 @@ import (
 
 	str "bubbletea-ssh-manager/internal/stringutil"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 )
@@ -16,32 +17,17 @@ import (
 func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	switch m.mode {
 	case modeHostForm:
-		// host add/edit is a modal: route keys to the form (with a couple of escapes)
-		switch msg.String() {
-		case "esc":
-			nm, cmd := m.closeHostForm("Canceled add/edit host.", statusError)
-			return nm, cmd, true
-		}
-		var cmd tea.Cmd
-		if m.ms.hostForm != nil {
-			mdl, c := m.ms.hostForm.Update(msg)
-			if f, ok := mdl.(*huh.Form); ok {
-				m.ms.hostForm = f
-			}
-			cmd = c
-		}
-		m.relayout()
-		return m, cmd, true
+		return m.handleHostFormKeyMsg(msg)
 
 	case modeHostDetails:
 		return m.handleHostDetailsKeyMsg(msg)
 
 	case modePreflight:
 		// preflight is a modal: ignore all keys except quitting/cancel
-		switch msg.String() {
-		case "ctrl+c":
+		switch {
+		case msg.String() == "ctrl+c":
 			return m.cancelPreflightCmd()
-		case "Q", "shift+q":
+		case key.Matches(msg, m.keys.Quit):
 			m.quitting = true
 			return m, tea.Quit, true
 		default:
@@ -52,16 +38,51 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		return m.handlePromptKeyMsg(msg)
 	}
 
-	// default/menu behavior
-	if msg.String() == "?" {
-		m.mode = modeHostDetails
-		m.lst.SetShowHelp(false) // hide base help
-		m.setStatusInfo("", 0)   // hide status
-		m.relayout()
+	return m.handleBaseKeyMsg(msg)
+}
+
+// handleHostFormKeyMsg handles key messages related to the host add/edit form.
+//
+// Host add/edit behaves like a modal:
+//   - while open, it routes all keys to the form
+//   - 'enter' on input fields attempts to submit the form
+//   - on select fields, it selects the option (default behavior)
+//
+// It returns (newModel, cmd, handled). Always returns handled=true.
+func (m model) handleHostFormKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
+	// host add/edit is a modal: route keys to the form
+	if m.ms.hostForm == nil {
 		return m, nil, true
 	}
 
-	return m.handleBaseKeyMsg(msg)
+	if key.Matches(msg, m.keys.FormSubmit) {
+		if _, ok := m.ms.hostForm.GetFocusedField().(*huh.Select[string]); !ok {
+			if _, ok := m.ms.hostForm.GetFocusedField().(*huh.Input); ok {
+				mdl, cmd := m.ms.hostForm.Update(msg)
+				if f, ok := mdl.(*huh.Form); ok {
+					m.ms.hostForm = f
+				}
+				// if the form already completed/aborted, don't double-submit
+				if m.ms.hostForm.State != huh.StateNormal {
+					m.relayout()
+					return m, cmd, true
+				}
+				if len(m.ms.hostForm.Errors()) > 0 {
+					m.relayout()
+					return m, cmd, true
+				}
+				m.relayout()
+				return m, tea.Batch(cmd, m.ms.hostForm.SubmitCmd), true
+			}
+		}
+	}
+
+	mdl, cmd := m.ms.hostForm.Update(msg)
+	if f, ok := mdl.(*huh.Form); ok {
+		m.ms.hostForm = f
+	}
+	m.relayout()
+	return m, cmd, true
 }
 
 // handleHostDetailsKeyMsg handles key messages related to the host details modal.
@@ -74,8 +95,8 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 // It returns (newModel, cmd, handled). If handled is false, the caller should
 // pass the message through to the other handlers.
 func (m model) handleHostDetailsKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
-	switch msg.String() {
-	case "left":
+	switch {
+	case key.Matches(msg, m.keys.CloseDetails):
 		m.mode = modeMenu // close modal
 		m.lst.SetShowHelp(true)
 		// if we were prompting for username, restore that status message
@@ -86,10 +107,10 @@ func (m model) handleHostDetailsKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		m.relayout()
 		return m, nil, true
 
-	case "E":
+	case key.Matches(msg, m.keys.Edit):
 		return m.openEditHostForm()
 
-	case "R":
+	case key.Matches(msg, m.keys.Remove):
 		m.setStatusError("Remove not wired yet.", statusTTL)
 		return m, nil, true
 	default:
@@ -101,14 +122,14 @@ func (m model) handleHostDetailsKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 //
 // It returns (newModel, cmd, handled). Always returns handled=true.
 func (m model) handlePromptKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
-	switch msg.String() {
-	case "esc":
+	switch {
+	case key.Matches(msg, m.keys.Clear):
 		return m.clearPrompt()
 
-	case "left":
+	case key.Matches(msg, m.keys.Back):
 		return m.dismissPrompt()
 
-	case "enter":
+	case msg.String() == "enter":
 		u := strings.TrimSpace(m.prompt.Value())
 		if u == "" {
 			m.setStatusError("Username required (left arrow to cancel)", 0)
@@ -135,30 +156,27 @@ func (m model) handlePromptKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 // It returns (newModel, cmd, handled). If handled is false, the caller should
 // pass the message through to the query + list components.
 func (m model) handleBaseKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
-	switch msg.String() {
-	// cancel preflight or quit on Ctrl+C
-	case "ctrl+c":
-		if m.mode == modePreflight {
-			return m.cancelPreflightCmd()
-		}
+	switch {
+	// quit on Ctrl+C
+	case msg.String() == "ctrl+c":
 		m.quitting = true
 		return m, tea.Quit, true
 
 	// open add host form on 'A'
-	case "A":
+	case key.Matches(msg, m.keys.Add):
 		return m.openAddHostForm()
 
 	// quit on 'Q'
-	case "Q":
+	case key.Matches(msg, m.keys.Quit):
 		m.quitting = true
 		return m, tea.Quit, true
 
 	// esc to clear search if non-empty; otherwise do nothing
-	case "esc":
+	case key.Matches(msg, m.keys.Clear):
 		return m.clearSearch()
 
 	// go back on left arrow if in a group or search is active
-	case "left":
+	case key.Matches(msg, m.keys.Back):
 		if m.inGroup() {
 			m.path = m.path[:len(m.path)-1]
 			m.query.SetValue("")
@@ -169,8 +187,16 @@ func (m model) handleBaseKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 
+	// show host details on '?'
+	case key.Matches(msg, m.keys.Details):
+		m.mode = modeHostDetails
+		m.lst.SetShowHelp(false) // hide base help
+		m.setStatusInfo("", 0)   // hide status
+		m.relayout()
+		return m, nil, true
+
 	// enter to navigate into group or connect to host
-	case "enter":
+	case msg.String() == "enter":
 		if it, ok := m.lst.SelectedItem().(*menuItem); ok {
 			// navigate into group
 			if it.kind == itemGroup {

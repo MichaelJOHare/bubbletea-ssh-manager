@@ -11,34 +11,30 @@ import (
 //
 //        *** Short-term ideas ***
 //
-//       put A add on main help text, remove from details help
-//         since add should be global and always available (confusing to have it only in details)
 //       maybe make E edit also global (makes editing group names a possibility)?
+// 	 	 check for empty list before opening host details
+//       change details help to use short help instead of full help
 //
 //
-//       *** Medium-term ideas *
+//       *** Medium-term ideas ***
 //
 //       implement remove host functionality
 //           - can be a confirmation prompt
-//       implement arrow keys for navigating HostForm fields (require protocol selection first on addHost)
-//           - or maybe make the whole form a selectable list and have protocol default to ssh on addHost
-//              - make esc the only cancel key so left/right can move cursor in input fields
-//       add full help text for HostForm
-//           - add "up/down arrow keys to navigate fields", "enter submits", "esc cancels" etc. hints
-//           - add Validation to form fields and show errors in the title
-//       remove ssh options when adding a telnet host
-//           - make them a different form section that only shows for ssh protocol (give option to skip?)
+//       add current groups to status display to make adding to groups easier
+//       add placeholder text to form inputs
+//       add pagination hint to host form when protocol is ssh
 //       add confirmation prompt in hostForm
 //           - on cancel, "Are you sure you want to cancel? All changes will be lost."
 //           - on submit, "Are you sure you want to save these changes?"
+//              - make enter not submit forms when validation errors exist
 //
 //
 //        *** Long-term ideas ***
 //
-//	     at some point maybe have group names become a separate list
+//	     maybe have group names become a separate list
 //            - should be able to be focused and navigated (maybe tab to switch between)
 //       always format host names when displaying in status
-// 	 	 check for empty list before opening host details
+//       add icon for executable
 
 func main() {
 	p := tea.NewProgram(newModel(), tea.WithAltScreen())

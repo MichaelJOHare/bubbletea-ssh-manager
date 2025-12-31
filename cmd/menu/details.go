@@ -10,29 +10,16 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// detailsHelpText renders the help text containing keys used for host CRUD actions.
-//
-// We use a local copy of the help model to ensure width is consistent.
-func (m model) detailsHelpText(width int) string {
-	h := m.lst.Help
-	h.Width = max(0, width)
-
-	// make the help view use the same dotted separators as short help
-	h.FullSeparator = h.ShortSeparator
-	h.Styles.FullSeparator = h.Styles.ShortSeparator
-	return h.FullHelpView(m.moreHelpKeys())
-}
-
-// hostDetailsText returns the detailed text view for the currently selected host.
+// buildHostDetails returns the detailed text view for the currently selected host.
 //
 // If no host is selected, it returns a placeholder message.
-func (m model) hostDetailsText() string {
+func (m model) buildHostDetails() string {
 	it, _ := m.lst.SelectedItem().(*menuItem)
 	if it == nil || it.kind != itemHost {
 		return "Select a host to view details"
 	}
 
-	labelStyle := lipgloss.NewStyle().Foreground(m.theme.DetailsBorder).Bold(true).PaddingLeft(4)
+	labelStyle := lipgloss.NewStyle().Foreground(m.theme.DetailsLabel).PaddingLeft(4)
 	valueStyle := lipgloss.NewStyle().Foreground(m.theme.StatusDefault)
 
 	protocol := str.NormalizeString(it.protocol)
@@ -71,7 +58,7 @@ func (m model) hostDetailsText() string {
 		if r[0] == "Protocol" {
 			vRendered = protoValueStyle.Render(v)
 		}
-		lines = append(lines, fmt.Sprintf("%s  %s", labelStyle.Render(label+":"), vRendered))
+		lines = append(lines, fmt.Sprintf("%s:  %s", labelStyle.Render(label), vRendered))
 	}
 
 	if protocol == "ssh" {
@@ -85,7 +72,7 @@ func (m model) hostDetailsText() string {
 			Render("SSH OPTIONS"))
 
 		optionsValueStyle := valueStyle.PaddingLeft(4)
-		optionsLabelStyle := lipgloss.NewStyle().Foreground(m.theme.OptionsLabel).Bold(true).PaddingLeft(4)
+		optionsLabelStyle := lipgloss.NewStyle().Foreground(m.theme.OptionsLabel).PaddingLeft(4)
 		if it.options.IsZero() {
 			lines = append(lines, optionsValueStyle.Render("(none)"))
 		} else {
@@ -104,32 +91,4 @@ func (m model) hostDetailsText() string {
 	}
 
 	return strings.Join(lines, "\n")
-}
-
-// hostDetailsWidth returns the target width used for both the help panel and the host details panel.
-//
-// The width is the larger of the two rendered panel widths (help vs host details), capped to the
-// available terminal width so it doesn't overflow.
-func (m model) hostDetailsWidth() int {
-	availableW := max(0, m.width)
-	if availableW == 0 {
-		return 0
-	}
-
-	helpStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(m.theme.DetailsBorder).
-		PaddingLeft(footerPadLeft).
-		PaddingRight(footerPadLeft)
-
-	hostDetailsStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(m.theme.DetailsBorder).
-		PaddingLeft(1).
-		PaddingRight(footerPadLeft).
-		PaddingTop(1)
-
-	helpW := lipgloss.Width(helpStyle.Render(m.detailsHelpText(max(0, m.width-footerPadLeft))))
-	hostDetailsW := lipgloss.Width(hostDetailsStyle.Render(m.hostDetailsText()))
-	return min(max(helpW, hostDetailsW), availableW)
 }

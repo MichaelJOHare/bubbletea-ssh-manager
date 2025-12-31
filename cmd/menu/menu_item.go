@@ -90,7 +90,7 @@ func toListItems(items []*menuItem) []list.Item {
 
 // setActiveMenuItem updates the list view to show only the currently selected item.
 //
-// Used when displaying more info on (or connecting to) a host to focus the view on the selected host.
+// Used when connecting to a host to focus the view on the selected host.
 func (m *model) setActiveMenuItem(listView string) string {
 	selected := m.lst.SelectedItem()
 	if selected != nil {

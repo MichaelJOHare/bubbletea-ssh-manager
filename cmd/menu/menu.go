@@ -16,14 +16,15 @@ const statusTTL = 10 * time.Second // duration for non-error info statuses
 
 // Init returns the initial command for the TUI (blinking cursor and window title).
 func (m model) Init() tea.Cmd {
-	return tea.Batch(tea.SetWindowTitle("MENU"), textinput.Blink)
+	return tea.Batch(tea.SetWindowTitle("SSH Manager"), textinput.Blink)
 }
 
 // newModel creates a new TUI model with initial state and seeded menu items.
 //
-// It also initializes the text input and list components.
+// It returns the initialized model.
 func newModel() model {
 	theme := DefaultTheme()
+	keys := newKeyMap(theme)
 
 	// text input for search query
 	q := textinput.New()
@@ -52,6 +53,8 @@ func newModel() model {
 	d := newMenuDelegatePtr(theme)
 	lst := list.New(litems, d, 0, 0)
 	lst.InfiniteScrolling = true
+	lst.Styles.TitleBar = lst.Styles.TitleBar.Padding(1, 0, 1, 1)
+	lst.Styles.Title = lst.Styles.Title.Padding(0, 2)
 	lst.SetShowStatusBar(false)
 	lst.SetFilteringEnabled(false)
 	lst.SetShowHelp(true)
@@ -59,6 +62,7 @@ func newModel() model {
 	// build initial bubbletea model
 	m := model{
 		theme:    theme,
+		keys:     keys,
 		query:    q,
 		prompt:   u,
 		spinner:  s,
@@ -80,8 +84,7 @@ func newModel() model {
 // Update handles incoming messages (ie. result of IO operations)
 // and updates the model state accordingly.
 //
-// It handles window resize, connection completion, key presses, and updates
-// to the text input and list components.
+// It returns the updated model and any command to be executed.
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch v := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -136,11 +139,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View renders the TUI components (in order top to bottom):
-//   - list
-//   - help (full or brief)
-//   - status
-//   - preflight spinner
-//   - search input or prompt input
+//
+//   - host form (if open)
+//   - host details (if open)
+//   - preflight status (if active)
+//   - main menu list with status and search/prompt input
 //
 // It returns the complete string to be displayed.
 func (m model) View() string {
@@ -159,6 +162,6 @@ func (m model) View() string {
 	case modePreflight:
 		return m.viewPreflight()
 	default:
-		return m.viewNormal()
+		return m.viewMenu()
 	}
 }

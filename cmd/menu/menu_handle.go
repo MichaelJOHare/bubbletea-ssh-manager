@@ -36,7 +36,7 @@ func (m model) handleHostFormMsg(msg tea.Msg) (model, tea.Cmd, bool) {
 	case formResultMsg:
 		switch v.kind {
 		case formResultCanceled:
-			nm, cmd := m.closeHostForm("Unexpected add/edit host cancellation.", statusError)
+			nm, cmd := m.closeHostForm("Canceled add/edit host. Any changes made were not saved.", statusError)
 			return nm, cmd, true
 		case formResultSubmitted:
 			nm, cmd := m.handleHostFormSubmit(v)

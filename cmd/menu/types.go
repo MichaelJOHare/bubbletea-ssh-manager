@@ -14,23 +14,14 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
-type uiMode int
-
-const (
-	modeMenu uiMode = iota
-	modePromptUsername
-	modeHostDetails
-	modeHostForm
-	modePreflight
-	modeExecuting
-)
-
 type modeState struct {
 	// prompt state
 	pendingHost *menuItem
 
 	// host add/edit state
 	hostForm         *huh.Form // host add/edit form
+	hostFormMode     formMode  // add vs edit
+	hostFormProtocol string    // "ssh" or "telnet" (used for header/config path)
 	hostFormOldAlias string    // for edit/rename
 
 	// preflight state
@@ -45,11 +36,23 @@ type modeState struct {
 	preflightDisplay     string              // display target (eg. host:port) for status messages
 }
 
+type uiMode int
+
+const (
+	modeMenu uiMode = iota
+	modePromptUsername
+	modeHostDetails
+	modeHostForm
+	modePreflight
+	modeExecuting
+)
+
 type model struct {
 	width  int // window width
 	height int // window height
 
-	theme Theme // active UI theme
+	theme Theme  // active UI theme
+	keys  KeyMap // active key mappings
 
 	root     *menuItem       // root menu item
 	path     []*menuItem     // current navigation path
@@ -69,6 +72,25 @@ type model struct {
 	quitting    bool       // is the app quitting?
 }
 
+type formMode int // add vs edit mode for host entry form
+
+const (
+	modeAdd formMode = iota
+	modeEdit
+)
+
+type form struct {
+	protocol   string // "ssh" or "telnet"
+	groupName  string // group name portion of alias (display form; spaces allowed)
+	nickname   string // host nickname portion of alias (display form; spaces allowed)
+	hostname   string // hostname or IP address
+	port       string // port number as string
+	user       string // user name
+	algHostKey string // host key algorithms
+	algKex     string // key exchange algorithms
+	algMACs    string // MAC algorithms
+}
+
 /*
 	MESSAGE TYPES
 */
@@ -86,6 +108,8 @@ type formResultMsg struct {
 	mode     formMode        // add vs edit mode for host entry form
 	protocol string          // "ssh" or "telnet"
 	oldAlias string          // for edit/rename
+	group    string          // group name (display form)
+	nickname string          // host nickname (display form)
 	spec     host.Spec       // shared host fields (alias/hostname/port/user)
 	opts     sshopts.Options // SSH options (only for SSH hosts)
 }
