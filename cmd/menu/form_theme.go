@@ -1,6 +1,9 @@
 package main
 
-import "github.com/charmbracelet/huh"
+import (
+	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
+)
 
 // hostFormTheme returns a huh.Theme customized for the host add/edit form
 func hostFormTheme(app Theme) *huh.Theme {
@@ -37,17 +40,9 @@ func confirmFormTheme(app Theme) *huh.Theme {
 	t := huh.ThemeCharm()
 
 	t.Focused.Title = t.Focused.Title.Foreground(app.StatusError)
-	t.Blurred.Title = t.Blurred.Title.Foreground(app.StatusDefault)
-
 	t.Focused.Description = t.Focused.Description.Foreground(app.StatusDefault)
-	t.Blurred.Description = t.Blurred.Description.Foreground(app.StatusDefault)
 
-	// selected/unselected option colors for Yes/No
-	t.Focused.SelectedOption = t.Focused.SelectedOption.Foreground(app.StatusSuccess)
-	t.Focused.UnselectedOption = t.Focused.UnselectedOption.Foreground(app.StatusDefault)
-
-	// ">" indicator
-	t.Focused.SelectSelector = t.Focused.SelectSelector.Foreground(app.PreflightSpinner)
+	t.Focused.Base = t.Focused.Base.Border(lipgloss.Border{})
 
 	return t
 }

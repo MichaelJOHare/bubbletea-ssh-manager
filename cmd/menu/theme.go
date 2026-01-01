@@ -82,3 +82,8 @@ func DefaultTheme() Theme {
 func GreenEnter() string {
 	return lipgloss.NewStyle().Foreground(DefaultTheme().KeyEnter).Render("Enter")
 }
+
+const (
+	successCheck = " ✔️"
+	errorX       = "❌ "
+)

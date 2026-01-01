@@ -64,9 +64,10 @@ func (m model) handleHostFormMsg(msg tea.Msg) (model, tea.Cmd, bool) {
 	return m, cmd, true
 }
 
-// handleConfirmMsg handles confirmation dialog messages.
+// handleConfirmMsg handles all confirmation-dialog related messages.
 //
-// It processes confirm result messages and routes non-key messages to the form.
+// It processes confirmation results and routes other messages to the
+// confirmation form when open.
 func (m model) handleConfirmMsg(msg tea.Msg) (model, tea.Cmd, bool) {
 	if _, ok := msg.(tea.KeyMsg); ok {
 		return m, nil, false
@@ -74,7 +75,20 @@ func (m model) handleConfirmMsg(msg tea.Msg) (model, tea.Cmd, bool) {
 
 	switch v := msg.(type) {
 	case confirmResultMsg:
-		return m.handleConfirmResult(v)
+		confirm := m.ms.confirm
+		// close the confirm dialog first
+		m, _ = m.closeConfirm()
+		if confirm == nil {
+			return m, nil, true
+		}
+
+		var cmd tea.Cmd
+		if v.confirmed {
+			cmd = confirm.onConfirm
+		} else {
+			cmd = confirm.onCancel
+		}
+		return m, cmd, true
 
 	case removeHostResultMsg:
 		return m.handleRemoveHostResult(v)
@@ -83,47 +97,20 @@ func (m model) handleConfirmMsg(msg tea.Msg) (model, tea.Cmd, bool) {
 	if m.mode != modeConfirm {
 		return m, nil, false
 	}
-	if m.ms.confirmForm == nil {
+	if m.ms.confirm == nil || m.ms.confirm.form == nil {
 		return m, nil, true
 	}
-	mdl, cmd := m.ms.confirmForm.Update(msg)
+	mdl, cmd := m.ms.confirm.form.Update(msg)
 	if f, ok := mdl.(*huh.Form); ok {
-		m.ms.confirmForm = f
+		m.ms.confirm.form = f
 	}
 	m.relayout()
 	return m, cmd, true
 }
 
-// handleConfirmResult processes the result of a confirmation dialog.
+// handleRemoveHostResult processes the async result of a host removal operation.
 //
-// It dispatches to the appropriate handler based on confirmKind.
-func (m model) handleConfirmResult(msg confirmResultMsg) (model, tea.Cmd, bool) {
-	// close the confirm dialog first
-	m, _ = m.closeConfirm()
-
-	if !msg.confirmed {
-		// user canceled - just return to previous mode (already done by closeConfirm)
-		return m, nil, true
-	}
-
-	// dispatch based on what was being confirmed
-	switch msg.kind {
-	case confirmRemoveHost:
-		removeCmd := func() tea.Msg {
-			err := RemoveHostFromConfig(msg.protocol, msg.alias)
-			return removeHostResultMsg{
-				protocol: msg.protocol,
-				alias:    msg.alias,
-				err:      err,
-			}
-		}
-		return m, tea.Cmd(removeCmd), true
-	default:
-		return m, nil, true
-	}
-}
-
-// handleRemoveHostResult processes the result of a host removal operation.
+// It updates the model's status and reloads the menu if the removal succeeded.
 func (m model) handleRemoveHostResult(msg removeHostResultMsg) (model, tea.Cmd, bool) {
 	if msg.err != nil {
 		statusCmd := m.setStatusError(fmt.Sprintf("Failed to remove %s: %v", msg.alias, msg.err), 0)
@@ -131,7 +118,7 @@ func (m model) handleRemoveHostResult(msg removeHostResultMsg) (model, tea.Cmd, 
 	}
 
 	// reload menu to reflect the removal
-	statusCmd := m.setStatusSuccess(fmt.Sprintf("Removed %s host: %s", msg.protocol, msg.alias), statusTTL)
+	statusCmd := m.setStatusSuccess(fmt.Sprintf("Removed %s host: %s"+successCheck, msg.protocol, msg.alias), statusTTL)
 	reloadCmd := func() tea.Msg {
 		root, err := seedMenu()
 		return menuReloadedMsg{root: root, err: err}

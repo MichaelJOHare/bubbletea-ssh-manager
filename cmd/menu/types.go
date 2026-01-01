@@ -11,8 +11,18 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 )
+
+type confirmState struct {
+	form        *huh.Form // confirmation form
+	title       string    // title of confirmation
+	description string    // description of confirmation
+	//returnMode  uiMode  // change this so only cancelling on edit goes back to previous mode
+	onConfirm tea.Cmd // command to run on confirm
+	onCancel  tea.Cmd // command to run on cancel
+}
 
 type modeState struct {
 	// prompt state
@@ -25,9 +35,7 @@ type modeState struct {
 	hostFormOldAlias string    // for edit/rename
 
 	// confirmation dialog state (generic, used for remove/cancel/save confirmations)
-	confirmForm *huh.Form   // confirmation dialog form
-	confirmKind confirmKind // what action is being confirmed
-	confirmHost *menuItem   // host context (for remove/cancel/save host operations)
+	confirm *confirmState
 
 	// preflight state
 	preflightToken       int                 // increments on preflight starts; for tick/result matching
@@ -85,15 +93,6 @@ const (
 	modeEdit
 )
 
-type confirmKind int // what action is being confirmed
-
-const (
-	confirmNone confirmKind = iota
-	confirmRemoveHost
-	confirmCancelHostForm
-	confirmSaveHostForm
-)
-
 type form struct {
 	protocol   string // "ssh" or "telnet"
 	groupName  string // group name portion of alias (display form; spaces allowed)
@@ -115,7 +114,7 @@ const (
 	formResultSubmitted
 )
 
-type formResultKind int // kind of result from host entry form (submit vs cancel)
+type formResultKind int // kind of result from host entry form (submit vs cancel) *** this will use confirmResultMsg later? ***
 type formResultMsg struct {
 	kind formResultKind // kind of result (canceled vs submitted)
 
@@ -164,14 +163,8 @@ type preflightResultMsg struct {
 }
 
 // confirmResultMsg is sent when a confirmation dialog completes (confirmed or canceled).
-// The handler should check `kind` to determine what action was being confirmed.
 type confirmResultMsg struct {
-	confirmed bool        // true if user confirmed, false if canceled
-	kind      confirmKind // what action was being confirmed
-	// context fields (set based on kind)
-	protocol string    // "ssh" or "telnet" (for host operations)
-	alias    string    // alias of host (for host operations)
-	host     *menuItem // full host context (for host operations)
+	confirmed bool // true if user confirmed, false if canceled
 }
 
 type removeHostResultMsg struct {

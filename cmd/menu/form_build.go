@@ -21,16 +21,7 @@ const (
 // buildConfirmForm returns a generic confirmation form.
 //
 // The form sends a confirmResultMsg when completed (confirmed or canceled).
-// Context fields (protocol, alias, host) are passed through to the result message.
-func buildConfirmForm(
-	kind confirmKind,
-	title string,
-	description string,
-	protocol string,
-	alias string,
-	host *menuItem,
-	appTheme Theme,
-) *huh.Form {
+func buildConfirmForm(title string, description string, appTheme Theme) *huh.Form {
 	var confirmed bool
 
 	confirmField := huh.NewConfirm().
@@ -49,19 +40,11 @@ func buildConfirmForm(
 	form.SubmitCmd = func() tea.Msg {
 		return confirmResultMsg{
 			confirmed: confirmed,
-			kind:      kind,
-			protocol:  protocol,
-			alias:     alias,
-			host:      host,
 		}
 	}
 	form.CancelCmd = func() tea.Msg {
 		return confirmResultMsg{
 			confirmed: false,
-			kind:      kind,
-			protocol:  protocol,
-			alias:     alias,
-			host:      host,
 		}
 	}
 

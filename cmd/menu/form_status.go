@@ -29,9 +29,6 @@ type formStatusRenderers struct {
 	valueError   func(...string) string // error value renderer
 	errText      func(...string) string // error text renderer
 	head         string                 // header text renderer
-
-	successCheck string // success suffix
-	errorX       string // error prefix
 }
 
 // newFormStatusRenderers creates form status renderers based on the app theme.
@@ -43,9 +40,6 @@ func newFormStatusRenderers(theme Theme) formStatusRenderers {
 		valueError:   lipgloss.NewStyle().Foreground(theme.StatusError).Render,
 		errText:      lipgloss.NewStyle().Foreground(theme.StatusError).Render,
 		head:         lipgloss.NewStyle().Foreground(theme.ProtocolSSH).Bold(true).Render("Current Settings"),
-
-		successCheck: " ✔️",
-		errorX:       "❌ ",
 	}
 }
 
@@ -56,13 +50,13 @@ func newFormStatusRenderers(theme Theme) formStatusRenderers {
 //   - If there is a validation error, it uses the error style and prefixes with an X.
 //   - If valid, it uses the success style and suffixes with a checkmark.
 func (r formStatusRenderers) formatValidated(s string, err error) string {
+	if err != nil {
+		return errorX + r.errText(strings.TrimSpace(err.Error()))
+	}
 	if strings.TrimSpace(s) == "" {
 		return r.valueDefault(s)
 	}
-	if err != nil {
-		return r.errorX + r.valueError(s)
-	}
-	return r.valueSuccess(s) + r.successCheck
+	return r.valueSuccess(s) + successCheck
 }
 
 // formatUnvalidated formats a value that does not require validation (e.g., user).
@@ -120,24 +114,12 @@ func buildFormStatusLines(r formStatusRenderers, d formStatusData) []string {
 	lines := []string{r.head, ""}
 
 	lines = append(lines, r.label("Group: ")+r.formatValidated(d.groupName, d.groupErr))
-	if d.groupErr != nil {
-		lines = append(lines, r.errText(strings.TrimSpace(d.groupErr.Error())))
-	}
 
 	lines = append(lines, r.label("\nNick: ")+r.formatValidated(d.nickname, d.nicknameErr))
-	if d.nicknameErr != nil {
-		lines = append(lines, r.errText(strings.TrimSpace(d.nicknameErr.Error())))
-	}
 
 	lines = append(lines, r.label("\nHostName: ")+r.formatValidated(d.hostname, d.hostErr))
-	if d.hostErr != nil {
-		lines = append(lines, r.errText(strings.TrimSpace(d.hostErr.Error())))
-	}
 
 	lines = append(lines, r.label("\nPort: ")+r.formatValidated(d.port, d.portErr))
-	if d.portErr != nil {
-		lines = append(lines, r.errText(strings.TrimSpace(d.portErr.Error())))
-	}
 
 	lines = append(lines, r.label("\nUser: ")+r.formatUnvalidated(d.user))
 	return lines

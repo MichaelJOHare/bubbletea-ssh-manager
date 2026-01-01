@@ -92,33 +92,46 @@ func (m model) openRemoveConfirm() (model, tea.Cmd, bool) {
 	}
 
 	m.mode = modeConfirm
-	m.ms.confirmKind = confirmRemoveHost
-	m.ms.confirmHost = it
 
 	protocol := str.NormalizeString(it.protocol)
 	alias := strings.TrimSpace(it.spec.Alias)
+	title := "Remove " + alias + "?"
+	description := "This will remove the host from the config file."
+	removeCmd := func() tea.Msg {
+		err := RemoveHostFromConfig(protocol, alias)
+		return removeHostResultMsg{
+			protocol: protocol,
+			alias:    alias,
+			err:      err,
+		}
+	}
+	cancelCmd := m.setStatusError(errorX+"Canceled removing "+alias+".", statusTTL)
 	form := buildConfirmForm(
-		confirmRemoveHost,
-		"Remove "+alias+"?",
-		"This will remove the host from the config file.",
-		protocol,
-		alias,
-		it,
+		title,
+		description,
 		m.theme,
 	)
-	m.ms.confirmForm = form
+	m.ms.confirm = &confirmState{
+		form:        form,
+		title:       title,
+		description: description,
+		onConfirm:   tea.Cmd(removeCmd),
+		onCancel:    cancelCmd,
+	}
 
 	m.relayout()
 	return m, form.Init(), true
 }
 
+func (m model) openHostFormConfirm() (model, tea.Cmd, bool) {
+	// TODO: implement confirmation prompt when editing/adding host form
+	return m, nil, true
+}
+
 // closeConfirm closes the confirmation dialog and returns to the appropriate mode.
 func (m model) closeConfirm() (model, tea.Cmd) {
-	// always return to menu mode for now
 	m.mode = modeMenu
-	m.ms.confirmForm = nil
-	m.ms.confirmKind = confirmNone
-	m.ms.confirmHost = nil
+	m.ms.confirm = nil
 	m.relayout()
 	return m, nil
 }

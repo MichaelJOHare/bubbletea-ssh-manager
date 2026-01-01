@@ -129,17 +129,17 @@ func (m model) handleHostDetailsKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 //
 // It returns (newModel, cmd, handled). Always returns handled=true.
 func (m model) handleConfirmKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
-	if m.ms.confirmForm == nil {
-		// no form, return to previous mode based on confirmKind
-		m.mode = modeHostDetails
+	if m.ms.confirm == nil || m.ms.confirm.form == nil {
+		// no form, best-effort return
+		m.mode = modeMenu
 		m.relayout()
 		return m, nil, true
 	}
 
 	// update the confirm form with the key message
-	mdl, cmd := m.ms.confirmForm.Update(msg)
+	mdl, cmd := m.ms.confirm.form.Update(msg)
 	if f, ok := mdl.(*huh.Form); ok {
-		m.ms.confirmForm = f
+		m.ms.confirm.form = f
 	}
 	m.relayout()
 	return m, cmd, true

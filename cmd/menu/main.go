@@ -11,8 +11,6 @@ import (
 //
 //        *** Short-term ideas ***
 //
-//       check what no confirm on cancel does
-//       can never get a X on host form validation panel?
 //       maybe make E edit also global (makes editing group names a possibility)?
 // 	 	 check for empty list before opening host details
 //       check menu_handle.go handleConnectFinishedMsg comment
@@ -20,8 +18,6 @@ import (
 //
 //       *** Medium-term ideas ***
 //
-//       implement remove host functionality
-//           - can be a confirmation prompt
 //       add current groups to status display to make adding to groups easier
 //       add placeholder text to form inputs
 //       add pagination hint to host form when protocol is ssh

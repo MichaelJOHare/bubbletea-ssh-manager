@@ -15,7 +15,8 @@ func (m *model) syncHelpKeys() {
 	}
 
 	// treat certain states as modals where list navigation/help should not apply
-	modal := m.mode == modePreflight || m.mode == modePromptUsername || m.mode == modeHostDetails || m.mode == modeHostForm
+	modal := (m.mode == modePreflight || m.mode == modePromptUsername ||
+		m.mode == modeHostDetails || m.mode == modeHostForm || m.mode == modeConfirm)
 	canScroll := !modal && len(m.lst.Items()) > 1
 	if canScroll {
 		m.lst.KeyMap.CursorUp.SetKeys("up")
@@ -27,7 +28,8 @@ func (m *model) syncHelpKeys() {
 
 	// during preflight we hide the help entirely (only quitting/cancel is allowed)
 	// during host details, the base list help is hidden (custom-rendered modal)
-	if m.mode == modePreflight || m.mode == modeHostDetails || m.mode == modeHostForm {
+	if m.mode == modePreflight || m.mode == modeHostDetails ||
+		m.mode == modeHostForm || m.mode == modeConfirm {
 		m.lst.SetShowHelp(false)
 	} else {
 		m.lst.SetShowHelp(true)
@@ -99,5 +101,13 @@ func (m *model) relayout() {
 		w := max(0, m.width-hostFormStatusOuterWidth-hostFormStatusGap-6)
 		h := max(0, m.height-4) // header(1) + footer(1) + padding(2)
 		m.ms.hostForm = m.ms.hostForm.WithWidth(w).WithHeight(h)
+	}
+
+	// size confirm prompt to the window when open
+	if m.ms.confirm != nil && m.ms.confirm.form != nil {
+		maxAvailableW := max(0, m.width-6) // keep some breathing room near borders
+		textW := max(lipgloss.Width(m.ms.confirm.title), lipgloss.Width(m.ms.confirm.description))
+		w := min(max(20, textW+10), maxAvailableW)
+		m.ms.confirm.form = m.ms.confirm.form.WithWidth(w)
 	}
 }
