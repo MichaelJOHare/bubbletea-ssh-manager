@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"strings"
@@ -196,15 +196,15 @@ func (m model) handleBaseKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		m.quitting = true
 		return m, tea.Quit, true
 
-	// open add host form on 'A'
-	case key.Matches(msg, m.keys.Add):
-		nm, cmd := m.openAddHostForm()
-		return nm, cmd, true
-
 	// quit on 'Q'
 	case key.Matches(msg, m.keys.Quit):
 		m.quitting = true
 		return m, tea.Quit, true
+
+	// open add host form on 'A'
+	case key.Matches(msg, m.keys.Add):
+		nm, cmd := m.openAddHostForm()
+		return nm, cmd, true
 
 	// esc to clear search if non-empty; otherwise do nothing
 	case key.Matches(msg, m.keys.Clear):

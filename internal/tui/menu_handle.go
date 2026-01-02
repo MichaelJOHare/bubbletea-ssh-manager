@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"fmt"
@@ -30,7 +30,7 @@ func (m model) handleRemoveHostResult(msg removeHostResultMsg) (model, tea.Cmd) 
 	}
 
 	// reload menu to reflect the removal
-	statusCmd := m.setStatusSuccess(fmt.Sprintf("Removed %s host: %s"+successCheck, msg.protocol, msg.alias), statusTTL)
+	statusCmd := m.setStatusSuccess(fmt.Sprintf("Removed %s host: %s"+SuccessCheck, msg.protocol, msg.alias), statusTTL)
 	reloadCmd := func() tea.Msg {
 		root, err := seedMenu()
 		return menuReloadedMsg{root: root, err: err}

@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"strings"
@@ -105,7 +105,7 @@ func (m model) openRemoveConfirm() (model, tea.Cmd) {
 			err:      err,
 		}
 	}
-	cancelCmd := m.setStatusError(errorX+"Canceled removing "+alias+".", statusTTL)
+	cancelCmd := m.setStatusError(ErrorX+"Canceled removing "+alias+".", statusTTL)
 	form := buildConfirmForm(
 		title,
 		description,

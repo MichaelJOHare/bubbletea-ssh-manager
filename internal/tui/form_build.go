@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"strings"
@@ -139,7 +139,7 @@ func buildHostForm(mode formMode, oldAlias string, v *form, appTheme Theme) *huh
 	form := huh.NewForm(mainGroup, sshOptsGroup).
 		WithShowHelp(false).
 		WithShowErrors(false).
-		WithKeyMap(newFormKeyMap()).
+		WithKeyMap(NewFormKeyMap()).
 		WithTheme(hostFormTheme(appTheme))
 
 	form.CancelCmd = func() tea.Msg { return formResultMsg{kind: formResultCanceled} }

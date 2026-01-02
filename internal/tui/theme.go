@@ -1,4 +1,4 @@
-package main
+package tui
 
 import "github.com/charmbracelet/lipgloss"
 
@@ -84,6 +84,6 @@ func GreenEnter() string {
 }
 
 const (
-	successCheck = " ✔️"
-	errorX       = "❌ "
+	SuccessCheck = " ✔️"
+	ErrorX       = "❌ "
 )

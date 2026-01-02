@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"strings"
@@ -51,12 +51,12 @@ func newFormStatusRenderers(theme Theme) formStatusRenderers {
 //   - If valid, it uses the success style and suffixes with a checkmark.
 func (r formStatusRenderers) formatValidated(s string, err error) string {
 	if err != nil {
-		return errorX + r.errText(strings.TrimSpace(err.Error()))
+		return ErrorX + r.errText(strings.TrimSpace(err.Error()))
 	}
 	if strings.TrimSpace(s) == "" {
 		return r.valueDefault(s)
 	}
-	return r.valueSuccess(s) + successCheck
+	return r.valueSuccess(s) + SuccessCheck
 }
 
 // formatUnvalidated formats a value that does not require validation (e.g., user).

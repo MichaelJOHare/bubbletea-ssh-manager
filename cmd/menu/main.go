@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	tui "bubbletea-ssh-manager/internal/tui"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -15,6 +17,8 @@ import (
 //       allow changing protocol in edit host form?
 // 	 	 check for empty list before opening host details
 //       check menu_handle.go handleConnectFinishedMsg comment
+//       change color names back to actual colors in theme.go
+//       handle immediate ssh errors better (especially multi-line errors)
 //
 //
 //       *** Medium-term ideas ***
@@ -22,7 +26,7 @@ import (
 //       add current groups to status display to make adding to groups easier
 //       add real validation to host form inputs (need to make sure the error it shows is clear about what is wrong)
 //       add placeholder text to form inputs
-//       add pagination hint to host form when protocol is ssh
+//       add pagination hint to host form when protocol is ssh and fix showing group on selecting ssh
 //       add confirmation prompt in hostForm
 //           - on cancel, "Are you sure you want to cancel? All changes will be lost."
 //           - on submit, "Are you sure you want to save these changes?"
@@ -46,7 +50,7 @@ import (
 //       add --version flag
 
 func main() {
-	p := tea.NewProgram(newModel(), tea.WithAltScreen())
+	p := tea.NewProgram(tui.NewModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

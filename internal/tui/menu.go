@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"time"
@@ -15,6 +15,14 @@ import (
 
 const statusTTL = 10 * time.Second // duration for non-error info statuses
 
+// NewModel constructs the Bubble Tea model for the TUI.
+//
+// It returns the model as tea.Model so callers don't need access to the
+// package-private concrete type.
+func NewModel() tea.Model {
+	return newModel()
+}
+
 // Init returns the initial command for the TUI (blinking cursor and window title).
 func (m model) Init() tea.Cmd {
 	return tea.Batch(tea.SetWindowTitle("SSH Manager"), textinput.Blink)
@@ -25,7 +33,7 @@ func (m model) Init() tea.Cmd {
 // It returns the initialized model.
 func newModel() model {
 	theme := DefaultTheme()
-	keys := newKeyMap(theme)
+	keys := NewKeyMap(theme)
 
 	// text input for search query
 	q := textinput.New()
