@@ -17,19 +17,23 @@ import (
 func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	switch m.mode {
 	case modeHostForm:
-		return m.handleHostFormKeyMsg(msg)
+		nm, cmd := m.handleHostFormKeyMsg(msg)
+		return nm, cmd, true
 
 	case modeHostDetails:
-		return m.handleHostDetailsKeyMsg(msg)
+		nm, cmd := m.handleHostDetailsKeyMsg(msg)
+		return nm, cmd, true
 
 	case modeConfirm:
-		return m.handleConfirmKeyMsg(msg)
+		nm, cmd := m.handleConfirmKeyMsg(msg)
+		return nm, cmd, true
 
 	case modePreflight:
 		// preflight is a modal: ignore all keys except quitting/cancel
 		switch {
 		case msg.String() == "ctrl+c":
-			return m.cancelPreflightCmd()
+			nm, cmd := m.cancelPreflightCmd()
+			return nm, cmd, true
 		case key.Matches(msg, m.keys.Quit):
 			m.quitting = true
 			return m, tea.Quit, true
@@ -38,7 +42,8 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		}
 
 	case modePromptUsername:
-		return m.handlePromptKeyMsg(msg)
+		nm, cmd := m.handlePromptKeyMsg(msg)
+		return nm, cmd, true
 	}
 
 	return m.handleBaseKeyMsg(msg)
@@ -51,11 +56,11 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 //   - 'enter' on input fields attempts to submit the form
 //   - on select fields, it selects the option (default behavior)
 //
-// It returns (newModel, cmd, handled). Always returns handled=true.
-func (m model) handleHostFormKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
+// It returns an error checked (newModel, cmd).
+func (m model) handleHostFormKeyMsg(msg tea.KeyMsg) (model, tea.Cmd) {
 	// host add/edit is a modal: route keys to the form
 	if m.ms.hostForm == nil {
-		return m, nil, true
+		return m, nil
 	}
 
 	if key.Matches(msg, m.keys.FormSubmit) {
@@ -71,15 +76,15 @@ func (m model) handleHostFormKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 				// if the form already completed/aborted, don't double-submit
 				if m.ms.hostForm.State != huh.StateNormal {
 					m.relayout()
-					return m, cmd, true
+					return m, cmd
 				}
 				// if there are validation errors, don't submit
 				if len(m.ms.hostForm.Errors()) > 0 {
 					m.relayout()
-					return m, cmd, true
+					return m, cmd
 				}
 				m.relayout()
-				return m, tea.Batch(cmd, m.ms.hostForm.SubmitCmd), true
+				return m, tea.Batch(cmd, m.ms.hostForm.SubmitCmd)
 			}
 		}
 	}
@@ -89,7 +94,7 @@ func (m model) handleHostFormKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		m.ms.hostForm = f
 	}
 	m.relayout()
-	return m, cmd, true
+	return m, cmd
 }
 
 // handleHostDetailsKeyMsg handles key messages related to the host details modal.
@@ -101,7 +106,7 @@ func (m model) handleHostFormKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 //
 // It returns (newModel, cmd, handled). If handled is false, the caller should
 // pass the message through to the other handlers.
-func (m model) handleHostDetailsKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
+func (m model) handleHostDetailsKeyMsg(msg tea.KeyMsg) (model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.CloseDetails):
 		m.mode = modeMenu // close modal
@@ -112,28 +117,30 @@ func (m model) handleHostDetailsKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 			m.setStatusInfo(userPromptStatus(m.ms.pendingHost.spec.Alias), 0)
 		}
 		m.relayout()
-		return m, nil, true
+		return m, nil
 
 	case key.Matches(msg, m.keys.Edit):
-		return m.openEditHostForm()
+		nm, cmd := m.openEditHostForm()
+		return nm, cmd
 
 	case key.Matches(msg, m.keys.Remove):
-		return m.openRemoveConfirm()
+		nm, cmd := m.openRemoveConfirm()
+		return nm, cmd
 
 	default:
-		return m, nil, true
+		return m, nil
 	}
 }
 
 // handleConfirmKeyMsg handles key messages when a confirmation prompt is displayed.
 //
 // It returns (newModel, cmd, handled). Always returns handled=true.
-func (m model) handleConfirmKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
+func (m model) handleConfirmKeyMsg(msg tea.KeyMsg) (model, tea.Cmd) {
 	if m.ms.confirm == nil || m.ms.confirm.form == nil {
 		// no form, best-effort return
 		m.mode = modeMenu
 		m.relayout()
-		return m, nil, true
+		return m, nil
 	}
 
 	// update the confirm form with the key message
@@ -142,13 +149,13 @@ func (m model) handleConfirmKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		m.ms.confirm.form = f
 	}
 	m.relayout()
-	return m, cmd, true
+	return m, cmd
 }
 
 // handlePromptKeyMsg handles key messages when prompting for username.
 //
 // It returns (newModel, cmd, handled). Always returns handled=true.
-func (m model) handlePromptKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
+func (m model) handlePromptKeyMsg(msg tea.KeyMsg) (model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Clear):
 		return m.clearPrompt()
@@ -160,14 +167,14 @@ func (m model) handlePromptKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 		u := strings.TrimSpace(m.prompt.Value())
 		if u == "" {
 			m.setStatusError("Username required (left arrow to cancel)", 0)
-			return m, nil, true
+			return m, nil
 		}
 		it := m.ms.pendingHost
 		m.dismissPrompt()
 
 		if it == nil {
 			m.setStatusError("No host selected.", 0)
-			return m, nil, true
+			return m, nil
 		}
 		it.spec.User = u
 		return m.startConnect(it)
@@ -175,7 +182,7 @@ func (m model) handlePromptKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 
 	var cmd tea.Cmd
 	m.prompt, cmd = m.prompt.Update(msg)
-	return m, cmd, true
+	return m, cmd
 }
 
 // handleBaseKeyMsg handles key messages from the base menu context.
@@ -191,7 +198,8 @@ func (m model) handleBaseKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 
 	// open add host form on 'A'
 	case key.Matches(msg, m.keys.Add):
-		return m.openAddHostForm()
+		nm, cmd := m.openAddHostForm()
+		return nm, cmd, true
 
 	// quit on 'Q'
 	case key.Matches(msg, m.keys.Quit):
@@ -200,7 +208,8 @@ func (m model) handleBaseKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 
 	// esc to clear search if non-empty; otherwise do nothing
 	case key.Matches(msg, m.keys.Clear):
-		return m.clearSearch()
+		nm, cmd := m.clearSearch()
+		return nm, cmd, true
 
 	// go back on left arrow if in a group or search is active
 	case key.Matches(msg, m.keys.Back):
@@ -210,7 +219,8 @@ func (m model) handleBaseKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 			m.setCurrentMenu(m.current().children)
 			m.setStatusInfo("", 0)
 		} else if m.query.Value() != "" {
-			return m.clearSearch()
+			nm, cmd := m.clearSearch()
+			return nm, cmd, true
 		}
 		return m, nil, true
 
@@ -236,9 +246,11 @@ func (m model) handleBaseKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 
 			// connect to host
 			if str.NormalizeString(it.protocol) == "ssh" {
-				return m.beginUserPrompt(it)
+				nm, cmd := m.beginUserPrompt(it)
+				return nm, cmd, true
 			}
-			return m.startConnect(it)
+			nm, cmd := m.startConnect(it)
+			return nm, cmd, true
 		}
 		return m, nil, true
 	}

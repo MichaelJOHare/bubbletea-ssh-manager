@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -89,25 +90,53 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// handle different message types
 	switch v := msg.(type) {
 	case tea.WindowSizeMsg:
-		nm, cmd, _ := m.handleWindowSizeMsg(v)
+		nm, cmd := m.handleWindowSizeMsg(v)
+		return nm, cmd
+	case formResultMsg:
+		switch v.kind {
+		case formResultCanceled:
+			nm, cmd := m.closeHostForm("Canceled add/edit host. Any changes made were not saved.", statusError)
+			return nm, cmd
+		case formResultSubmitted:
+			nm, cmd := m.handleHostFormSubmit(v)
+			return nm, cmd
+		default:
+			return m, nil
+		}
+	case formSaveResultMsg:
+		nm, cmd := m.handleHostFormSaveResult(v)
+		return nm, cmd
+	case confirmResultMsg:
+		confirm := m.ms.confirm
+		// close the confirm dialog first
+		m, _ = m.closeConfirm()
+		if confirm == nil {
+			return m, nil
+		}
+		if v.confirmed {
+			return m, confirm.onConfirm
+		}
+		return m, confirm.onCancel
+	case removeHostResultMsg:
+		nm, cmd := m.handleRemoveHostResult(v)
 		return nm, cmd
 	case menuReloadedMsg:
-		nm, cmd, _ := m.handleMenuReloadedMsg(v)
+		nm, cmd := m.handleMenuReloadedMsg(v)
 		return nm, cmd
 	case statusClearMsg:
-		nm, cmd, _ := m.handleStatusClearMsg(v)
+		nm, cmd := m.handleStatusClearMsg(v)
 		return nm, cmd
 	case spinner.TickMsg:
-		nm, cmd, _ := m.handleSpinnerTickMsg(v)
+		nm, cmd := m.handleSpinnerTickMsg(v)
 		return nm, cmd
 	case preflightTickMsg:
-		nm, cmd, _ := m.handlePreflightTickMsg(v)
+		nm, cmd := m.handlePreflightTickMsg(v)
 		return nm, cmd
 	case preflightResultMsg:
-		nm, cmd, _ := m.handlePreflightResultMsg(v)
+		nm, cmd := m.handlePreflightResultMsg(v)
 		return nm, cmd
 	case connectFinishedMsg:
-		nm, cmd, _ := m.handleConnectFinishedMsg(v)
+		nm, cmd := m.handleConnectFinishedMsg(v)
 		return nm, cmd
 	case tea.KeyMsg:
 		if nm, cmd, handled := m.handleKeyMsg(v); handled {
@@ -115,14 +144,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// host form: handle lifecycle + non-key updates without needing special ordering
-	if nm, cmd, handled := m.handleHostFormMsg(msg); handled {
-		return nm, cmd
-	}
+	// while a modal is open, consume non-key messages so
+	// they don't update the base query/list components.
+	if _, ok := msg.(tea.KeyMsg); !ok {
+		switch m.mode {
+		case modeHostForm:
+			if m.ms.hostForm == nil {
+				return m, nil
+			}
+			mdl, cmd := m.ms.hostForm.Update(msg)
+			if f, ok := mdl.(*huh.Form); ok {
+				m.ms.hostForm = f
+			}
+			m.relayout()
+			return m, cmd
 
-	// confirm dialog: handle lifecycle + non-key updates
-	if nm, cmd, handled := m.handleConfirmMsg(msg); handled {
-		return nm, cmd
+		case modeConfirm:
+			if m.ms.confirm == nil || m.ms.confirm.form == nil {
+				return m, nil
+			}
+			mdl, cmd := m.ms.confirm.form.Update(msg)
+			if f, ok := mdl.(*huh.Form); ok {
+				m.ms.confirm.form = f
+			}
+			m.relayout()
+			return m, cmd
+		}
 	}
 
 	// always update query input first

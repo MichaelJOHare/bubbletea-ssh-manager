@@ -15,10 +15,10 @@ func userPromptStatus(alias string) string {
 // beginUserPrompt starts prompting the user for a username for the given host.
 //
 // It sets the prompt state and status message, and returns the updated model.
-func (m model) beginUserPrompt(it *menuItem) (model, tea.Cmd, bool) {
+func (m model) beginUserPrompt(it *menuItem) (model, tea.Cmd) {
 	if it == nil {
 		m.setStatusError("No host selected.", 0)
-		return m, nil, true
+		return m, nil
 	}
 	m.mode = modePromptUsername
 	m.ms.pendingHost = it
@@ -26,39 +26,39 @@ func (m model) beginUserPrompt(it *menuItem) (model, tea.Cmd, bool) {
 	m.prompt.SetValue(strings.TrimSpace(it.spec.User))
 	m.prompt.Focus()
 	m.setStatusInfo(userPromptStatus(it.spec.Alias), 0)
-	return m, nil, true
+	return m, nil
 }
 
 // clearSearch clears the search query if non-empty.
 //
 // It returns the updated model, a nil command, and true if handled.
-func (m model) clearSearch() (model, tea.Cmd, bool) {
+func (m model) clearSearch() (model, tea.Cmd) {
 	if strings.TrimSpace(m.query.Value()) != "" {
 		m.query.SetValue("")
 		m.applyFilter("")
 		m.relayout()
 	}
-	return m, nil, true
+	return m, nil
 }
 
 // clearPrompt clears the prompt input if non-empty.
 //
 // It returns the updated model, a nil command, and true if handled.
-func (m model) clearPrompt() (model, tea.Cmd, bool) {
+func (m model) clearPrompt() (model, tea.Cmd) {
 	if strings.TrimSpace(m.prompt.Value()) != "" {
 		m.prompt.SetValue("")
 	}
-	return m, nil, true
+	return m, nil
 }
 
 // dismissPrompt cancels the closes the current prompt.
 //
 // It returns the updated model, a nil command, and true if handled.
-func (m model) dismissPrompt() (model, tea.Cmd, bool) {
+func (m model) dismissPrompt() (model, tea.Cmd) {
 	m.mode = modeMenu
 	m.ms.pendingHost = nil
 	m.prompt.SetValue("")
 	m.prompt.Blur()
 	m.setStatusInfo("", 0)
-	return m, nil, true
+	return m, nil
 }

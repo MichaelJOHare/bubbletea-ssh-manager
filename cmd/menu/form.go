@@ -11,7 +11,7 @@ import (
 // openAddHostForm opens the host add form.
 //
 // It initializes an empty form for adding a new host.
-func (m model) openAddHostForm() (model, tea.Cmd, bool) {
+func (m model) openAddHostForm() (model, tea.Cmd) {
 	// close other modals
 	m.mode = modeHostForm
 	m.ms.pendingHost = nil
@@ -24,17 +24,17 @@ func (m model) openAddHostForm() (model, tea.Cmd, bool) {
 
 	m.ms.hostForm = form
 	m.relayout()
-	return m, form.Init(), true
+	return m, form.Init()
 }
 
 // openEditHostForm opens the host edit form for the selected host.
 //
 // It pre-fills the form with the existing host data.
-func (m model) openEditHostForm() (model, tea.Cmd, bool) {
+func (m model) openEditHostForm() (model, tea.Cmd) {
 	it, _ := m.lst.SelectedItem().(*menuItem)
 	if it == nil || it.kind != itemHost {
 		m.setStatusError("Select a host to edit.", statusTTL)
-		return m, nil, true
+		return m, nil
 	}
 
 	// close other modals
@@ -62,7 +62,7 @@ func (m model) openEditHostForm() (model, tea.Cmd, bool) {
 
 	m.ms.hostForm = form
 	m.relayout()
-	return m, form.Init(), true
+	return m, form.Init()
 }
 
 // closeHostForm closes the host form and resets related state.
@@ -84,11 +84,11 @@ func (m model) closeHostForm(status string, kind statusKind) (model, tea.Cmd) {
 // openRemoveConfirm opens a confirmation dialog for removing the selected host.
 //
 // It displays a huh.Confirm prompt below the details box.
-func (m model) openRemoveConfirm() (model, tea.Cmd, bool) {
+func (m model) openRemoveConfirm() (model, tea.Cmd) {
 	it, _ := m.lst.SelectedItem().(*menuItem)
 	if it == nil || it.kind != itemHost {
 		m.setStatusError("Select a host to remove.", statusTTL)
-		return m, nil, true
+		return m, nil
 	}
 
 	m.mode = modeConfirm
@@ -120,12 +120,12 @@ func (m model) openRemoveConfirm() (model, tea.Cmd, bool) {
 	}
 
 	m.relayout()
-	return m, form.Init(), true
+	return m, form.Init()
 }
 
-func (m model) openHostFormConfirm() (model, tea.Cmd, bool) {
+func (m model) openHostFormConfirm() (model, tea.Cmd) {
 	// TODO: implement confirmation prompt when editing/adding host form
-	return m, nil, true
+	return m, nil
 }
 
 // closeConfirm closes the confirmation dialog and returns to the appropriate mode.

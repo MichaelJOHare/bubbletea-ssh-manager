@@ -19,7 +19,7 @@ type confirmState struct {
 	form        *huh.Form // confirmation form
 	title       string    // title of confirmation
 	description string    // description of confirmation
-	//returnMode  uiMode  // change this so only cancelling on edit goes back to previous mode
+	//returnMode  uiMode  // *** change this so only cancelling on edit goes back to previous mode
 	onConfirm tea.Cmd // command to run on confirm
 	onCancel  tea.Cmd // command to run on cancel
 }

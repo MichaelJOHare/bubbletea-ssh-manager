@@ -74,7 +74,8 @@ func LastNonEmptyLine(s string) string {
 
 // BuildAliasFromGroupNickname constructs a full alias from group and nickname.
 //
-// It validates both parts and joins them with a dot.
+// It validates the nickname and (optionally) the group, then joins them with a dot.
+// If group is empty, it returns a nickname-only alias (for ungrouped hosts).
 // Returns an error if validation fails.
 func BuildAliasFromGroupNickname(group string, nickname string) (string, error) {
 	if err := ValidateHostGroup(group); err != nil {
@@ -85,8 +86,11 @@ func BuildAliasFromGroupNickname(group string, nickname string) (string, error) 
 	}
 	g := NormalizeString(FormatAliasForConfig(group))
 	n := NormalizeString(FormatAliasForConfig(nickname))
-	if g == "" || n == "" {
-		return "", errors.New("group and nickname are required")
+	if n == "" {
+		return "", errors.New("nickname is required")
+	}
+	if g == "" {
+		return n, nil
 	}
 	return g + "." + n, nil
 }

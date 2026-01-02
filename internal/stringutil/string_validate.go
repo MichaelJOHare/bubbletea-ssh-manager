@@ -12,22 +12,24 @@ func ValidateHostNickname(s string) error {
 		return errors.New("nickname is required")
 	}
 	if strings.ContainsAny(s, "*?!") {
-		return errors.New("nickname patterns are not supported")
+		return errors.New("nicknames with wildcard characters are not supported")
 	}
 	if strings.Contains(s, ".") {
-		return errors.New("nickname cannot contain '.'")
+		return errors.New("nicknames cannot contain '.'")
 	}
 	return nil
 }
 
 // ValidateHostGroup checks if the given group name is valid.
+//
+// It throws an error if the group name contains wildcard characters or a dot.
 func ValidateHostGroup(s string) error {
 	s = strings.TrimSpace(s)
 	if strings.ContainsAny(s, "*?!") {
-		return errors.New("group patterns are not supported")
+		return errors.New("group names with wildcard characters are not supported")
 	}
 	if strings.Contains(s, ".") {
-		return errors.New("group cannot contain '.'")
+		return errors.New("group names cannot contain '.'")
 	}
 	return nil
 }

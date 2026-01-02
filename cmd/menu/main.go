@@ -12,6 +12,7 @@ import (
 //        *** Short-term ideas ***
 //
 //       maybe make E edit also global (makes editing group names a possibility)?
+//       allow changing protocol in edit host form?
 // 	 	 check for empty list before opening host details
 //       check menu_handle.go handleConnectFinishedMsg comment
 //
@@ -19,6 +20,7 @@ import (
 //       *** Medium-term ideas ***
 //
 //       add current groups to status display to make adding to groups easier
+//       add real validation to host form inputs (need to make sure the error it shows is clear about what is wrong)
 //       add placeholder text to form inputs
 //       add pagination hint to host form when protocol is ssh
 //       add confirmation prompt in hostForm

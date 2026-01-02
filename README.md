@@ -57,11 +57,11 @@ Update packages again, it probably won't find anything to update which is fine, 
 
 # Step 6: Replace Windows Terminal settings.json with the one in this repo
 
-This is optional, it includes keybinding changes so that it can mimic "application keypad mode" where the keypad will send escape sequences  
-instead of the actual number on the keypad. This is very useful for editors on OpenVMS. If you do skip this part, just make sure the CommandLine 
-for the Windows Terminal profile you make to launch the MSYS2 bash shell looks something like this:
+This is optional, it includes keybinding changes so that it can mimic "application keypad mode" where the keypad will send escape sequences instead of the actual number on the keypad. This is very useful for editors on OpenVMS. If you do skip this part, just make sure the CommandLine for the Windows Terminal profile you make to launch the MSYS2 bash shell looks something like this:
+
 <br>
 <br>
+
 __C:\msys64\msys2_shell.cmd -defterm -here -no-start -ucrt64__
 
 <br>

@@ -39,7 +39,7 @@ func preflightDialCmd(token int, hostPort string) tea.Cmd {
 //
 // It returns the updated model, a command that sends a connectFinishedMsg
 // indicating the cancellation, and true if handled.
-func (m model) cancelPreflightCmd() (model, tea.Cmd, bool) {
+func (m model) cancelPreflightCmd() (model, tea.Cmd) {
 	protocol := strings.TrimSpace(m.ms.preflightProtocol)
 	target := strings.TrimSpace(m.ms.preflightDisplay)
 	if target == "" {
@@ -48,7 +48,7 @@ func (m model) cancelPreflightCmd() (model, tea.Cmd, bool) {
 	m.clearPreflightState()
 	return m, func() tea.Msg {
 		return connectFinishedMsg{protocol: protocol, target: target, err: connect.ErrAborted}
-	}, true
+	}
 }
 
 // clearPreflightState clears all stored preflight state in the model.
@@ -68,17 +68,17 @@ func (m *model) clearPreflightState() {
 //
 // It sets the status message and returns a command to execute the connection process.
 // If an error occurs while building the command, it sets an error status instead.
-func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
+func (m model) startConnect(it *menuItem) (model, tea.Cmd) {
 	// prevent multiple simultaneous connections
 	if m.mode == modePreflight || m.mode == modeExecuting {
 		statusCmd := m.setStatusInfo("Already connecting…", statusTTL)
-		return m, statusCmd, true
+		return m, statusCmd
 	}
 
 	// sanity check
 	if it == nil {
 		m.setStatusError("No host selected.", 0)
-		return m, nil, true
+		return m, nil
 	}
 
 	// build the connection command
@@ -88,7 +88,7 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 	})
 	if err != nil {
 		m.setStatusError(err.Error(), 0)
-		return m, nil, true
+		return m, nil
 	}
 
 	protocol := str.NormalizeString(tgt.Protocol)
@@ -99,7 +99,7 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 		hostPort := connect.GenerateHostPort(tgt)
 		if strings.TrimSpace(hostPort) == "" {
 			statusCmd := m.setStatusError(fmt.Sprintf("%s: missing hostname", protocol), statusTTL)
-			return m, statusCmd, true
+			return m, statusCmd
 		}
 
 		m.mode = modePreflight
@@ -117,12 +117,12 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd, bool) {
 		// clear any existing status to make room for preflight status
 		m.setStatusInfo("", 0)
 
-		return m, tea.Batch(preflightDialCmd(tok, hostPort), preflightTickCmd(tok), m.spinner.Tick), true
+		return m, tea.Batch(preflightDialCmd(tok, hostPort), preflightTickCmd(tok), m.spinner.Tick)
 	}
 
 	// no preflight needed; start connection immediately
 	m.mode = modeExecuting
-	return m, launchExecCmd(tgt.WindowTitle(), cmd, protocol, display, tail), true
+	return m, launchExecCmd(tgt.WindowTitle(), cmd, protocol, display, tail)
 }
 
 // launchExecCmd returns a command that exits the TUI and starts
