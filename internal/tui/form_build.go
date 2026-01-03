@@ -7,6 +7,7 @@ import (
 	"bubbletea-ssh-manager/internal/sshopts"
 	str "bubbletea-ssh-manager/internal/stringutil"
 
+	"github.com/charmbracelet/bubbles/paginator"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -74,26 +75,22 @@ func buildHostForm(mode formMode, oldAlias string, v *form, appTheme Theme) *huh
 	groupField := huh.NewInput().
 		Key("group").
 		Title("Group").
-		Value(&v.groupName).
-		Validate(func(s string) error { return str.ValidateHostGroup(s) })
+		Value(&v.groupName)
 
 	nicknameField := huh.NewInput().
 		Key("nickname").
-		Title("NickName").
-		Value(&v.nickname).
-		Validate(func(s string) error { return str.ValidateHostNickname(s) })
+		Title("Nickname").
+		Value(&v.nickname)
 
 	hostField := huh.NewInput().
 		Key("hostname").
-		Title("HostName").
-		Value(&v.hostname).
-		Validate(func(s string) error { return str.ValidateHostName(v.protocol, s) })
+		Title("Hostname").
+		Value(&v.hostname)
 
 	portField := huh.NewInput().
 		Key("port").
 		Title("Port").
-		Value(&v.port).
-		Validate(func(s string) error { return str.ValidateHostPort(v.protocol, s) })
+		Value(&v.port)
 
 	userField := huh.NewInput().
 		Key("user").
@@ -131,7 +128,10 @@ func buildHostForm(mode formMode, oldAlias string, v *form, appTheme Theme) *huh
 	)
 	mainGroup := huh.NewGroup(fields...)
 
-	sshOptsGroup := huh.NewGroup(hostKeyField, kexField, macsField).
+	sshNote := huh.NewNote().
+		Description("Optional SSH settings. Leave blank to use defaults.")
+
+	sshOptsGroup := huh.NewGroup(sshNote, hostKeyField, kexField, macsField).
 		WithHideFunc(func() bool {
 			return str.NormalizeString(v.protocol) != "ssh"
 		})
@@ -174,16 +174,7 @@ func (m model) buildHostFormHeader() (header string) {
 		action = "Editing"
 	}
 
-	protocol := str.NormalizeString(m.ms.hostFormProtocol)
-	if protocol == "" {
-		protocol = "ssh"
-	}
-	if m.ms.hostFormMode == modeAdd && m.ms.hostForm != nil {
-		// protocol select exists in add mode, so prefer the live value.
-		if p := str.NormalizeString(m.ms.hostForm.GetString("protocol")); p != "" {
-			protocol = p
-		}
-	}
+	protocol := m.hostFormProtocol()
 
 	configPath := "(unknown)"
 	if action == "Adding" {
@@ -237,4 +228,34 @@ func (m model) buildHostFormFooter(panelW int) string {
 		lipgloss.WithWhitespaceChars("/"),
 		lipgloss.WithWhitespaceForeground(m.theme.SearchLabel),
 	)
+}
+
+// buildHostFormPaginator builds the paginator view for the host form.
+//
+// It only shows when the protocol is "ssh" and there are multiple pages
+// (SSH options).
+func (m model) buildHostFormPaginator() string {
+	if m.ms.hostForm == nil {
+		return ""
+	}
+	if m.hostFormProtocol() != "ssh" {
+		return ""
+	}
+
+	page := 0
+	if f := m.ms.hostForm.GetFocusedField(); f != nil {
+		switch f.GetKey() {
+		case "hostkeyalgorithms", "kexalgorithms", "macs":
+			page = 1
+		}
+	}
+
+	p := paginator.New(paginator.WithPerPage(1), paginator.WithTotalPages(2))
+	p.Type = paginator.Dots
+	p.Page = page
+
+	p.ActiveDot = lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Render("•")
+	p.InactiveDot = lipgloss.NewStyle().Foreground(lipgloss.Color("238")).Render("•")
+
+	return lipgloss.NewStyle().Foreground(m.theme.StatusDefault).Render(p.View())
 }

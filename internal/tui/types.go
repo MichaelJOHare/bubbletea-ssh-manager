@@ -30,8 +30,8 @@ type modeState struct {
 
 	// host add/edit state
 	hostForm         *huh.Form // host add/edit form
+	hostFormValues   *form     // bound values backing the form fields (live as user types)
 	hostFormMode     formMode  // add vs edit
-	hostFormProtocol string    // "ssh" or "telnet" (used for header/config path)
 	hostFormOldAlias string    // for edit/rename
 
 	// confirmation dialog state (generic, used for remove/cancel/save confirmations)

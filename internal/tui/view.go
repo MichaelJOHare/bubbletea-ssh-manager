@@ -168,7 +168,11 @@ func (m model) viewHostForm() string {
 		PaddingRight(2).
 		PaddingBottom(1)
 
-	formContent := formBox.Render(m.ms.hostForm.View())
+	formView := m.ms.hostForm.View()
+	if pi := m.buildHostFormPaginator(); strings.TrimSpace(pi) != "" {
+		formView = strings.Join([]string{formView, "", pi}, "\n")
+	}
+	formContent := formBox.Render(formView)
 	panelW := lipgloss.Width(formContent)
 
 	header := m.buildHostFormHeader()

@@ -14,6 +14,7 @@ import (
 //        *** Short-term ideas ***
 //
 //       maybe make E edit also global (makes editing group names a possibility)?
+//          -- actually just make E and R able to be used on groups too (maybe not, deleting groups could be messy)
 //       allow changing protocol in edit host form?
 // 	 	 check for empty list before opening host details
 //       check menu_handle.go handleConnectFinishedMsg comment
@@ -23,10 +24,9 @@ import (
 //
 //       *** Medium-term ideas ***
 //
-//       add current groups to status display to make adding to groups easier
+//       change how current groups are displayed in host form status panel (see note in form_status.go)
 //       add real validation to host form inputs (need to make sure the error it shows is clear about what is wrong)
 //       add placeholder text to form inputs
-//       add pagination hint to host form when protocol is ssh and fix showing group on selecting ssh
 //       add confirmation prompt in hostForm
 //           - on cancel, "Are you sure you want to cancel? All changes will be lost."
 //           - on submit, "Are you sure you want to save these changes?"
@@ -43,8 +43,6 @@ import (
 //       fix silent errors in parser.go
 //       change model pointer receiver methods to value receivers where possible
 //       look into context.Context for managing preflight timeouts/cancellations
-//       refactor modeState/formState into separate structs for each mode (discriminated union?)
-//       refactor menu package to only contain main
 //          - move everything else to internal (eg. internal/tui/model.go, internal/tui/keys(views, forms), etc.)
 //       make protocol a type with constants
 //       add --version flag

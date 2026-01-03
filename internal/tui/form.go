@@ -16,13 +16,13 @@ func (m model) openAddHostForm() (model, tea.Cmd) {
 	m.mode = modeHostForm
 	m.ms.pendingHost = nil
 	m.ms.hostFormMode = modeAdd
-	m.ms.hostFormProtocol = "ssh"
 	m.ms.hostFormOldAlias = ""
 
 	v := &form{protocol: "ssh"}
 	form := buildHostForm(modeAdd, "", v, m.theme)
 
 	m.ms.hostForm = form
+	m.ms.hostFormValues = v
 	m.relayout()
 	return m, form.Init()
 }
@@ -41,7 +41,6 @@ func (m model) openEditHostForm() (model, tea.Cmd) {
 	m.mode = modeHostForm
 	m.ms.pendingHost = nil
 	m.ms.hostFormMode = modeEdit
-	m.ms.hostFormProtocol = strings.TrimSpace(it.protocol)
 	m.ms.hostFormOldAlias = strings.TrimSpace(it.spec.Alias)
 
 	groupName, nickname := str.SplitAliasForDisplay(strings.TrimSpace(it.spec.Alias))
@@ -61,6 +60,7 @@ func (m model) openEditHostForm() (model, tea.Cmd) {
 	form := buildHostForm(modeEdit, m.ms.hostFormOldAlias, v, m.theme)
 
 	m.ms.hostForm = form
+	m.ms.hostFormValues = v
 	m.relayout()
 	return m, form.Init()
 }
@@ -71,8 +71,8 @@ func (m model) openEditHostForm() (model, tea.Cmd) {
 func (m model) closeHostForm(status string, kind statusKind) (model, tea.Cmd) {
 	m.mode = modeMenu
 	m.ms.hostForm = nil
+	m.ms.hostFormValues = nil
 	m.ms.hostFormMode = modeAdd
-	m.ms.hostFormProtocol = ""
 	m.ms.hostFormOldAlias = ""
 	m.relayout()
 	if strings.TrimSpace(status) == "" {

@@ -99,7 +99,7 @@ func (m *model) relayout() {
 	// size host add/edit form to the window when open
 	if m.ms.hostForm != nil {
 		w := max(0, m.width-hostFormStatusOuterWidth-hostFormStatusGap-6)
-		h := max(0, m.height-4) // header(1) + footer(1) + padding(2)
+		h := max(0, m.height-5) // header(1) + footer(2; 1 for help 1 for paginator) + padding(2)
 		m.ms.hostForm = m.ms.hostForm.WithWidth(w).WithHeight(h)
 	}
 
