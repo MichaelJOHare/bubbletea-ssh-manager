@@ -116,7 +116,7 @@ func buildHostForm(mode formMode, oldAlias string, v *form, appTheme Theme) *huh
 		Value(&v.algMACs)
 
 	note := huh.NewNote().
-		Description("Enter host details and press " + GreenEnter() + " to save.")
+		Description("Enter host details and press " + GreenEnter + " to save.")
 
 	fields := []huh.Field{note}
 	if mode == modeAdd {

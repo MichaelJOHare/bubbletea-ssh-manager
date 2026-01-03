@@ -1,121 +1,139 @@
 {
     "$help": "https://aka.ms/terminal-documentation",
     "$schema": "https://aka.ms/terminal-profiles-schema",
-    "actions": [
+    "actions": 
+    [
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOM"
             },
             "id": "User.sendInput.NumpadEnter"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOp"
             },
             "id": "User.sendInput.Numpad0"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOq"
             },
             "id": "User.sendInput.Numpad1"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOr"
             },
             "id": "User.sendInput.Numpad2"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOs"
             },
             "id": "User.sendInput.Numpad3"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOt"
             },
             "id": "User.sendInput.Numpad4"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOu"
             },
             "id": "User.sendInput.Numpad5"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOv"
             },
             "id": "User.sendInput.Numpad6"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOw"
             },
             "id": "User.sendInput.Numpad7"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOx"
             },
             "id": "User.sendInput.Numpad8"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOy"
             },
             "id": "User.sendInput.Numpad9"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOn"
             },
             "id": "User.sendInput.NumpadDecimal"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOP"
             },
             "id": "User.sendInput.NumLock"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOQ"
             },
             "id": "User.sendInput.Divide"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOR"
             },
             "id": "User.sendInput.Multiply"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOS"
             },
             "id": "User.sendInput.Subtract"
         },
         {
-            "command": {
+            "command": 
+            {
                 "action": "sendInput",
                 "input": "\u001bOl"
             },
@@ -128,38 +146,35 @@
     "defaultProfile": "{f257f139-4ab8-4f0c-a11d-654bfac9e40f}",
     "initialCols": 132,
     "initialPosition": ",",
-    "keybindings": [
+    "keybindings": 
+    [
         {
-            "id": "Terminal.CopyToClipboard",
-            "keys": "ctrl+c"
+            "id": "User.sendInput.NumpadDecimal",
+            "keys": "numpad_period"
         },
         {
-            "id": "User.sendInput.Add",
-            "keys": "numpad_plus"
-        },
-        {
-            "id": "User.sendInput.Numpad8",
-            "keys": "numpad8"
+            "id": null,
+            "keys": "enter"
         },
         {
             "id": "User.sendInput.Multiply",
             "keys": "numpad_multiply"
         },
         {
-            "id": "Terminal.PasteFromClipboard",
-            "keys": "ctrl+v"
+            "id": "User.sendInput.Numpad8",
+            "keys": "numpad8"
         },
         {
-            "id": "User.sendInput.NumpadDecimal",
-            "keys": "numpad_period"
-        },
-        {
-            "id": "User.sendInput.NumLock",
-            "keys": "ctrl+numpad_divide"
+            "id": "User.sendInput.Add",
+            "keys": "numpad_plus"
         },
         {
             "id": "Terminal.DuplicatePaneAuto",
             "keys": "alt+shift+d"
+        },
+        {
+            "id": "User.sendInput.NumLock",
+            "keys": "ctrl+numpad_divide"
         },
         {
             "id": "User.sendInput.Divide",
@@ -210,16 +225,20 @@
             "keys": "numpad9"
         }
     ],
-    "newTabMenu": [
+    "newTabMenu": 
+    [
         {
             "type": "remainingProfiles"
         }
     ],
-    "profiles": {
-        "defaults": {
+    "profiles": 
+    {
+        "defaults": 
+        {
             "colorScheme": "One Half Dark"
         },
-        "list": [
+        "list": 
+        [
             {
                 "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
                 "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
@@ -242,7 +261,8 @@
                 "colorScheme": "One Half Dark",
                 "commandline": "C:\\msys64\\msys2_shell.cmd -defterm -here -no-start -ucrt64",
                 "cursorShape": "filledBox",
-                "font": {
+                "font": 
+                {
                     "face": "Cascadia Code"
                 },
                 "guid": "{f257f139-4ab8-4f0c-a11d-654bfac9e40f}",
