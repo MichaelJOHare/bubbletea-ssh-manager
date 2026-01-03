@@ -40,10 +40,10 @@ func preflightDialCmd(token int, hostPort string) tea.Cmd {
 // It returns the updated model, a command that sends a connectFinishedMsg
 // indicating the cancellation, and true if handled.
 func (m model) cancelPreflightCmd() (model, tea.Cmd) {
-	protocol := strings.TrimSpace(m.ms.preflightProtocol)
-	target := strings.TrimSpace(m.ms.preflightDisplay)
+	protocol := strings.TrimSpace(m.ms.preflight.protocol)
+	target := strings.TrimSpace(m.ms.preflight.display)
 	if target == "" {
-		target = strings.TrimSpace(m.ms.preflightHostPort)
+		target = strings.TrimSpace(m.ms.preflight.hostPort)
 	}
 	m.clearPreflightState()
 	return m, func() tea.Msg {
@@ -54,14 +54,14 @@ func (m model) cancelPreflightCmd() (model, tea.Cmd) {
 // clearPreflightState clears all stored preflight state in the model.
 func (m *model) clearPreflightState() {
 	m.mode = modeMenu
-	m.ms.preflightEndsAt = time.Time{}
-	m.ms.preflightRemaining = 0
-	m.ms.preflightProtocol = ""
-	m.ms.preflightHostPort = ""
-	m.ms.preflightWindowTitle = ""
-	m.ms.preflightCmd = nil
-	m.ms.preflightTail = nil
-	m.ms.preflightDisplay = ""
+	m.ms.preflight.endsAt = time.Time{}
+	m.ms.preflight.remaining = 0
+	m.ms.preflight.protocol = ""
+	m.ms.preflight.hostPort = ""
+	m.ms.preflight.windowTitle = ""
+	m.ms.preflight.cmd = nil
+	m.ms.preflight.tail = nil
+	m.ms.preflight.display = ""
 }
 
 // startConnect builds and starts the connection command for the given menu item.
@@ -103,16 +103,16 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd) {
 		}
 
 		m.mode = modePreflight
-		m.ms.preflightToken++
-		tok := m.ms.preflightToken
-		m.ms.preflightRemaining = int(preflightTimeout.Seconds())
-		m.ms.preflightEndsAt = time.Now().Add(preflightTimeout)
-		m.ms.preflightProtocol = protocol
-		m.ms.preflightHostPort = hostPort
-		m.ms.preflightWindowTitle = tgt.WindowTitle()
-		m.ms.preflightCmd = cmd
-		m.ms.preflightTail = tail
-		m.ms.preflightDisplay = display
+		m.ms.preflight.token++
+		tok := m.ms.preflight.token
+		m.ms.preflight.remaining = int(preflightTimeout.Seconds())
+		m.ms.preflight.endsAt = time.Now().Add(preflightTimeout)
+		m.ms.preflight.protocol = protocol
+		m.ms.preflight.hostPort = hostPort
+		m.ms.preflight.windowTitle = tgt.WindowTitle()
+		m.ms.preflight.cmd = cmd
+		m.ms.preflight.tail = tail
+		m.ms.preflight.display = display
 
 		// clear any existing status to make room for preflight status
 		m.setStatusInfo("", 0)

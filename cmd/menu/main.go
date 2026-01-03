@@ -20,6 +20,9 @@ import (
 //       check menu_handle.go handleConnectFinishedMsg comment
 //       change color names back to actual colors in theme.go
 //       handle immediate ssh errors better (especially multi-line errors)
+//       add note to separate ssh options with commas in host form note
+//              - make sure form submission adds "+" prefixes to algorithm option submissions
+//       make ssh options a select/multi-select field in host form and add all of them?
 //
 //
 //       *** Medium-term ideas ***
@@ -27,6 +30,7 @@ import (
 //       change how current groups are displayed in host form status panel (see note in form_status.go)
 //       add real validation to host form inputs (need to make sure the error it shows is clear about what is wrong)
 //       add placeholder text to form inputs
+//       add group name autocomplete in host form (see huh docs for how to do this - suggestions i think it's called)
 //       add confirmation prompt in hostForm
 //           - on cancel, "Are you sure you want to cancel? All changes will be lost."
 //           - on submit, "Are you sure you want to save these changes?"
@@ -42,6 +46,7 @@ import (
 //       add config file for environment settings (eg. default user, default port, paths, etc.)
 //       fix silent errors in parser.go
 //       change model pointer receiver methods to value receivers where possible
+//       move relayout calls to a better place (not after every modal open/close) - maybe in update loop after handling msg?
 //       look into context.Context for managing preflight timeouts/cancellations
 //          - move everything else to internal (eg. internal/tui/model.go, internal/tui/keys(views, forms), etc.)
 //       make protocol a type with constants

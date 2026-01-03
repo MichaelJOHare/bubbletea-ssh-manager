@@ -79,7 +79,9 @@ func DefaultTheme() Theme {
 	}
 }
 
-var GreenEnter = lipgloss.NewStyle().Foreground(DefaultTheme().KeyEnter).Render("Enter")
+func GreenEnter() string {
+	return lipgloss.NewStyle().Foreground(DefaultTheme().KeyEnter).Render("Enter")
+}
 
 const (
 	SuccessCheck = " ✔️"

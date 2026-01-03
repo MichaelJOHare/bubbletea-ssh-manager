@@ -79,7 +79,7 @@ func (m model) handleHostFormKeyMsg(msg tea.KeyMsg) (model, tea.Cmd) {
 					return m, cmd
 				}
 				// if there are validation errors, don't submit
-				if len(m.ms.hostForm.Errors()) > 0 {
+				if len(m.ms.hostForm.Errors()) > 0 { // this will be changed after adding confirmation prompt
 					m.relayout()
 					return m, cmd
 				}

@@ -73,7 +73,10 @@ func (m model) buildHostDetails() string {
 
 		optionsValueStyle := valueStyle.PaddingLeft(4)
 		optionsLabelStyle := lipgloss.NewStyle().Foreground(m.theme.OptionsLabel).PaddingLeft(4)
-		if it.options.IsZero() {
+		noOptionsPresent := strings.TrimSpace(it.options.HostKeyAlgorithms) == "" &&
+			strings.TrimSpace(it.options.KexAlgorithms) == "" &&
+			strings.TrimSpace(it.options.MACs) == ""
+		if noOptionsPresent {
 			lines = append(lines, optionsValueStyle.Render("(none)"))
 		} else {
 			for _, line := range config.BuildSSHOptions(it.options, "") {

@@ -60,122 +60,128 @@ type KeyMap struct {
 	LeftRight     key.Binding
 }
 
+// newBinding is a helper to create a key.Binding with styled help text.
+// It applies the provided colors to the key symbol and help description.
+func newBinding(keys []string, symbol string, help string, color lipgloss.Color, helpColor lipgloss.Color) key.Binding {
+	return key.NewBinding(
+		key.WithKeys(keys...),
+		key.WithHelp(
+			lipgloss.NewStyle().Foreground(color).Render(symbol),
+			lipgloss.NewStyle().Foreground(helpColor).Render(help),
+		),
+	)
+}
+
 // NewKeyMap creates a new KeyMap with bindings customized to the provided theme.
 //
 // It styles the key symbols and help text according to the theme colors.
 func NewKeyMap(theme Theme) KeyMap {
-	keySymbolStyle := func(color lipgloss.Color, symbol string) string {
-		return lipgloss.NewStyle().Foreground(color).Render(symbol)
-	}
-	keyHelpTextStyle := func(text string) string {
-		return lipgloss.NewStyle().Foreground(theme.HelpText).Render(text)
-	}
 
 	return KeyMap{
-		Quit: key.NewBinding(
-			key.WithKeys("Q"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyQuit, quitSymbol),
-				keyHelpTextStyle(quitHelp),
-			),
+		Quit: newBinding(
+			[]string{"Q"},
+			quitSymbol,
+			quitHelp,
+			theme.KeyQuit,
+			theme.HelpText,
 		),
-		Details: key.NewBinding(
-			key.WithKeys("?"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyInfo, detailsSymbol),
-				keyHelpTextStyle(detailsHelp),
-			),
+		Details: newBinding(
+			[]string{"?"},
+			detailsSymbol,
+			detailsHelp,
+			theme.KeyInfo,
+			theme.HelpText,
 		),
-		Add: key.NewBinding(
-			key.WithKeys("A"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyAdd, addSymbol),
-				keyHelpTextStyle(addHelp),
-			),
+		Add: newBinding(
+			[]string{"A"},
+			addSymbol,
+			addHelp,
+			theme.KeyAdd,
+			theme.HelpText,
 		),
-		Back: key.NewBinding(
-			key.WithKeys("left"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyBack, leftSymbol),
-				keyHelpTextStyle(backHelp),
-			),
+		Back: newBinding(
+			[]string{"left"},
+			leftSymbol,
+			backHelp,
+			theme.KeyBack,
+			theme.HelpText,
 		),
-		Clear: key.NewBinding(
-			key.WithKeys("esc"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyClear, clearSymbol),
-				keyHelpTextStyle(clearHelp),
-			),
+		Clear: newBinding(
+			[]string{"esc"},
+			clearSymbol,
+			clearHelp,
+			theme.KeyClear,
+			theme.HelpText,
 		),
-		CloseDetails: key.NewBinding(
-			key.WithKeys("left"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyBack, leftSymbol),
-				keyHelpTextStyle(closeHelp),
-			),
+		CloseDetails: newBinding(
+			[]string{"left"},
+			leftSymbol,
+			closeHelp,
+			theme.KeyBack,
+			theme.HelpText,
 		),
-		CloseForm: key.NewBinding(
-			key.WithKeys("esc"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyClose, clearSymbol),
-				keyHelpTextStyle(closeFormHelp),
-			),
+		CloseForm: newBinding(
+			[]string{"esc"},
+			clearSymbol,
+			closeFormHelp,
+			theme.KeyClose,
+			theme.HelpText,
 		),
-		FormNext: key.NewBinding(
-			key.WithKeys("tab", "down"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyCursor, nextSymbol),
-				keyHelpTextStyle(nextHelp),
-			),
+		FormNext: newBinding(
+			[]string{"tab", "down"},
+			nextSymbol,
+			nextHelp,
+			theme.KeyCursor,
+			theme.HelpText,
 		),
-		FormPrev: key.NewBinding(
-			key.WithKeys("shift+tab", "up"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyCursor, prevSymbol),
-				keyHelpTextStyle(prevHelp),
-			),
+		FormPrev: newBinding(
+			[]string{"shift+tab", "up"},
+			prevSymbol,
+			prevHelp,
+			theme.KeyCursor,
+			theme.HelpText,
 		),
-		FormSelect: key.NewBinding(
-			key.WithKeys("enter"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyEnter, enterSymbol),
-				keyHelpTextStyle(selectHelp),
-			),
+		FormSelect: newBinding(
+			[]string{"enter"},
+			enterSymbol,
+			selectHelp,
+			theme.KeyEnter,
+			theme.HelpText,
 		),
-		FormSubmit: key.NewBinding(
-			key.WithKeys("enter"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyEnter, enterSymbol),
-				keyHelpTextStyle(saveHelp),
-			),
+		FormSubmit: newBinding(
+			[]string{"enter"},
+			enterSymbol,
+			saveHelp,
+			theme.KeyEnter,
+			theme.HelpText,
 		),
-		Edit: key.NewBinding(
-			key.WithKeys("E"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyEdit, editSymbol),
-				keyHelpTextStyle(editHelp),
-			),
+		Edit: newBinding(
+			[]string{"E"},
+			editSymbol,
+			editHelp,
+			theme.KeyEdit,
+			theme.HelpText,
 		),
-		Remove: key.NewBinding(
-			key.WithKeys("R"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyRemove, removeSymbol),
-				keyHelpTextStyle(removeHelp),
-			),
+		Remove: newBinding(
+			[]string{"R"},
+			removeSymbol,
+			removeHelp,
+			theme.KeyRemove,
+			theme.HelpText,
 		),
-		ConfirmSelect: key.NewBinding(
-			key.WithKeys("enter"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyEnter, enterSymbol),
-				keyHelpTextStyle(selectHelp),
-			),
+		ConfirmSelect: newBinding(
+			[]string{"enter"},
+			enterSymbol,
+			selectHelp,
+			theme.KeyEnter,
+			theme.HelpText,
 		),
-		LeftRight: key.NewBinding(
-			key.WithKeys("left", "right"),
-			key.WithHelp(
-				keySymbolStyle(theme.KeyCursor, leftRightSymbol),
-				keyHelpTextStyle(leftRightHelp),
-			),
+		LeftRight: newBinding(
+			[]string{"left", "right"},
+			leftRightSymbol,
+			leftRightHelp,
+			theme.KeyCursor,
+			theme.HelpText,
 		),
 	}
 }

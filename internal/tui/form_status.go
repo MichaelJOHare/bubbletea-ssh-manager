@@ -17,7 +17,7 @@ type formStatusData struct {
 	port      string // port number - for telnet it's required if not default
 	user      string // optional user name
 
-	existingGroups []string // existing group names (root-level)
+	existingGroups []string // existing group names
 
 	groupErr    error // validation error
 	nicknameErr error // validation error

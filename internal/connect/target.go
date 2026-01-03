@@ -3,15 +3,15 @@ package connect
 import (
 	"strings"
 
-	"bubbletea-ssh-manager/internal/host"
+	"bubbletea-ssh-manager/internal/config"
 	str "bubbletea-ssh-manager/internal/stringutil"
 )
 
 // A Target represents a connection target for SSH or Telnet.
 // It includes the protocol and host specification.
 type Target struct {
-	Protocol  string // "ssh" or "telnet"
-	host.Spec        // shared host fields (alias/hostname/port/user)
+	Protocol    string // "ssh" or "telnet"
+	config.Spec        // shared host fields (alias/hostname/port/user)
 }
 
 // Display returns the human-readable target for status messages.

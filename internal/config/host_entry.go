@@ -3,21 +3,39 @@ package config
 import (
 	"fmt"
 	"strings"
-
-	"bubbletea-ssh-manager/internal/host"
-	"bubbletea-ssh-manager/internal/sshopts"
 )
 
 // HostEntry is a minimal representation of a Host block from an SSH-style config.
 // It intentionally contains only the fields this project currently supports.
 type HostEntry struct {
-	Spec       host.Spec       // host fields that are shared between SSH and Telnet (alias/hostname/port/user)
-	SSHOptions sshopts.Options // SSH-specific options for this host
-	SourcePath string          // path to the config file this entry was read from
+	Spec       Spec  // host fields that are shared between SSH and Telnet (alias/hostname/port/user)
+	SSHOptions SSHOptions // SSH-specific options for this host
+	SourcePath string     // path to the config file this entry was read from
+}
+
+// Spec is the shared representation of a host endpoint across the project.
+//
+// It maps directly to the subset of SSH-style config directives we support
+// for both SSH and Telnet hosts.
+type Spec struct {
+	Alias    string // ssh-style Host alias from the config
+	HostName string // hostname or IP address
+	Port     string // port number as string
+	User     string // user name
+}
+
+// SSHOptions represents a small subset of SSH algorithm selection settings.
+//
+// These map to OpenSSH config keys and can be passed to ssh via `-o`.
+// Values should be comma-separated algorithm lists (OpenSSH format).
+type SSHOptions struct {
+	HostKeyAlgorithms string // HostKeyAlgorithms option (e.g. "ssh-rsa,ssh-ed25519")
+	KexAlgorithms     string // KexAlgorithms option (e.g. "curve25519-sha256,ecdh-sha2-nistp256")
+	MACs              string // MACs option (e.g. "hmac-sha2-256,hmac-sha1")
 }
 
 // EntryFromSpec creates a HostEntry from the given spec and options.
-func EntryFromSpec(spec host.Spec, opts sshopts.Options, sourcePath string) HostEntry {
+func EntryFromSpec(spec Spec, opts SSHOptions, sourcePath string) HostEntry {
 	return HostEntry{
 		Spec:       spec,
 		SSHOptions: opts,
@@ -61,7 +79,7 @@ func buildHostEntry(entry HostEntry, preceding []string) []string {
 // BuildSSHOptions creates a formatted output for non-empty SSH options.
 //
 // It uses the given indent for each line.
-func BuildSSHOptions(o sshopts.Options, indent string) []string {
+func BuildSSHOptions(o SSHOptions, indent string) []string {
 	parts := make([]string, 0, 3)
 	if v := strings.TrimSpace(o.HostKeyAlgorithms); v != "" {
 		parts = append(parts, indent+"HostKeyAlgorithms "+v)

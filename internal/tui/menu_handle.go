@@ -74,11 +74,11 @@ func (m model) handleStatusClearMsg(msg statusClearMsg) (model, tea.Cmd) {
 // It updates the remaining time for the preflight operation and
 // returns a command to schedule the next tick if needed.
 func (m model) handlePreflightTickMsg(msg preflightTickMsg) (model, tea.Cmd) {
-	if m.mode != modePreflight || msg.token != m.ms.preflightToken {
+	if m.mode != modePreflight || msg.token != m.ms.preflight.token {
 		return m, nil
 	}
-	remaining := max(int(time.Until(m.ms.preflightEndsAt).Round(time.Second).Seconds()), 0)
-	m.ms.preflightRemaining = remaining
+	remaining := max(int(time.Until(m.ms.preflight.endsAt).Round(time.Second).Seconds()), 0)
+	m.ms.preflight.remaining = remaining
 	if remaining > 0 {
 		return m, preflightTickCmd(msg.token)
 	}
@@ -102,17 +102,16 @@ func (m model) handleSpinnerTickMsg(msg spinner.TickMsg) (model, tea.Cmd) {
 // It processes the result of the preflight check and either starts
 // the connection or shows an error status.
 func (m model) handlePreflightResultMsg(msg preflightResultMsg) (model, tea.Cmd) {
-	if m.mode != modePreflight || msg.token != m.ms.preflightToken {
+	if m.mode != modePreflight || msg.token != m.ms.preflight.token {
 		return m, nil
 	}
 
-	protocol := m.ms.preflightProtocol
-	hostPort := m.ms.preflightHostPort
-	display := m.ms.preflightDisplay
-	windowTitle := m.ms.preflightWindowTitle
-	cmd := m.ms.preflightCmd
-	tail := m.ms.preflightTail
-
+	protocol := m.ms.preflight.protocol
+	hostPort := m.ms.preflight.hostPort
+	display := m.ms.preflight.display
+	windowTitle := m.ms.preflight.windowTitle
+	cmd := m.ms.preflight.cmd
+	tail := m.ms.preflight.tail
 	m.clearPreflightState()
 
 	if msg.err != nil {

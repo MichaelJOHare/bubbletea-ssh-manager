@@ -3,8 +3,7 @@ package tui
 import (
 	"strings"
 
-	"bubbletea-ssh-manager/internal/host"
-	"bubbletea-ssh-manager/internal/sshopts"
+	"bubbletea-ssh-manager/internal/config"
 	str "bubbletea-ssh-manager/internal/stringutil"
 
 	"github.com/charmbracelet/bubbles/paginator"
@@ -100,20 +99,20 @@ func buildHostForm(mode formMode, oldAlias string, v *form, appTheme Theme) *huh
 	hostKeyField := huh.NewInput().
 		Key("hostkeyalgorithms").
 		Title("HostKeyAlgorithms").
-		Value(&v.algHostKey)
+		Value(&v.sshOpts.HostKeyAlgorithms)
 
 	kexField := huh.NewInput().
 		Key("kexalgorithms").
 		Title("KexAlgorithms").
-		Value(&v.algKex)
+		Value(&v.sshOpts.KexAlgorithms)
 
 	macsField := huh.NewInput().
 		Key("macs").
 		Title("MACs").
-		Value(&v.algMACs)
+		Value(&v.sshOpts.MACs)
 
 	note := huh.NewNote().
-		Description("Enter host details and press " + GreenEnter + " to save.")
+		Description("Enter host details and press " + GreenEnter() + " to save.")
 
 	fields := []huh.Field{note}
 	if mode == modeAdd {
@@ -129,7 +128,7 @@ func buildHostForm(mode formMode, oldAlias string, v *form, appTheme Theme) *huh
 	mainGroup := huh.NewGroup(fields...)
 
 	sshNote := huh.NewNote().
-		Description("Optional SSH settings. Leave blank to use defaults.")
+		Description("Optional SSH settings. Leave blank to use defaults. Press " + GreenEnter() + " to save.")
 
 	sshOptsGroup := huh.NewGroup(sshNote, hostKeyField, kexField, macsField).
 		WithHideFunc(func() bool {
@@ -145,17 +144,17 @@ func buildHostForm(mode formMode, oldAlias string, v *form, appTheme Theme) *huh
 	form.CancelCmd = func() tea.Msg { return formResultMsg{kind: formResultCanceled} }
 	form.SubmitCmd = func() tea.Msg {
 		p := str.NormalizeString(v.protocol)
-		s := host.Spec{
+		s := config.Spec{
 			HostName: strings.TrimSpace(v.hostname),
 			Port:     strings.TrimSpace(v.port),
 			User:     strings.TrimSpace(v.user),
 		}
-		opts := sshopts.Options{}
+		opts := config.SSHOptions{}
 		if p == "ssh" {
-			opts = sshopts.Options{
-				HostKeyAlgorithms: strings.TrimSpace(v.algHostKey),
-				KexAlgorithms:     strings.TrimSpace(v.algKex),
-				MACs:              strings.TrimSpace(v.algMACs),
+			opts = config.SSHOptions{
+				HostKeyAlgorithms: strings.TrimSpace(v.sshOpts.HostKeyAlgorithms),
+				KexAlgorithms:     strings.TrimSpace(v.sshOpts.KexAlgorithms),
+				MACs:              strings.TrimSpace(v.sshOpts.MACs),
 			}
 		}
 		return formResultMsg{kind: formResultSubmitted, mode: mode, protocol: p,

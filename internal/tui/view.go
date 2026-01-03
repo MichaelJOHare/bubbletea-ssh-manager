@@ -49,13 +49,12 @@ func (m model) viewMenu() string {
 //
 // It shows a spinner and countdown timer.
 func (m model) viewPreflight() string {
-
-	remaining := max(m.ms.preflightRemaining, 0)
+	remaining := max(m.ms.preflight.remaining, 0)
 	preflightStatusText := fmt.Sprintf(
 		"%s Checking %s %s (%ds)…\nctrl+c to cancel",
 		m.spinner.View(),
-		m.ms.preflightProtocol,
-		m.ms.preflightHostPort,
+		m.ms.preflight.protocol,
+		m.ms.preflight.hostPort,
 		remaining,
 	)
 
@@ -122,7 +121,7 @@ func (m model) viewHostDetails() string {
 		PaddingRight(footerPadLeft).
 		PaddingTop(1)
 
-	// secondary box is unused here but required by helper signature.
+	// secondary box is unused here but required by helper signature
 	unusedSecondary := lg
 	return m.viewDetailsConfirm(detailsBox, m.buildHostDetails(), unusedSecondary, "", m.detailsHelpKeys())
 }

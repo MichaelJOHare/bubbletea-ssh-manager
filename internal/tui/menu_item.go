@@ -3,9 +3,7 @@ package tui
 import (
 	"strings"
 
-	"bubbletea-ssh-manager/internal/host"
-	"bubbletea-ssh-manager/internal/sshopts"
-
+	"bubbletea-ssh-manager/internal/config"
 	"github.com/charmbracelet/bubbles/list"
 )
 
@@ -22,9 +20,9 @@ type menuItem struct {
 	name string   // display name (host alias or group name)
 
 	// host-only fields
-	protocol string          // "ssh" or "telnet"
-	spec     host.Spec       // shared host fields (alias/hostname/port/user)
-	options  sshopts.Options // SSH options (only for SSH hosts)
+	protocol string            // "ssh" or "telnet"
+	spec     config.Spec       // shared host fields (alias/hostname/port/user)
+	options  config.SSHOptions // SSH options (only for SSH hosts)
 
 	// group-only fields
 	children []*menuItem // child menu items

@@ -15,6 +15,31 @@ import (
 
 const statusTTL = 10 * time.Second // duration for non-error info statuses
 
+type model struct {
+	width  int // window width
+	height int // window height
+
+	theme Theme  // active UI theme
+	keys  KeyMap // active key mappings
+
+	root     *menuItem       // root menu item
+	path     []*menuItem     // current navigation path
+	allItems []*menuItem     // all items in the current menu
+	lst      list.Model      // list of current menu items
+	delegate *menuDelegate   // list delegate for rendering items
+	query    textinput.Model // search input box
+	prompt   textinput.Model // generic prompt input (reused for username/addhost/etc)
+	spinner  spinner.Model   // spinner for preflight checks
+
+	mode uiMode    // current UI mode
+	ms   modeState // current mode state
+
+	status      string     // status message
+	statusKind  statusKind // status style (info/success/error)
+	statusToken int        // increments on status updates; tracked to clear status
+	quitting    bool       // is the app quitting?
+}
+
 // NewModel constructs the Bubble Tea model for the TUI.
 //
 // It returns the model as tea.Model so callers don't need access to the

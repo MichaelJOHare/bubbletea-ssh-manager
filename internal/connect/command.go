@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"bubbletea-ssh-manager/internal/host"
+	"bubbletea-ssh-manager/internal/config"
 	str "bubbletea-ssh-manager/internal/stringutil"
 )
 
@@ -36,7 +36,7 @@ func BuildCommand(trgt Target) (cmd *exec.Cmd, tgt Target, tail *TailBuffer, err
 		return nil, Target{}, nil, fmt.Errorf("empty %s alias", protocol)
 	}
 
-	tgt = Target{Protocol: protocol, Spec: host.Spec{Alias: alias, User: user, HostName: hostName}}
+	tgt = Target{Protocol: protocol, Spec: config.Spec{Alias: alias, User: user, HostName: hostName}}
 
 	var args []string
 	switch protocol {

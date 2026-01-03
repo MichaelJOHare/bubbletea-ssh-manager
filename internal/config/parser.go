@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-
-	"bubbletea-ssh-manager/internal/host"
 )
 
 // maxIncludeDepth is the maximum depth for recursive Include parsing.
@@ -90,7 +88,7 @@ func parseConfigRecursively(path string, depth int) ([]HostEntry, error) {
 				// if new alias, create new HostEntry, else reuse existing
 				currentAliases = append(currentAliases, a)
 				if it, ok := values[a]; !ok || it == nil {
-					values[a] = &HostEntry{Spec: host.Spec{Alias: a}, SourcePath: path}
+					values[a] = &HostEntry{Spec: Spec{Alias: a}, SourcePath: path}
 				}
 				if !localSeen[a] {
 					localSeen[a] = true

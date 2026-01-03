@@ -3,10 +3,21 @@ package tui
 import (
 	"strings"
 
+	"bubbletea-ssh-manager/internal/config"
 	str "bubbletea-ssh-manager/internal/stringutil"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+type form struct {
+	protocol  string            // "ssh" or "telnet"
+	groupName string            // group name portion of alias (display form; spaces allowed)
+	nickname  string            // host nickname portion of alias (display form; spaces allowed)
+	hostname  string            // hostname or IP address
+	port      string            // port number as string
+	user      string            // user name
+	sshOpts   config.SSHOptions // SSH options
+}
 
 // openAddHostForm opens the host add form.
 //
@@ -47,15 +58,17 @@ func (m model) openEditHostForm() (model, tea.Cmd) {
 
 	// prefill form with existing host data
 	v := &form{
-		protocol:   strings.TrimSpace(it.protocol),
-		groupName:  groupName,
-		nickname:   nickname,
-		hostname:   strings.TrimSpace(it.spec.HostName),
-		port:       strings.TrimSpace(it.spec.Port),
-		user:       strings.TrimSpace(it.spec.User),
-		algHostKey: strings.TrimSpace(it.options.HostKeyAlgorithms),
-		algKex:     strings.TrimSpace(it.options.KexAlgorithms),
-		algMACs:    strings.TrimSpace(it.options.MACs),
+		protocol:  strings.TrimSpace(it.protocol),
+		groupName: groupName,
+		nickname:  nickname,
+		hostname:  strings.TrimSpace(it.spec.HostName),
+		port:      strings.TrimSpace(it.spec.Port),
+		user:      strings.TrimSpace(it.spec.User),
+		sshOpts: config.SSHOptions{
+			HostKeyAlgorithms: strings.TrimSpace(it.options.HostKeyAlgorithms),
+			KexAlgorithms:     strings.TrimSpace(it.options.KexAlgorithms),
+			MACs:              strings.TrimSpace(it.options.MACs),
+		},
 	}
 	form := buildHostForm(modeEdit, m.ms.hostFormOldAlias, v, m.theme)
 

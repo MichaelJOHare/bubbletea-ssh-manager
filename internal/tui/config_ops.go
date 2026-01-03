@@ -7,8 +7,6 @@ import (
 	"strings"
 
 	"bubbletea-ssh-manager/internal/config"
-	"bubbletea-ssh-manager/internal/host"
-	"bubbletea-ssh-manager/internal/sshopts"
 	str "bubbletea-ssh-manager/internal/stringutil"
 )
 
@@ -49,7 +47,7 @@ func getConfigPathForAlias(protocol, alias string) (string, error) {
 //
 // This intentionally writes to the root config even if it contains Include
 // directives; may be extended in the future to support writing to included files.
-func AddHostToRootConfig(protocol string, spec host.Spec, opts sshopts.Options) error {
+func AddHostToRootConfig(protocol string, spec config.Spec, opts config.SSHOptions) error {
 	root, err := getProtocolConfigPath(protocol)
 	if err != nil {
 		return err
@@ -61,7 +59,7 @@ func AddHostToRootConfig(protocol string, spec host.Spec, opts sshopts.Options) 
 //
 // It uses Include-aware resolution so edits land in the file that originally
 // defined oldAlias.
-func UpdateHostInConfig(protocol, oldAlias string, updated host.Spec, opts sshopts.Options) error {
+func UpdateHostInConfig(protocol, oldAlias string, updated config.Spec, opts config.SSHOptions) error {
 	configPath, err := getConfigPathForAlias(protocol, oldAlias)
 	if err != nil {
 		return err
