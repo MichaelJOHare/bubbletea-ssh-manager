@@ -32,7 +32,7 @@ func (m model) viewMenu() string {
 	}
 
 	lines := []string{listView}
-	if strings.TrimSpace(m.status) != "" {
+	if m.status != "" {
 		lines = append(lines, statusPadStyle.Render(statusTextStyle.Render(m.status)))
 	}
 
@@ -53,7 +53,7 @@ func (m model) viewPreflight() string {
 	preflightStatusText := fmt.Sprintf(
 		"%s Checking %s %s (%ds)…\nctrl+c to cancel",
 		m.spinner.View(),
-		m.ms.preflight.protocol,
+		string(m.ms.preflight.protocol),
 		m.ms.preflight.hostPort,
 		remaining,
 	)
@@ -86,7 +86,7 @@ func (m model) viewDetailsConfirm(dBox lipgloss.Style, dContent string, cBox lip
 		boxW := lipgloss.Width(dBox.Render(dContent))
 		helpW := lipgloss.Width(renderHelp(availableW))
 		panelW = min(max(boxW, helpW), availableW)
-		if strings.TrimSpace(cContent) != "" {
+		if cContent != "" {
 			secondaryW := lipgloss.Width(cBox.Render(cContent))
 			panelW = min(max(panelW, secondaryW), availableW)
 		}
@@ -100,7 +100,7 @@ func (m model) viewDetailsConfirm(dBox lipgloss.Style, dContent string, cBox lip
 
 	primaryRendered := primary.Render(dContent)
 	stacked := primaryRendered
-	if strings.TrimSpace(cContent) != "" {
+	if cContent != "" {
 		secondary := cBox.Width(panelW)
 		secondaryRendered := secondary.Render(cContent)
 		stacked = lipgloss.JoinVertical(lipgloss.Center, primaryRendered, secondaryRendered)
@@ -168,7 +168,7 @@ func (m model) viewHostForm() string {
 		PaddingBottom(1)
 
 	formView := m.ms.hostForm.View()
-	if pi := m.buildHostFormPaginator(); strings.TrimSpace(pi) != "" {
+	if pi := m.buildHostFormPaginator(); pi != "" {
 		formView = strings.Join([]string{formView, "", pi}, "\n")
 	}
 	formContent := formBox.Render(formView)

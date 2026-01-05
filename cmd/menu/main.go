@@ -16,12 +16,9 @@ import (
 //       maybe make E edit also global (makes editing group names a possibility)?
 //          -- actually just make E and R able to be used on groups too (maybe not, deleting groups could be messy)
 //       allow changing protocol in edit host form?
-// 	 	 check for empty list before opening host details
-//       check menu_handle.go handleConnectFinishedMsg comment
+//       check model_handle.go handleConnectFinishedMsg comment
 //       change color names back to actual colors in theme.go
-//       handle immediate ssh errors better (especially multi-line errors)
-//       add note to separate ssh options with commas in host form note
-//              - make sure form submission adds "+" prefixes to algorithm option submissions
+//       handle immediate ssh errors better (ie. bad config options)
 //       make ssh options a select/multi-select field in host form and add all of them?
 //
 //

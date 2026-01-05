@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"bubbletea-ssh-manager/internal/config"
-	str "bubbletea-ssh-manager/internal/stringutil"
 
 	"github.com/charmbracelet/bubbles/paginator"
 	tea "github.com/charmbracelet/bubbletea"
@@ -13,7 +12,7 @@ import (
 )
 
 const (
-	hostFormStatusInnerWidth = 28                           // calculated based on content
+	hostFormStatusInnerWidth = 30                           // calculated based on content
 	hostFormStatusOuterWidth = hostFormStatusInnerWidth + 2 // border left+right
 	hostFormStatusGap        = 1                            // gap between form and status panel
 )
@@ -58,16 +57,16 @@ func buildHostForm(mode formMode, oldAlias string, v *form, appTheme Theme) *huh
 	if v == nil {
 		v = &form{}
 	}
-	if mode == modeAdd && strings.TrimSpace(v.protocol) == "" {
-		v.protocol = "ssh"
+	if mode == modeAdd && v.protocol == "" {
+		v.protocol = config.ProtocolSSH
 	}
 
-	protoField := huh.NewSelect[string]().
+	protoField := huh.NewSelect[config.Protocol]().
 		Key("protocol").
 		Title("Protocol").
 		Options(
-			huh.NewOption("ssh", "ssh"),
-			huh.NewOption("telnet", "telnet"),
+			huh.NewOption("ssh", config.ProtocolSSH),
+			huh.NewOption("telnet", config.ProtocolTelnet),
 		).
 		Value(&v.protocol)
 
@@ -127,12 +126,16 @@ func buildHostForm(mode formMode, oldAlias string, v *form, appTheme Theme) *huh
 	)
 	mainGroup := huh.NewGroup(fields...)
 
+	sshNoteString := "Optional SSH settings. Leave blank to use defaults. Press " + GreenEnter() + " to save."
+	sshNoteString += "\nPrefix options with a " + GreenPlus() + " to append, " + RedMinus() + " to remove, " + PurpleCaret() + " to prepend."
+	sshNoteString += "\n\n_It's generally recommended to append to defaults rather than override them."
+	sshNoteString += "\nMultiple algorithms can be comma separated. See ssh config man page for details."
 	sshNote := huh.NewNote().
-		Description("Optional SSH settings. Leave blank to use defaults. Press " + GreenEnter() + " to save.")
+		Description(sshNoteString)
 
 	sshOptsGroup := huh.NewGroup(sshNote, hostKeyField, kexField, macsField).
 		WithHideFunc(func() bool {
-			return str.NormalizeString(v.protocol) != "ssh"
+			return v.protocol != config.ProtocolSSH
 		})
 
 	form := huh.NewForm(mainGroup, sshOptsGroup).
@@ -141,25 +144,28 @@ func buildHostForm(mode formMode, oldAlias string, v *form, appTheme Theme) *huh
 		WithKeyMap(NewFormKeyMap()).
 		WithTheme(hostFormTheme(appTheme))
 
-	form.CancelCmd = func() tea.Msg { return formResultMsg{kind: formResultCanceled} }
+	form.CancelCmd = func() tea.Msg { return formCanceledMsg{} }
 	form.SubmitCmd = func() tea.Msg {
-		p := str.NormalizeString(v.protocol)
+		p := v.protocol
+		if p == "" {
+			p = config.ProtocolSSH
+		}
 		s := config.Spec{
-			HostName: strings.TrimSpace(v.hostname),
-			Port:     strings.TrimSpace(v.port),
-			User:     strings.TrimSpace(v.user),
+			HostName: v.hostname,
+			Port:     v.port,
+			User:     v.user,
 		}
 		opts := config.SSHOptions{}
-		if p == "ssh" {
+		if p == config.ProtocolSSH {
 			opts = config.SSHOptions{
-				HostKeyAlgorithms: strings.TrimSpace(v.sshOpts.HostKeyAlgorithms),
-				KexAlgorithms:     strings.TrimSpace(v.sshOpts.KexAlgorithms),
-				MACs:              strings.TrimSpace(v.sshOpts.MACs),
+				HostKeyAlgorithms: v.sshOpts.HostKeyAlgorithms,
+				KexAlgorithms:     v.sshOpts.KexAlgorithms,
+				MACs:              v.sshOpts.MACs,
 			}
 		}
-		return formResultMsg{kind: formResultSubmitted, mode: mode, protocol: p,
-			oldAlias: strings.TrimSpace(oldAlias), group: strings.TrimSpace(v.groupName),
-			nickname: strings.TrimSpace(v.nickname), spec: s, opts: opts}
+		return formSubmittedMsg{mode: mode, protocol: p,
+			oldAlias: oldAlias, group: v.groupName,
+			nickname: v.nickname, spec: s, opts: opts}
 	}
 
 	return form
@@ -177,12 +183,12 @@ func (m model) buildHostFormHeader() (header string) {
 
 	configPath := "(unknown)"
 	if action == "Adding" {
-		if p, err := getProtocolConfigPath(protocol); err == nil && strings.TrimSpace(p) != "" {
+		if p, err := config.GetConfigPathForProtocol(protocol); err == nil && strings.TrimSpace(p) != "" {
 			configPath = p
 		}
 	} else {
 		oldAlias := strings.TrimSpace(m.ms.hostFormOldAlias)
-		if p, err := getConfigPathForAlias(protocol, oldAlias); err == nil && strings.TrimSpace(p) != "" {
+		if p, err := config.GetConfigPathForAlias(protocol, oldAlias); err == nil && strings.TrimSpace(p) != "" {
 			configPath = p
 		}
 	}
@@ -210,7 +216,7 @@ func (m model) buildHostFormFooter(panelW int) string {
 	enterBinding := m.keys.FormSubmit
 	if m.ms.hostForm != nil {
 		if f := m.ms.hostForm.GetFocusedField(); f != nil {
-			if _, ok := f.(*huh.Select[string]); ok {
+			if _, ok := f.(*huh.Select[config.Protocol]); ok {
 				enterBinding = m.keys.FormSelect
 			}
 		}
@@ -237,7 +243,7 @@ func (m model) buildHostFormPaginator() string {
 	if m.ms.hostForm == nil {
 		return ""
 	}
-	if m.hostFormProtocol() != "ssh" {
+	if m.hostFormProtocol() != config.ProtocolSSH {
 		return ""
 	}
 

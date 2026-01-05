@@ -3,7 +3,7 @@ package tui
 import (
 	"strings"
 
-	str "bubbletea-ssh-manager/internal/stringutil"
+	"bubbletea-ssh-manager/internal/config"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -65,7 +65,7 @@ func (m model) handleHostFormKeyMsg(msg tea.KeyMsg) (model, tea.Cmd) {
 
 	if key.Matches(msg, m.keys.FormSubmit) {
 		// if focused field is not a select (i.e. protocol selector)
-		if _, ok := m.ms.hostForm.GetFocusedField().(*huh.Select[string]); !ok {
+		if _, ok := m.ms.hostForm.GetFocusedField().(*huh.Select[config.Protocol]); !ok {
 			// and is an input, attempt to submit the form
 			if _, ok := m.ms.hostForm.GetFocusedField().(*huh.Input); ok {
 				mdl, cmd := m.ms.hostForm.Update(msg)
@@ -111,11 +111,6 @@ func (m model) handleHostDetailsKeyMsg(msg tea.KeyMsg) (model, tea.Cmd) {
 	case key.Matches(msg, m.keys.CloseDetails):
 		m.mode = modeMenu // close modal
 		m.lst.SetShowHelp(true)
-		// if we were prompting for username, restore that status message
-		if m.ms.pendingHost != nil {
-			m.mode = modePromptUsername
-			m.setStatusInfo(userPromptStatus(m.ms.pendingHost.spec.Alias), 0)
-		}
 		m.relayout()
 		return m, nil
 
@@ -245,7 +240,7 @@ func (m model) handleBaseKeyMsg(msg tea.KeyMsg) (model, tea.Cmd, bool) {
 			}
 
 			// connect to host
-			if str.NormalizeString(it.protocol) == "ssh" {
+			if it.protocol == config.ProtocolSSH {
 				nm, cmd := m.beginUserPrompt(it)
 				return nm, cmd, true
 			}

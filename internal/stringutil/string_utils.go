@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"bubbletea-ssh-manager/internal/config"
 )
 
 // NormalizeString returns a normalized string (trimmed, lowercased).
@@ -17,15 +19,14 @@ func NormalizeString(s string) string {
 // Behavior:
 //   - If port is empty, returns the default port for the protocol (ssh=22, telnet=23).
 //   - If port is numeric, validates it's within 1..65535 and returns it.
-func NormalizePort(port string, protocol string) (string, error) {
+func NormalizePort(port string, protocol config.Protocol) (string, error) {
 	port = strings.TrimSpace(port)
-	protocol = NormalizeString(protocol)
 
 	if port == "" {
 		switch protocol {
-		case "ssh":
+		case config.ProtocolSSH:
 			return "22", nil
-		case "telnet":
+		case config.ProtocolTelnet:
 			return "23", nil
 		}
 	}

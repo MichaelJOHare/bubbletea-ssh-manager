@@ -4,13 +4,14 @@ import (
 	"strconv"
 	"strings"
 
+	"bubbletea-ssh-manager/internal/config"
 	str "bubbletea-ssh-manager/internal/stringutil"
 
 	"github.com/charmbracelet/lipgloss"
 )
 
 type formStatusData struct {
-	protocol  string // "ssh" or "telnet"
+	protocol  config.Protocol
 	groupName string // will add to existing group if present, else create new group
 	nickname  string // if no group, nickname is the alias and will appear at root level
 	hostname  string // hostname or IP - for telnet it's required
@@ -112,10 +113,10 @@ func (r formStatusRenderers) formatNickname(s string, err error) string {
 // hostFormProtocol returns the protocol for the current host form.
 //
 // It checks the live form value in add mode.
-func (m model) hostFormProtocol() string {
-	protocol := "ssh"
+func (m model) hostFormProtocol() config.Protocol {
+	protocol := config.ProtocolSSH
 	if m.ms.hostFormValues != nil {
-		if p := str.NormalizeString(m.ms.hostFormValues.protocol); p != "" {
+		if p := m.ms.hostFormValues.protocol; p != "" {
 			protocol = p
 		}
 	}

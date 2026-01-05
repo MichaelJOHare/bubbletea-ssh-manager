@@ -33,7 +33,7 @@ func getHostItemsWithHints(root *menuItem) (hosts []*menuItem, hints map[*menuIt
 		if it.kind != itemGroup {
 			continue
 		}
-		grp := strings.TrimSpace(it.name)
+		grp := it.name
 		for _, ch := range it.children {
 			if ch == nil || ch.kind != itemHost {
 				continue
@@ -109,7 +109,7 @@ func (m *model) applyFilter(q string) {
 		seen[it] = struct{}{}
 
 		// fuzzy match
-		hay := str.NormalizeString(it.FilterValue())
+		hay := strings.ToLower(it.FilterValue())
 		s, ok := fuzzyScore(q, hay)
 		if !ok {
 			continue

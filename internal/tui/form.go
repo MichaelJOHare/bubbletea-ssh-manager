@@ -10,7 +10,7 @@ import (
 )
 
 type form struct {
-	protocol  string            // "ssh" or "telnet"
+	protocol  config.Protocol   // protocol
 	groupName string            // group name portion of alias (display form; spaces allowed)
 	nickname  string            // host nickname portion of alias (display form; spaces allowed)
 	hostname  string            // hostname or IP address
@@ -29,7 +29,7 @@ func (m model) openAddHostForm() (model, tea.Cmd) {
 	m.ms.hostFormMode = modeAdd
 	m.ms.hostFormOldAlias = ""
 
-	v := &form{protocol: "ssh"}
+	v := &form{protocol: config.ProtocolSSH}
 	form := buildHostForm(modeAdd, "", v, m.theme)
 
 	m.ms.hostForm = form
@@ -52,22 +52,22 @@ func (m model) openEditHostForm() (model, tea.Cmd) {
 	m.mode = modeHostForm
 	m.ms.pendingHost = nil
 	m.ms.hostFormMode = modeEdit
-	m.ms.hostFormOldAlias = strings.TrimSpace(it.spec.Alias)
+	m.ms.hostFormOldAlias = it.spec.Alias
 
-	groupName, nickname := str.SplitAliasForDisplay(strings.TrimSpace(it.spec.Alias))
+	groupName, nickname := str.SplitAliasForDisplay(it.spec.Alias)
 
 	// prefill form with existing host data
 	v := &form{
-		protocol:  strings.TrimSpace(it.protocol),
+		protocol:  it.protocol,
 		groupName: groupName,
 		nickname:  nickname,
-		hostname:  strings.TrimSpace(it.spec.HostName),
-		port:      strings.TrimSpace(it.spec.Port),
-		user:      strings.TrimSpace(it.spec.User),
+		hostname:  it.spec.HostName,
+		port:      it.spec.Port,
+		user:      it.spec.User,
 		sshOpts: config.SSHOptions{
-			HostKeyAlgorithms: strings.TrimSpace(it.options.HostKeyAlgorithms),
-			KexAlgorithms:     strings.TrimSpace(it.options.KexAlgorithms),
-			MACs:              strings.TrimSpace(it.options.MACs),
+			HostKeyAlgorithms: it.options.HostKeyAlgorithms,
+			KexAlgorithms:     it.options.KexAlgorithms,
+			MACs:              it.options.MACs,
 		},
 	}
 	form := buildHostForm(modeEdit, m.ms.hostFormOldAlias, v, m.theme)
@@ -106,12 +106,12 @@ func (m model) openRemoveConfirm() (model, tea.Cmd) {
 
 	m.mode = modeConfirm
 
-	protocol := str.NormalizeString(it.protocol)
-	alias := strings.TrimSpace(it.spec.Alias)
+	protocol := it.protocol
+	alias := it.spec.Alias
 	title := "Remove " + alias + "?"
 	description := "This will remove the host from the config file."
 	removeCmd := func() tea.Msg {
-		err := RemoveHostFromConfig(protocol, alias)
+		err := config.RemoveHostFromConfig(protocol, alias)
 		return removeHostResultMsg{
 			protocol: protocol,
 			alias:    alias,

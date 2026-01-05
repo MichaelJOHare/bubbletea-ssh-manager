@@ -113,7 +113,7 @@ func parseConfigRecursively(path string, depth int) ([]HostEntry, error) {
 	// collect output entries in order
 	for _, a := range localOrder {
 		if it := values[a]; it != nil {
-			out = append(out, *it)
+			out = append(out, it.Normalized())
 		}
 	}
 

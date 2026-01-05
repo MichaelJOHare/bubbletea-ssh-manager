@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"bubbletea-ssh-manager/internal/config"
-	str "bubbletea-ssh-manager/internal/stringutil"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -22,19 +21,19 @@ func (m model) buildHostDetails() string {
 	labelStyle := lipgloss.NewStyle().Foreground(m.theme.DetailsLabel).PaddingLeft(4)
 	valueStyle := lipgloss.NewStyle().Foreground(m.theme.StatusDefault)
 
-	protocol := str.NormalizeString(it.protocol)
+	protocol := it.protocol
 	protoColor := m.theme.ProtocolSSH
-	if protocol == "telnet" {
+	if protocol == config.ProtocolTelnet {
 		protoColor = m.theme.ProtocolTelnet
 	}
 	protoValueStyle := lipgloss.NewStyle().Foreground(protoColor).Bold(true)
 
 	rows := make([][2]string, 0, 8)
-	rows = append(rows, [2]string{"Protocol", protocol})
-	rows = append(rows, [2]string{"Alias", strings.TrimSpace(it.spec.Alias)})
-	rows = append(rows, [2]string{"HostName", strings.TrimSpace(it.spec.HostName)})
-	rows = append(rows, [2]string{"Port", strings.TrimSpace(it.spec.Port)})
-	rows = append(rows, [2]string{"User", strings.TrimSpace(it.spec.User)})
+	rows = append(rows, [2]string{"Protocol", string(protocol)})
+	rows = append(rows, [2]string{"Alias", it.spec.Alias})
+	rows = append(rows, [2]string{"HostName", it.spec.HostName})
+	rows = append(rows, [2]string{"Port", it.spec.Port})
+	rows = append(rows, [2]string{"User", it.spec.User})
 
 	maxLabelW := 0
 	for _, r := range rows {
@@ -61,7 +60,7 @@ func (m model) buildHostDetails() string {
 		lines = append(lines, fmt.Sprintf("%s:  %s", labelStyle.Render(label), vRendered))
 	}
 
-	if protocol == "ssh" {
+	if protocol == config.ProtocolSSH {
 		lines = append(lines, "")
 		lines = append(lines, lipgloss.NewStyle().
 			PaddingTop(1).
@@ -73,9 +72,9 @@ func (m model) buildHostDetails() string {
 
 		optionsValueStyle := valueStyle.PaddingLeft(4)
 		optionsLabelStyle := lipgloss.NewStyle().Foreground(m.theme.OptionsLabel).PaddingLeft(4)
-		noOptionsPresent := strings.TrimSpace(it.options.HostKeyAlgorithms) == "" &&
-			strings.TrimSpace(it.options.KexAlgorithms) == "" &&
-			strings.TrimSpace(it.options.MACs) == ""
+		noOptionsPresent := it.options.HostKeyAlgorithms == "" &&
+			it.options.KexAlgorithms == "" &&
+			it.options.MACs == ""
 		if noOptionsPresent {
 			lines = append(lines, optionsValueStyle.Render("(none)"))
 		} else {
@@ -84,7 +83,7 @@ func (m model) buildHostDetails() string {
 					continue
 				}
 				k, v, ok := strings.Cut(line, " ")
-				if !ok || strings.TrimSpace(v) == "" {
+				if !ok || v == "" {
 					continue
 				}
 				lines = append(lines, fmt.Sprintf("%s: %s", optionsLabelStyle.Render(k), valueStyle.Render(v)))

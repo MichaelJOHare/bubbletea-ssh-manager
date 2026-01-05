@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	str "bubbletea-ssh-manager/internal/stringutil"
+	"bubbletea-ssh-manager/internal/config"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/x/ansi"
@@ -17,11 +17,11 @@ type menuDelegate struct {
 	theme                Theme
 }
 
-// newMenuDelegatePtr creates a new menuDelegate with default settings.
+// newMenuDelegate creates a new menuDelegate with default settings.
 //
 // It embeds the default delegate from bubbles/list to extend it
 // while allowing us to override specific methods.
-func newMenuDelegatePtr(theme Theme) *menuDelegate {
+func newMenuDelegate(theme Theme) *menuDelegate {
 	d := list.NewDefaultDelegate()
 	return &menuDelegate{DefaultDelegate: d, theme: theme}
 }
@@ -64,12 +64,11 @@ func (d *menuDelegate) Render(w io.Writer, m list.Model, index int, item list.It
 			selectedTitle = selectedTitle.Foreground(d.theme.GroupName)
 		case itemHost:
 			if d.groupHints != nil {
-				if grp := strings.TrimSpace(d.groupHints[mi]); grp != "" {
-					desc = str.NormalizeString(mi.protocol) + " • " + grp
+				if grp := d.groupHints[mi]; grp != "" {
+					desc = string(mi.protocol) + " • " + grp
 				}
 			}
-			protocol := str.NormalizeString(mi.protocol)
-			if protocol == "telnet" {
+			if mi.protocol == config.ProtocolTelnet {
 				normalTitle = normalTitle.Foreground(d.theme.ProtocolTelnet)
 				selectedTitle = selectedTitle.Foreground(d.theme.ProtocolTelnet)
 			} else {

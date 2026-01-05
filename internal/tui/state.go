@@ -4,6 +4,7 @@ import (
 	"os/exec"
 	"time"
 
+	"bubbletea-ssh-manager/internal/config"
 	"bubbletea-ssh-manager/internal/connect"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -23,7 +24,7 @@ type preflightState struct {
 	token       int                 // increments on preflight starts; for tick/result matching
 	remaining   int                 // remaining seconds in preflight (for display)
 	endsAt      time.Time           // when the preflight should end
-	protocol    string              // "ssh" or "telnet"
+	protocol    config.Protocol     // protocol being checked
 	hostPort    string              // host:port being checked
 	windowTitle string              // original window title before preflight
 	cmd         *exec.Cmd           // running preflight command
@@ -47,20 +48,3 @@ type modeState struct {
 	// preflight check state
 	preflight preflightState
 }
-
-type uiMode int // current UI mode - menu, prompt, preflight, executing, etc.
-const (
-	modeMenu uiMode = iota
-	modePromptUsername
-	modeHostDetails
-	modeHostForm
-	modePreflight
-	modeExecuting
-	modeConfirm
-)
-
-type formMode int // add vs edit mode for host entry form
-const (
-	modeAdd formMode = iota
-	modeEdit
-)

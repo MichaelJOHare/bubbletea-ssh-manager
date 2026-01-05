@@ -1,19 +1,25 @@
 package tui
 
 import (
-	"time"
-
 	str "bubbletea-ssh-manager/internal/stringutil"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
 
-const statusTTL = 10 * time.Second // duration for non-error info statuses
+type uiMode int // current UI mode - menu, prompt, preflight, executing, etc.
+const (
+	modeMenu uiMode = iota
+	modePromptUsername
+	modeHostDetails
+	modeHostForm
+	modePreflight
+	modeExecuting
+	modeConfirm
+)
 
 type model struct {
 	width  int // window width
@@ -25,10 +31,10 @@ type model struct {
 	root     *menuItem       // root menu item
 	path     []*menuItem     // current navigation path
 	allItems []*menuItem     // all items in the current menu
-	lst      list.Model      // list of current menu items
+	lst      list.Model      // menu list component
 	delegate *menuDelegate   // list delegate for rendering items
 	query    textinput.Model // search input box
-	prompt   textinput.Model // generic prompt input (reused for username/addhost/etc)
+	prompt   textinput.Model // generic prompt input
 	spinner  spinner.Model   // spinner for preflight checks
 
 	mode uiMode    // current UI mode
@@ -84,7 +90,7 @@ func newModel() model {
 	litems := toListItems(items)
 
 	// setup list to display menu items
-	d := newMenuDelegatePtr(theme)
+	d := newMenuDelegate(theme)
 	lst := list.New(litems, d, 0, 0)
 	lst.InfiniteScrolling = true
 	lst.Styles.TitleBar = lst.Styles.TitleBar.Padding(1, 0, 1, 1)
@@ -125,33 +131,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		nm, cmd := m.handleWindowSizeMsg(v)
 		return nm, cmd
-	case formResultMsg:
-		switch v.kind {
-		case formResultCanceled:
-			nm, cmd := m.closeHostForm("Canceled add/edit host. Any changes made were not saved.", statusError)
-			return nm, cmd
-		case formResultSubmitted:
-			nm, cmd := m.handleHostFormSubmit(v)
-			return nm, cmd
-		default:
-			return m, nil
-		}
+	case formCanceledMsg:
+		nm, cmd := m.closeHostForm("Canceled add/edit host. Any changes made were not saved.", statusError)
+		return nm, cmd
+	case formSubmittedMsg:
+		nm, cmd := m.handleHostFormSubmit(v)
+		return nm, cmd
 	case formSaveResultMsg:
 		nm, cmd := m.handleHostFormSaveResult(v)
 		return nm, cmd
 	case confirmResultMsg:
-		confirm := m.ms.confirm
-		// close the confirm dialog first
-		m, _ = m.closeConfirm()
-		if confirm == nil {
-			return m, nil
-		}
-		if v.confirmed {
-			return m, confirm.onConfirm
-		}
-		return m, confirm.onCancel
+		nm, cmd := m.handleConfirmResultMsg(v)
+		return nm, cmd
 	case removeHostResultMsg:
-		nm, cmd := m.handleRemoveHostResult(v)
+		nm, cmd := m.handleRemoveHostResultMsg(v)
 		return nm, cmd
 	case menuReloadedMsg:
 		nm, cmd := m.handleMenuReloadedMsg(v)
@@ -177,32 +170,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// while a modal is open, consume non-key messages so
-	// they don't update the base query/list components.
-	if _, ok := msg.(tea.KeyMsg); !ok {
-		switch m.mode {
-		case modeHostForm:
-			if m.ms.hostForm == nil {
-				return m, nil
-			}
-			mdl, cmd := m.ms.hostForm.Update(msg)
-			if f, ok := mdl.(*huh.Form); ok {
-				m.ms.hostForm = f
-			}
-			m.relayout()
-			return m, cmd
-
-		case modeConfirm:
-			if m.ms.confirm == nil || m.ms.confirm.form == nil {
-				return m, nil
-			}
-			mdl, cmd := m.ms.confirm.form.Update(msg)
-			if f, ok := mdl.(*huh.Form); ok {
-				m.ms.confirm.form = f
-			}
-			m.relayout()
-			return m, cmd
-		}
+	// modals (host form, confirm, etc.) should capture and consume all unhandled input
+	// before inputs are sent to the list or query box below
+	if nm, cmd, handled := m.handleModalMsg(msg); handled {
+		return nm, cmd
 	}
 
 	// always update query input first

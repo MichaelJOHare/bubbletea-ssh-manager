@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"bubbletea-ssh-manager/internal/config"
+
 	"github.com/charmbracelet/bubbles/list"
 )
 
@@ -20,7 +21,7 @@ type menuItem struct {
 	name string   // display name (host alias or group name)
 
 	// host-only fields
-	protocol string            // "ssh" or "telnet"
+	protocol config.Protocol   // protocol
 	spec     config.Spec       // shared host fields (alias/hostname/port/user)
 	options  config.SSHOptions // SSH options (only for SSH hosts)
 
@@ -39,7 +40,7 @@ func (it *menuItem) Title() string {
 // For group items, it's just "group".
 func (it *menuItem) Description() string {
 	if it.kind == itemHost {
-		return it.protocol
+		return string(it.protocol)
 	}
 	return "group"
 }
@@ -50,14 +51,14 @@ func (it *menuItem) Description() string {
 // For group items, it's just the name.
 func (it *menuItem) FilterValue() string {
 	if it.kind == itemHost {
-		parts := []string{it.name, it.protocol}
-		if v := strings.TrimSpace(it.spec.Alias); v != "" {
+		parts := []string{it.name, string(it.protocol)}
+		if v := it.spec.Alias; v != "" {
 			parts = append(parts, v)
 		}
-		if v := strings.TrimSpace(it.spec.User); v != "" {
+		if v := it.spec.User; v != "" {
 			parts = append(parts, v)
 		}
-		if v := strings.TrimSpace(it.spec.HostName); v != "" {
+		if v := it.spec.HostName; v != "" {
 			parts = append(parts, v)
 		}
 		return strings.Join(parts, " ")
@@ -112,7 +113,7 @@ func (m *model) setCurrentMenu(items []*menuItem) {
 
 	parts := make([]string, 0, len(m.path))
 	for _, p := range m.path {
-		name := strings.TrimSpace(p.name)
+		name := p.name
 		if name == "" {
 			continue
 		}

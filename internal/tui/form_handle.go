@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"bubbletea-ssh-manager/internal/config"
 	str "bubbletea-ssh-manager/internal/stringutil"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -15,11 +16,11 @@ import (
 //
 // It validates the data, closes the form, and returns a command to save the host.
 // If there are validation errors, it closes the form with an error status.
-func (m model) handleHostFormSubmit(msg formResultMsg) (model, tea.Cmd) {
-	if msg.kind != formResultSubmitted {
-		return m, nil
+func (m model) handleHostFormSubmit(msg formSubmittedMsg) (model, tea.Cmd) {
+	protocol := msg.protocol
+	if protocol == "" {
+		protocol = config.ProtocolSSH
 	}
-	protocol := str.NormalizeString(msg.protocol)
 
 	alias, err := str.BuildAliasFromGroupNickname(msg.group, msg.nickname)
 	if err != nil {
@@ -28,10 +29,12 @@ func (m model) handleHostFormSubmit(msg formResultMsg) (model, tea.Cmd) {
 		// probably won't need this after making enter not submit on validation errors?
 	}
 	msg.spec.Alias = alias
+	msg.spec = msg.spec.Normalized()
+	msg.opts = msg.opts.Normalized()
 
-	oldAlias := strings.TrimSpace(m.ms.hostFormOldAlias)
+	oldAlias := m.ms.hostFormOldAlias
 	if oldAlias == "" {
-		oldAlias = strings.TrimSpace(msg.oldAlias)
+		oldAlias = msg.oldAlias
 	}
 
 	// close the form before doing IO
@@ -41,12 +44,12 @@ func (m model) handleHostFormSubmit(msg formResultMsg) (model, tea.Cmd) {
 		result := formSaveResultMsg{protocol: protocol, spec: msg.spec}
 		switch msg.mode {
 		case modeAdd:
-			root, err := getProtocolConfigPath(protocol)
+			root, err := config.GetConfigPathForProtocol(protocol)
 			if err != nil {
 				result.err = err
 				return result
 			}
-			err = AddHostToRootConfig(protocol, msg.spec, msg.opts)
+			err = config.AddHostToRootConfig(protocol, msg.spec, msg.opts)
 			result.err = err
 			if err == nil {
 				result.configPath = root
@@ -57,7 +60,7 @@ func (m model) handleHostFormSubmit(msg formResultMsg) (model, tea.Cmd) {
 				result.err = errors.New("missing old alias")
 				return result
 			}
-			configPath, err := getConfigPathForAlias(protocol, oldAlias)
+			configPath, err := config.GetConfigPathForAlias(protocol, oldAlias)
 			if err != nil {
 				result.err = err
 				return result
@@ -67,7 +70,7 @@ func (m model) handleHostFormSubmit(msg formResultMsg) (model, tea.Cmd) {
 				return result
 			}
 			result.configPath = configPath
-			result.err = UpdateHostInConfig(protocol, oldAlias, msg.spec, msg.opts)
+			result.err = config.UpdateHostInConfig(protocol, oldAlias, msg.spec, msg.opts)
 			return result
 		default:
 			result.err = errors.New("unknown form mode")
@@ -88,8 +91,8 @@ func (m model) handleHostFormSaveResult(msg formSaveResultMsg) (model, tea.Cmd) 
 		cmd := func() tea.Msg {
 			return menuReloadedMsg{root: root, err: err}
 		}
-		alias := strings.TrimSpace(msg.spec.Alias)
-		hostName := strings.TrimSpace(msg.spec.HostName)
+		alias := msg.spec.Alias
+		hostName := msg.spec.HostName
 		targetText := alias
 		if hostName != "" {
 			targetText = fmt.Sprintf("%s <%s>", alias, hostName)

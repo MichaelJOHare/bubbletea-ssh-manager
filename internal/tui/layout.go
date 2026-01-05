@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"strings"
-
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -56,7 +54,7 @@ func (m *model) syncHelpKeys() {
 
 // relayout resizes the list and form components based on the current window size.
 //
-// It accounts for footer space used by status, preflight, and search/prompt.
+// It accounts for footer space used by status, preflight, paginator, and search/prompt.
 func (m *model) relayout() {
 	// footer consumes lines at the bottom:
 	// - optional preflight line (spinner + countdown)
@@ -74,7 +72,7 @@ func (m *model) relayout() {
 		footerLines = 2 // default to 2 lines so search input is padded by 1 line above
 	}
 
-	if strings.TrimSpace(m.status) != "" {
+	if m.status != "" {
 		// in viewNormal() status is also rendered with PaddingTop(1), so add 1 for the
 		// padding plus the actual rendered height of the status text
 		footerLines += 1 + lipgloss.Height(m.status)

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -13,6 +14,7 @@ const (
 	statusSuccess
 	statusError
 )
+const statusTTL = 10 * time.Second // duration for non-error info statuses
 
 // setStatus sets the status message and kind.
 //
@@ -23,6 +25,8 @@ func (m *model) setStatus(text string, kind statusKind, d time.Duration) tea.Cmd
 	if d < 0 {
 		d = 0
 	}
+
+	text = strings.TrimSpace(text)
 
 	m.statusToken++
 	m.status = text

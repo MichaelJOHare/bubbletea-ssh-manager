@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"bubbletea-ssh-manager/internal/config"
 	"bubbletea-ssh-manager/internal/connect"
 	str "bubbletea-ssh-manager/internal/stringutil"
 
@@ -40,10 +41,10 @@ func preflightDialCmd(token int, hostPort string) tea.Cmd {
 // It returns the updated model, a command that sends a connectFinishedMsg
 // indicating the cancellation, and true if handled.
 func (m model) cancelPreflightCmd() (model, tea.Cmd) {
-	protocol := strings.TrimSpace(m.ms.preflight.protocol)
-	target := strings.TrimSpace(m.ms.preflight.display)
+	protocol := m.ms.preflight.protocol
+	target := m.ms.preflight.display
 	if target == "" {
-		target = strings.TrimSpace(m.ms.preflight.hostPort)
+		target = m.ms.preflight.hostPort
 	}
 	m.clearPreflightState()
 	return m, func() tea.Msg {
@@ -91,14 +92,14 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd) {
 		return m, nil
 	}
 
-	protocol := str.NormalizeString(tgt.Protocol)
+	protocol := (tgt.Protocol)
 	display := tgt.Display()
 
 	// check if we need to preflight
 	if connect.ShouldPreflight(tgt) {
 		hostPort := connect.GenerateHostPort(tgt)
-		if strings.TrimSpace(hostPort) == "" {
-			statusCmd := m.setStatusError(fmt.Sprintf("%s: missing hostname", protocol), statusTTL)
+		if hostPort == "" {
+			statusCmd := m.setStatusError(fmt.Sprintf("%s: missing hostname", string(protocol)), statusTTL)
 			return m, statusCmd
 		}
 
@@ -135,7 +136,7 @@ func (m model) startConnect(it *menuItem) (model, tea.Cmd) {
 // It sets the window title before starting the command, and sends a
 // connectFinishedMsg when the command exits, capturing any output from
 // the provided TailBuffer for error reporting.
-func launchExecCmd(windowTitle string, cmd *exec.Cmd, protocol string, target string, tail *connect.TailBuffer) tea.Cmd {
+func launchExecCmd(windowTitle string, cmd *exec.Cmd, protocol config.Protocol, target string, tail *connect.TailBuffer) tea.Cmd {
 	return tea.Sequence(
 		tea.ExitAltScreen,
 		tea.SetWindowTitle(windowTitle),

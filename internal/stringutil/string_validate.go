@@ -3,6 +3,8 @@ package stringutil
 import (
 	"errors"
 	"strings"
+
+	"bubbletea-ssh-manager/internal/config"
 )
 
 // ValidateHostNickname checks if the given nickname is valid.
@@ -35,17 +37,16 @@ func ValidateHostGroup(s string) error {
 }
 
 // ValidateHostName checks if the given hostname is valid for the specified protocol.
-func ValidateHostName(protocol string, s string) error {
-	protocol = strings.ToLower(strings.TrimSpace(protocol))
+func ValidateHostName(protocol config.Protocol, s string) error {
 	s = strings.TrimSpace(s)
-	if protocol == "telnet" && s == "" {
+	if protocol == config.ProtocolTelnet && s == "" {
 		return errors.New("hostname is required for telnet")
 	}
 	return nil
 }
 
 // ValidateHostPort checks if the given port is valid for the specified protocol.
-func ValidateHostPort(protocol string, s string) error {
+func ValidateHostPort(protocol config.Protocol, s string) error {
 	_, err := NormalizePort(s, protocol)
 	return err
 }

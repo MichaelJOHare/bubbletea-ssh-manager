@@ -24,18 +24,6 @@ func getHomeDirectory() (string, error) {
 	return home, nil
 }
 
-// GetConfigPath returns the full path to a config file under the user's home directory.
-//
-// On Windows/MSYS2, prefer $HOME so this matches where MSYS2/OpenSSH tools
-// look for config files (eg. ~/.ssh/config).
-func GetConfigPath(parts ...string) (string, error) {
-	home, err := getHomeDirectory()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(append([]string{home}, parts...)...), nil
-}
-
 // expandPath expands a given path, replacing ~ with the effective home directory.
 // Used mainly to expand include paths in config files.
 //

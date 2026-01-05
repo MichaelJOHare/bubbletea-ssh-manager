@@ -2,8 +2,9 @@ package connect
 
 import (
 	"net"
-	"strings"
 	"time"
+
+	"bubbletea-ssh-manager/internal/config"
 )
 
 // ShouldPreflight returns true if the given Target requires a reachability check.
@@ -11,11 +12,11 @@ import (
 // Telnet always requires preflight (host/port).
 // SSH requires preflight if a hostname is set (host/port for display & checks).
 func ShouldPreflight(t Target) bool {
-	switch strings.TrimSpace(t.Protocol) {
-	case "telnet":
+	switch t.Protocol {
+	case config.ProtocolTelnet:
 		return true
-	case "ssh":
-		return strings.TrimSpace(t.HostName) != ""
+	case config.ProtocolSSH:
+		return t.HostName != ""
 	default:
 		return false
 	}
@@ -23,8 +24,8 @@ func ShouldPreflight(t Target) bool {
 
 // GenerateHostPort returns the host or host:port string used for preflight.
 func GenerateHostPort(t Target) string {
-	host := strings.TrimSpace(t.HostName)
-	port := strings.TrimSpace(t.Port)
+	host := t.HostName
+	port := t.Port
 	if host == "" {
 		return ""
 	}
@@ -36,7 +37,6 @@ func GenerateHostPort(t Target) string {
 
 // PreflightDial attempts to open a TCP connection to hostPort within timeout.
 func PreflightDial(hostPort string, timeout time.Duration) error {
-	hostPort = strings.TrimSpace(hostPort)
 	if hostPort == "" {
 		return nil
 	}

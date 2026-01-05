@@ -83,6 +83,18 @@ func GreenEnter() string {
 	return lipgloss.NewStyle().Foreground(DefaultTheme().KeyEnter).Render("Enter")
 }
 
+func GreenPlus() string {
+	return lipgloss.NewStyle().Foreground(DefaultTheme().KeyCursor).Render("+")
+}
+
+func RedMinus() string {
+	return lipgloss.NewStyle().Foreground(DefaultTheme().KeyRemove).Render("-")
+}
+
+func PurpleCaret() string {
+	return lipgloss.NewStyle().Foreground(DefaultTheme().KeyBack).Render("^")
+}
+
 const (
 	SuccessCheck = " ✔️"
 	ErrorX       = "❌ "

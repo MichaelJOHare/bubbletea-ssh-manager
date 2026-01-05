@@ -19,8 +19,8 @@ func seedMenu() (*menuItem, error) {
 		kind: itemGroup,
 		name: "IF YOU'RE SEEING THIS IT MEANS NO SSH OR TELNET CONFIG FILES WERE FOUND",
 		children: []*menuItem{
-			{kind: itemHost, name: "stub", protocol: "ssh", spec: config.Spec{Alias: "l2.IA21"}},
-			{kind: itemHost, name: "stub", protocol: "telnet", spec: config.Spec{Alias: "l2.IA21"}},
+			{kind: itemHost, name: "stub", protocol: config.ProtocolSSH, spec: config.Spec{Alias: "l2.IA21"}},
+			{kind: itemHost, name: "stub", protocol: config.ProtocolTelnet, spec: config.Spec{Alias: "l2.IA21"}},
 		},
 	}
 
@@ -35,8 +35,8 @@ func seedMenu() (*menuItem, error) {
 		children: []*menuItem{
 			l1,
 			l2,
-			{kind: itemHost, name: "stub", protocol: "ssh", spec: config.Spec{Alias: "devbox"}},
-			{kind: itemHost, name: "stub", protocol: "telnet", spec: config.Spec{Alias: "router", HostName: "router", Port: "23"}},
+			{kind: itemHost, name: "stub", protocol: config.ProtocolSSH, spec: config.Spec{Alias: "devbox"}},
+			{kind: itemHost, name: "stub", protocol: config.ProtocolTelnet, spec: config.Spec{Alias: "router", HostName: "router", Port: "23"}},
 		},
 	}, err
 }

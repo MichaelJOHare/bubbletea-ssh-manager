@@ -3,17 +3,17 @@ package tui
 import "bubbletea-ssh-manager/internal/config"
 
 const (
-	formResultCanceled formResultKind = iota
-	formResultSubmitted
+	modeAdd formMode = iota
+	modeEdit
 )
 
-type formResultKind int // kind of result from host entry form (submit vs cancel) *** this will use confirmResultMsg later? ***
-type formResultMsg struct {
-	kind formResultKind // kind of result (canceled vs submitted)
+type formMode int // add vs edit mode for host entry form
 
-	// set when kind==formResultSubmitted
+type formCanceledMsg struct{}
+
+type formSubmittedMsg struct {
 	mode     formMode          // add vs edit mode for host entry form
-	protocol string            // "ssh" or "telnet"
+	protocol config.Protocol   // protocol being edited/added
 	oldAlias string            // for edit/rename
 	group    string            // group name (display form)
 	nickname string            // host nickname (display form)
@@ -22,10 +22,10 @@ type formResultMsg struct {
 }
 
 type formSaveResultMsg struct {
-	err        error       // error during save IO operation
-	protocol   string      // "ssh" or "telnet"
-	spec       config.Spec // saved host spec
-	configPath string      // config file written to (best-effort; set on success)
+	err        error           // error during save IO operation
+	protocol   config.Protocol // protocol that was saved
+	spec       config.Spec     // saved host spec
+	configPath string          // config file written to (best-effort; set on success)
 }
 
 type menuReloadedMsg struct {
@@ -38,10 +38,10 @@ type statusClearMsg struct {
 }
 
 type connectFinishedMsg struct {
-	protocol string // "ssh" or "telnet"
-	target   string // display target (eg. host:port)
-	err      error  // error from connection attempt
-	output   string // output from ssh/telnet command
+	protocol config.Protocol // protocol used
+	target   string          // display target (eg. host:port)
+	err      error           // error from connection attempt
+	output   string          // output from ssh/telnet command
 }
 
 type preflightTickMsg struct {
@@ -61,7 +61,7 @@ type confirmResultMsg struct {
 }
 
 type removeHostResultMsg struct {
-	protocol string // "ssh" or "telnet"
-	alias    string // alias of host that was removed
-	err      error  // error during removal
+	protocol config.Protocol // protocol that was removed
+	alias    string          // alias of host that was removed
+	err      error           // error during removal
 }

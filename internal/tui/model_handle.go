@@ -9,6 +9,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 )
 
 // handleWindowSizeMsg handles window resize messages.
@@ -20,22 +21,38 @@ func (m model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (model, tea.Cmd) {
 	return m, nil
 }
 
-// handleRemoveHostResult processes the async result of a host removal operation.
+// handleRemoveHostResultMsg processes the async result of a host removal operation.
 //
 // It updates the model's status and reloads the menu if the removal succeeded.
-func (m model) handleRemoveHostResult(msg removeHostResultMsg) (model, tea.Cmd) {
+func (m model) handleRemoveHostResultMsg(msg removeHostResultMsg) (model, tea.Cmd) {
 	if msg.err != nil {
 		statusCmd := m.setStatusError(fmt.Sprintf("Failed to remove %s: %v", msg.alias, msg.err), 0)
 		return m, statusCmd
 	}
 
 	// reload menu to reflect the removal
-	statusCmd := m.setStatusSuccess(fmt.Sprintf("Removed %s host: %s"+SuccessCheck, msg.protocol, msg.alias), statusTTL)
+	statusCmd := m.setStatusSuccess(fmt.Sprintf("Removed %s host: %s"+SuccessCheck, string(msg.protocol), msg.alias), statusTTL)
 	reloadCmd := func() tea.Msg {
 		root, err := seedMenu()
 		return menuReloadedMsg{root: root, err: err}
 	}
 	return m, tea.Batch(statusCmd, reloadCmd)
+}
+
+// handleConfirmResultMsg processes the result of a confirmation dialog.
+//
+// If confirmed, it executes the onConfirm command; otherwise, it runs onCancel.
+func (m model) handleConfirmResultMsg(msg confirmResultMsg) (model, tea.Cmd) {
+	confirm := m.ms.confirm
+	// close the confirm dialog first
+	m, _ = m.closeConfirm()
+	if confirm == nil {
+		return m, nil
+	}
+	if msg.confirmed {
+		return m, confirm.onConfirm
+	}
+	return m, confirm.onCancel
 }
 
 // handleMenuReloadedMsg handles menu reloaded messages.
@@ -85,7 +102,7 @@ func (m model) handlePreflightTickMsg(msg preflightTickMsg) (model, tea.Cmd) {
 	return m, nil
 }
 
-// handleSpinnerTickMsg handles spinner tick messages.
+// handleSpinnerTickMsg handles preflight spinner tick messages.
 //
 // It updates the spinner component if the UI is in preflight mode.
 func (m model) handleSpinnerTickMsg(msg spinner.TickMsg) (model, tea.Cmd) {
@@ -115,7 +132,7 @@ func (m model) handlePreflightResultMsg(msg preflightResultMsg) (model, tea.Cmd)
 	m.clearPreflightState()
 
 	if msg.err != nil {
-		statusCmd := m.setStatusError(fmt.Sprintf("%s %s failed: \n%v", protocol, hostPort, msg.err), statusTTL)
+		statusCmd := m.setStatusError(fmt.Sprintf("%s %s failed: \n%v", string(protocol), hostPort, msg.err), statusTTL)
 		return m, statusCmd
 	}
 
@@ -133,17 +150,53 @@ func (m model) handleConnectFinishedMsg(msg connectFinishedMsg) (model, tea.Cmd)
 	output := strings.TrimSpace(msg.output)
 	if msg.err != nil {
 		if connect.IsConnectionAborted(msg.err) { // test if switching this is correct (may have to change launchExecCmd instead)
-			statusCmd := m.setStatusError(fmt.Sprintf("%s to %s aborted.", msg.protocol, msg.target), statusTTL) // eg. if tail != nil && connect.IsConnectionAborted
+			statusCmd := m.setStatusError(fmt.Sprintf("%s to %s aborted.", string(msg.protocol), msg.target), statusTTL) // eg. if tail != nil && connect.IsConnectionAborted
 			return m, tea.Batch(titleCmd, statusCmd)
 		}
 		if output != "" {
-			statusCmd := m.setStatusError(fmt.Sprintf("%s to %s exited:\n%s (%v)", msg.protocol, msg.target, output, msg.err), 0)
+			statusCmd := m.setStatusError(fmt.Sprintf("%s to %s exited:\n%s (%v)", string(msg.protocol), msg.target, output, msg.err), 0)
 			return m, tea.Batch(titleCmd, statusCmd)
 		}
-		statusCmd := m.setStatusError(fmt.Sprintf("%s to %s exited:\n%v", msg.protocol, msg.target, msg.err), 0)
+		statusCmd := m.setStatusError(fmt.Sprintf("%s to %s exited:\n%v", string(msg.protocol), msg.target, msg.err), 0)
 		return m, tea.Batch(titleCmd, statusCmd)
 	}
 
-	statusCmd := m.setStatusSuccess(fmt.Sprintf("%s to %s ended.", msg.protocol, msg.target), statusTTL)
+	statusCmd := m.setStatusSuccess(fmt.Sprintf("%s to %s ended.", string(msg.protocol), msg.target), statusTTL)
 	return m, tea.Batch(titleCmd, statusCmd)
+}
+
+// handleModalMsg routes messages to the active modal component (if any).
+//
+// Modals like the host form and confirm dialog should consume messages so
+// the base list/query components don't update behind them.
+func (m model) handleModalMsg(msg tea.Msg) (model, tea.Cmd, bool) {
+	if _, ok := msg.(tea.KeyMsg); ok {
+		return m, nil, false
+	}
+
+	switch m.mode {
+	case modeHostForm:
+		if m.ms.hostForm == nil {
+			return m, nil, true
+		}
+		mdl, cmd := m.ms.hostForm.Update(msg)
+		if f, ok := mdl.(*huh.Form); ok {
+			m.ms.hostForm = f
+		}
+		m.relayout()
+		return m, cmd, true
+
+	case modeConfirm:
+		if m.ms.confirm == nil || m.ms.confirm.form == nil {
+			return m, nil, true
+		}
+		mdl, cmd := m.ms.confirm.form.Update(msg)
+		if f, ok := mdl.(*huh.Form); ok {
+			m.ms.confirm.form = f
+		}
+		m.relayout()
+		return m, cmd, true
+	}
+
+	return m, nil, false
 }

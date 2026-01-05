@@ -5,10 +5,17 @@ import (
 	"strings"
 )
 
+const (
+	ProtocolSSH    Protocol = "ssh"
+	ProtocolTelnet Protocol = "telnet"
+)
+
+type Protocol string // "ssh" or "telnet"
+
 // HostEntry is a minimal representation of a Host block from an SSH-style config.
 // It intentionally contains only the fields this project currently supports.
 type HostEntry struct {
-	Spec       Spec  // host fields that are shared between SSH and Telnet (alias/hostname/port/user)
+	Spec       Spec       // host fields that are shared between SSH and Telnet (alias/hostname/port/user)
 	SSHOptions SSHOptions // SSH-specific options for this host
 	SourcePath string     // path to the config file this entry was read from
 }
@@ -34,11 +41,38 @@ type SSHOptions struct {
 	MACs              string // MACs option (e.g. "hmac-sha2-256,hmac-sha1")
 }
 
+// Normalized returns a copy of the spec with leading/trailing whitespace removed.
+//
+// This is intended to be applied at boundaries (parsing user input / reading config)
+// so most internal code can assume specs are already trimmed.
+func (s Spec) Normalized() Spec {
+	s.Alias = strings.TrimSpace(s.Alias)
+	s.HostName = strings.TrimSpace(s.HostName)
+	s.Port = strings.TrimSpace(s.Port)
+	s.User = strings.TrimSpace(s.User)
+	return s
+}
+
+// Normalized returns a copy of the SSH options with leading/trailing whitespace removed.
+func (o SSHOptions) Normalized() SSHOptions {
+	o.HostKeyAlgorithms = strings.TrimSpace(o.HostKeyAlgorithms)
+	o.KexAlgorithms = strings.TrimSpace(o.KexAlgorithms)
+	o.MACs = strings.TrimSpace(o.MACs)
+	return o
+}
+
+// Normalized returns a copy of the host entry with normalized Spec/SSHOptions.
+func (e HostEntry) Normalized() HostEntry {
+	e.Spec = e.Spec.Normalized()
+	e.SSHOptions = e.SSHOptions.Normalized()
+	return e
+}
+
 // EntryFromSpec creates a HostEntry from the given spec and options.
 func EntryFromSpec(spec Spec, opts SSHOptions, sourcePath string) HostEntry {
 	return HostEntry{
-		Spec:       spec,
-		SSHOptions: opts,
+		Spec:       spec.Normalized(),
+		SSHOptions: opts.Normalized(),
 		SourcePath: sourcePath,
 	}
 }
@@ -50,7 +84,8 @@ func EntryFromSpec(spec Spec, opts SSHOptions, sourcePath string) HostEntry {
 //     adds exactly one blank line before the Host block.
 //   - It always adds a trailing blank line.
 func buildHostEntry(entry HostEntry, preceding []string) []string {
-	alias := strings.TrimSpace(entry.Spec.Alias)
+	entry = entry.Normalized()
+	alias := entry.Spec.Alias
 	indent := DefaultHostIndent
 
 	out := make([]string, 0, 8)
@@ -58,13 +93,13 @@ func buildHostEntry(entry HostEntry, preceding []string) []string {
 		out = append(out, "")
 	}
 	out = append(out, fmt.Sprintf("Host %s", alias))
-	if v := strings.TrimSpace(entry.Spec.HostName); v != "" {
+	if v := entry.Spec.HostName; v != "" {
 		out = append(out, indent+"HostName "+v)
 	}
-	if v := strings.TrimSpace(entry.Spec.User); v != "" {
+	if v := entry.Spec.User; v != "" {
 		out = append(out, indent+"User "+v)
 	}
-	if v := strings.TrimSpace(entry.Spec.Port); v != "" {
+	if v := entry.Spec.Port; v != "" {
 		out = append(out, indent+"Port "+v)
 	}
 	sshOpts := BuildSSHOptions(entry.SSHOptions, indent)
@@ -80,14 +115,15 @@ func buildHostEntry(entry HostEntry, preceding []string) []string {
 //
 // It uses the given indent for each line.
 func BuildSSHOptions(o SSHOptions, indent string) []string {
+	o = o.Normalized()
 	parts := make([]string, 0, 3)
-	if v := strings.TrimSpace(o.HostKeyAlgorithms); v != "" {
+	if v := o.HostKeyAlgorithms; v != "" {
 		parts = append(parts, indent+"HostKeyAlgorithms "+v)
 	}
-	if v := strings.TrimSpace(o.KexAlgorithms); v != "" {
+	if v := o.KexAlgorithms; v != "" {
 		parts = append(parts, indent+"KexAlgorithms "+v)
 	}
-	if v := strings.TrimSpace(o.MACs); v != "" {
+	if v := o.MACs; v != "" {
 		parts = append(parts, indent+"MACs "+v)
 	}
 	return parts
@@ -100,6 +136,9 @@ func setHostDirective(key string, value string, entry *HostEntry) bool {
 	if entry == nil {
 		return false
 	}
+
+	// treat parser input as boundary data, normalize it once here
+	value = strings.TrimSpace(value)
 
 	// standard host directives shared between SSH and Telnet
 	switch key {
