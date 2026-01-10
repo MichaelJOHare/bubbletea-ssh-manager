@@ -61,82 +61,8 @@ func buildHostForm(mode formMode, oldAlias string, v *form, appTheme Theme) *huh
 		v.protocol = config.ProtocolSSH
 	}
 
-	protoField := huh.NewSelect[config.Protocol]().
-		Key("protocol").
-		Title("Protocol").
-		Options(
-			huh.NewOption("ssh", config.ProtocolSSH),
-			huh.NewOption("telnet", config.ProtocolTelnet),
-		).
-		Value(&v.protocol)
-
-	groupField := huh.NewInput().
-		Key("group").
-		Title("Group").
-		Value(&v.groupName)
-
-	nicknameField := huh.NewInput().
-		Key("nickname").
-		Title("Nickname").
-		Value(&v.nickname)
-
-	hostField := huh.NewInput().
-		Key("hostname").
-		Title("Hostname").
-		Value(&v.hostname)
-
-	portField := huh.NewInput().
-		Key("port").
-		Title("Port").
-		Value(&v.port)
-
-	userField := huh.NewInput().
-		Key("user").
-		Title("User").
-		Value(&v.user)
-
-	hostKeyField := huh.NewInput().
-		Key("hostkeyalgorithms").
-		Title("HostKeyAlgorithms").
-		Value(&v.sshOpts.HostKeyAlgorithms)
-
-	kexField := huh.NewInput().
-		Key("kexalgorithms").
-		Title("KexAlgorithms").
-		Value(&v.sshOpts.KexAlgorithms)
-
-	macsField := huh.NewInput().
-		Key("macs").
-		Title("MACs").
-		Value(&v.sshOpts.MACs)
-
-	note := huh.NewNote().
-		Description("Enter host details and press " + GreenEnter() + " to save.")
-
-	fields := []huh.Field{note}
-	if mode == modeAdd {
-		fields = append(fields, protoField)
-	}
-	fields = append(fields,
-		groupField,
-		nicknameField,
-		hostField,
-		portField,
-		userField,
-	)
-	mainGroup := huh.NewGroup(fields...)
-
-	sshNoteString := "Optional SSH settings. Leave blank to use defaults. Press " + GreenEnter() + " to save."
-	sshNoteString += "\nPrefix options with a " + GreenPlus() + " to append, " + RedMinus() + " to remove, " + PurpleCaret() + " to prepend."
-	sshNoteString += "\n\n_It's generally recommended to append to defaults rather than override them."
-	sshNoteString += "\nMultiple algorithms can be comma separated. See ssh config man page for details."
-	sshNote := huh.NewNote().
-		Description(sshNoteString)
-
-	sshOptsGroup := huh.NewGroup(sshNote, hostKeyField, kexField, macsField).
-		WithHideFunc(func() bool {
-			return v.protocol != config.ProtocolSSH
-		})
+	mainGroup := buildMainFieldGroup(mode, v)
+	sshOptsGroup := buildSSHOptionsGroup(v)
 
 	form := huh.NewForm(mainGroup, sshOptsGroup).
 		WithShowHelp(false).
@@ -145,30 +71,105 @@ func buildHostForm(mode formMode, oldAlias string, v *form, appTheme Theme) *huh
 		WithTheme(hostFormTheme(appTheme))
 
 	form.CancelCmd = func() tea.Msg { return formCanceledMsg{} }
-	form.SubmitCmd = func() tea.Msg {
+	form.SubmitCmd = buildSubmitCmd(mode, oldAlias, v)
+
+	return form
+}
+
+// buildMainFieldGroup creates the primary host fields group.
+func buildMainFieldGroup(mode formMode, v *form) *huh.Group {
+	note := huh.NewNote().
+		Description("Enter host details and press " + GreenEnter() + " to save.")
+
+	fields := []huh.Field{note}
+	if mode == modeAdd {
+		fields = append(fields, buildProtocolField(v))
+	}
+	fields = append(fields,
+		buildInputField("group", "Group", &v.groupName),
+		buildInputField("nickname", "Nickname", &v.nickname),
+		buildInputField("hostname", "Hostname", &v.hostname),
+		buildInputField("port", "Port", &v.port),
+		buildInputField("user", "User", &v.user),
+	)
+	return huh.NewGroup(fields...)
+}
+
+// buildProtocolField creates the protocol selector field.
+func buildProtocolField(v *form) *huh.Select[config.Protocol] {
+	return huh.NewSelect[config.Protocol]().
+		Key("protocol").
+		Title("Protocol").
+		Options(
+			huh.NewOption("ssh", config.ProtocolSSH),
+			huh.NewOption("telnet", config.ProtocolTelnet),
+		).
+		Value(&v.protocol)
+}
+
+// buildInputField creates a simple Huh text input field.
+func buildInputField(key, title string, value *string) *huh.Input {
+	return huh.NewInput().
+		Key(key).
+		Title(title).
+		Value(value)
+}
+
+// buildSSHOptionsGroup creates the SSH-specific options Huh group.
+func buildSSHOptionsGroup(v *form) *huh.Group {
+	note := huh.NewNote().Description(sshOptionsHelpText())
+
+	return huh.NewGroup(
+		note,
+		buildInputField("hostkeyalgorithms", "HostKeyAlgorithms", &v.sshOpts.HostKeyAlgorithms),
+		buildInputField("kexalgorithms", "KexAlgorithms", &v.sshOpts.KexAlgorithms),
+		buildInputField("macs", "MACs", &v.sshOpts.MACs),
+	).WithHideFunc(func() bool {
+		return v.protocol != config.ProtocolSSH
+	})
+}
+
+// sshOptionsHelpText returns the help text for the SSH options group.
+func sshOptionsHelpText() string {
+	lines := []string{
+		"Optional SSH settings. Leave blank to use defaults. Press " + GreenEnter() + " to save.",
+		"Prefix options with a " + GreenPlus() + " to append, " + RedMinus() + " to remove, " + PurpleCaret() + " to prepend.",
+		"",
+		"_It's generally recommended to append to defaults rather than override them.",
+		"Multiple algorithms can be comma separated. See ssh config man page for details.",
+	}
+	return strings.Join(lines, "\n")
+}
+
+// buildSubmitCmd creates the form submit command handler.
+func buildSubmitCmd(mode formMode, oldAlias string, v *form) func() tea.Msg {
+	return func() tea.Msg {
 		p := v.protocol
 		if p == "" {
 			p = config.ProtocolSSH
 		}
-		s := config.Spec{
+
+		spec := config.Spec{
 			HostName: v.hostname,
 			Port:     v.port,
 			User:     v.user,
 		}
+
 		opts := config.SSHOptions{}
 		if p == config.ProtocolSSH {
-			opts = config.SSHOptions{
-				HostKeyAlgorithms: v.sshOpts.HostKeyAlgorithms,
-				KexAlgorithms:     v.sshOpts.KexAlgorithms,
-				MACs:              v.sshOpts.MACs,
-			}
+			opts = v.sshOpts
 		}
-		return formSubmittedMsg{mode: mode, protocol: p,
-			oldAlias: oldAlias, group: v.groupName,
-			nickname: v.nickname, spec: s, opts: opts}
-	}
 
-	return form
+		return formSubmittedMsg{
+			mode:     mode,
+			protocol: p,
+			oldAlias: oldAlias,
+			group:    v.groupName,
+			nickname: v.nickname,
+			spec:     spec,
+			opts:     opts,
+		}
+	}
 }
 
 // buildHostFormHeader builds the host form header boundary and returns the

@@ -33,7 +33,7 @@ type preflightState struct {
 }
 
 type modeState struct {
-	// prompt state
+	// username prompt state
 	pendingHost *menuItem
 
 	// host add/edit state
