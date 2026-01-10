@@ -52,17 +52,35 @@ func (m model) cancelPreflightCmd() (model, tea.Cmd) {
 	}
 }
 
+// initPreflightState sets all preflight state fields.
+//
+// Pass zero values to clear the state. The token is always incremented.
+func (m *model) initPreflightState(protocol config.Protocol, hostPort, windowTitle, display string,
+	cmd *exec.Cmd, tail *connect.TailBuffer) int {
+
+	m.ms.preflight.token++
+	m.ms.preflight.protocol = protocol
+	m.ms.preflight.hostPort = hostPort
+	m.ms.preflight.windowTitle = windowTitle
+	m.ms.preflight.display = display
+	m.ms.preflight.cmd = cmd
+	m.ms.preflight.tail = tail
+
+	if hostPort != "" {
+		m.ms.preflight.remaining = int(preflightTimeout.Seconds())
+		m.ms.preflight.endsAt = time.Now().Add(preflightTimeout)
+	} else {
+		m.ms.preflight.remaining = 0
+		m.ms.preflight.endsAt = time.Time{}
+	}
+
+	return m.ms.preflight.token
+}
+
 // clearPreflightState clears all stored preflight state in the model.
 func (m *model) clearPreflightState() {
 	m.mode = modeMenu
-	m.ms.preflight.endsAt = time.Time{}
-	m.ms.preflight.remaining = 0
-	m.ms.preflight.protocol = ""
-	m.ms.preflight.hostPort = ""
-	m.ms.preflight.windowTitle = ""
-	m.ms.preflight.cmd = nil
-	m.ms.preflight.tail = nil
-	m.ms.preflight.display = ""
+	m.initPreflightState("", "", "", "", nil, nil)
 }
 
 // startConnect builds and starts the connection command for the given menu item.
@@ -70,60 +88,41 @@ func (m *model) clearPreflightState() {
 // It sets the status message and returns a command to execute the connection process.
 // If an error occurs while building the command, it sets an error status instead.
 func (m model) startConnect(it *menuItem) (model, tea.Cmd) {
-	// prevent multiple simultaneous connections
 	if m.mode == modePreflight || m.mode == modeExecuting {
-		statusCmd := m.setStatusInfo("Already connecting…", statusTTL)
-		return m, statusCmd
+		return m, m.setStatusInfo("Already connecting…", statusTTL)
 	}
-
-	// sanity check
 	if it == nil {
-		m.setStatusError("No host selected.", 0)
-		return m, nil
+		return m, m.setStatusError("No host selected.", 0)
 	}
 
-	// build the connection command
 	cmd, tgt, tail, err := connect.BuildCommand(connect.Target{
 		Protocol: it.protocol,
 		Spec:     it.spec,
 	})
 	if err != nil {
-		m.setStatusError(err.Error(), 0)
-		return m, nil
+		return m, m.setStatusError(err.Error(), 0)
 	}
 
-	protocol := (tgt.Protocol)
+	protocol := tgt.Protocol
 	display := tgt.Display()
 
-	// check if we need to preflight
-	if connect.ShouldPreflight(tgt) {
-		hostPort := connect.GenerateHostPort(tgt)
-		if hostPort == "" {
-			statusCmd := m.setStatusError(fmt.Sprintf("%s: missing hostname", string(protocol)), statusTTL)
-			return m, statusCmd
-		}
-
-		m.mode = modePreflight
-		m.ms.preflight.token++
-		tok := m.ms.preflight.token
-		m.ms.preflight.remaining = int(preflightTimeout.Seconds())
-		m.ms.preflight.endsAt = time.Now().Add(preflightTimeout)
-		m.ms.preflight.protocol = protocol
-		m.ms.preflight.hostPort = hostPort
-		m.ms.preflight.windowTitle = tgt.WindowTitle()
-		m.ms.preflight.cmd = cmd
-		m.ms.preflight.tail = tail
-		m.ms.preflight.display = display
-
-		// clear any existing status to make room for preflight status
-		m.setStatusInfo("", 0)
-
-		return m, tea.Batch(preflightDialCmd(tok, hostPort), preflightTickCmd(tok), m.spinner.Tick)
+	// no preflight needed; start connection immediately
+	if !connect.ShouldPreflight(tgt) {
+		m.mode = modeExecuting
+		return m, launchExecCmd(tgt.WindowTitle(), cmd, protocol, display, tail)
 	}
 
-	// no preflight needed; start connection immediately
-	m.mode = modeExecuting
-	return m, launchExecCmd(tgt.WindowTitle(), cmd, protocol, display, tail)
+	// preflight required
+	hostPort := connect.GenerateHostPort(tgt)
+	if hostPort == "" {
+		return m, m.setStatusError(fmt.Sprintf("%s: missing hostname", string(protocol)), statusTTL)
+	}
+
+	m.mode = modePreflight
+	tok := m.initPreflightState(protocol, hostPort, tgt.WindowTitle(), display, cmd, tail)
+	m.setStatusInfo("", 0)
+
+	return m, tea.Batch(preflightDialCmd(tok, hostPort), preflightTickCmd(tok), m.spinner.Tick)
 }
 
 // launchExecCmd returns a command that exits the TUI and starts

@@ -58,59 +58,61 @@ func buildMenuFromConfigs() ([]*menuItem, error) {
 	}
 
 	var (
-		ungrouped []*menuItem              // hosts without groups
-		groups    = map[string]*menuItem{} // map of group names
-		parseErrs []error                  // parsing errors
+		ungrouped []*menuItem
+		groups    = map[string]*menuItem{}
+		parseErrs []error
 	)
 
-	// parse ssh config, add hosts to menu
-	if sshEntries, err := config.ParseConfigRecursively(sshPath); err == nil {
-		for _, e := range sshEntries {
-			alias := e.Spec.Alias
-			if alias == "" {
-				continue
-			}
-			h := &menuItem{kind: itemHost, protocol: config.ProtocolSSH, spec: e.Spec, options: e.SSHOptions}
-			addMenuItem(&ungrouped, groups, h)
+	parseErrs = append(parseErrs, parseConfigToMenu(sshPath, config.ProtocolSSH, &ungrouped, groups))
+	parseErrs = append(parseErrs, parseConfigToMenu(telnetPath, config.ProtocolTelnet, &ungrouped, groups))
+
+	items := buildSortedMenuItems(ungrouped, groups)
+	return items, errors.Join(parseErrs...)
+}
+
+// parseConfigToMenu parses a config file and adds entries to the menu structure.
+func parseConfigToMenu(path string, protocol config.Protocol, ungrouped *[]*menuItem, groups map[string]*menuItem) error {
+	entries, err := config.ParseConfigRecursively(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
 		}
-	} else if !errors.Is(err, os.ErrNotExist) {
-		parseErrs = append(parseErrs, fmt.Errorf("read ssh config: %w", err))
+		return fmt.Errorf("read %s config: %w", protocol, err)
 	}
 
-	// parse telnet config, add hosts to menu
-	if telnetEntries, err := config.ParseConfigRecursively(telnetPath); err == nil {
-		for _, e := range telnetEntries {
-			alias := e.Spec.Alias
-			host := e.Spec.HostName
-			if alias == "" || host == "" {
-				continue
-			}
-			h := &menuItem{kind: itemHost, protocol: config.ProtocolTelnet, spec: e.Spec}
-			addMenuItem(&ungrouped, groups, h)
+	for _, e := range entries {
+		if !isValidEntry(e, protocol) {
+			continue
 		}
-	} else if !errors.Is(err, os.ErrNotExist) {
-		parseErrs = append(parseErrs, fmt.Errorf("read telnet config: %w", err))
+		h := &menuItem{kind: itemHost, protocol: protocol, spec: e.Spec, options: e.SSHOptions}
+		addMenuItem(ungrouped, groups, h)
 	}
+	return nil
+}
 
-	// convert groups map to slice for sorting
+// isValidEntry checks if a config entry has required fields for the given protocol.
+func isValidEntry(e config.HostEntry, protocol config.Protocol) bool {
+	if e.Spec.Alias == "" {
+		return false
+	}
+	if protocol == config.ProtocolTelnet && e.Spec.HostName == "" {
+		return false
+	}
+	return true
+}
+
+// buildSortedMenuItems converts groups map to slice and sorts all items alphabetically.
+func buildSortedMenuItems(ungrouped []*menuItem, groups map[string]*menuItem) []*menuItem {
+	sortByName := func(a, b *menuItem) int { return cmp.Compare(a.name, b.name) }
+
 	grouped := make([]*menuItem, 0, len(groups))
 	for _, g := range groups {
+		slices.SortStableFunc(g.children, sortByName)
 		grouped = append(grouped, g)
 	}
 
-	// sort ungrouped hosts, group names, and children of groups (grouped hosts) alphabetically
-	slices.SortStableFunc(ungrouped, func(a, b *menuItem) int {
-		return cmp.Compare(a.name, b.name)
-	})
-	slices.SortStableFunc(grouped, func(a, b *menuItem) int {
-		return cmp.Compare(a.name, b.name)
-	})
-	for _, g := range grouped {
-		slices.SortStableFunc(g.children, func(a, b *menuItem) int {
-			return cmp.Compare(a.name, b.name)
-		})
-	}
+	slices.SortStableFunc(ungrouped, sortByName)
+	slices.SortStableFunc(grouped, sortByName)
 
-	items := append(ungrouped, grouped...)
-	return items, errors.Join(parseErrs...)
+	return append(ungrouped, grouped...)
 }
