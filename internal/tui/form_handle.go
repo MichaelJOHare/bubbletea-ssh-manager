@@ -14,20 +14,15 @@ import (
 
 // handleHostFormSubmit processes the submitted host form data.
 //
-// It validates the data, closes the form, and returns a command to save the host.
-// If there are validation errors, it closes the form with an error status.
+// It builds the alias, closes the form, and returns a command to save the host.
+// Validation errors are caught earlier in handleHostFormKeyMsg.
 func (m model) handleHostFormSubmit(msg formSubmittedMsg) (model, tea.Cmd) {
 	protocol := msg.protocol
 	if protocol == "" {
 		protocol = config.ProtocolSSH
 	}
 
-	alias, err := str.BuildAliasFromGroupNickname(msg.group, msg.nickname)
-	if err != nil {
-		m, _ = m.closeHostForm("", statusInfo)
-		return m, m.setStatusError("❌ Invalid group/nickname: "+err.Error(), 0)
-		// probably won't need this after making enter not submit on validation errors?
-	}
+	alias, _ := str.BuildAliasFromGroupNickname(msg.group, msg.nickname)
 	msg.spec.Alias = alias
 	msg.spec = msg.spec.Normalized()
 	msg.opts = msg.opts.Normalized()
@@ -40,21 +35,26 @@ func (m model) handleHostFormSubmit(msg formSubmittedMsg) (model, tea.Cmd) {
 	// close the form before doing IO
 	m, _ = m.closeHostForm("", statusInfo)
 
-	saveCmd := func() tea.Msg {
-		result := formSaveResultMsg{protocol: protocol, spec: msg.spec}
-		switch msg.mode {
+	return m, m.saveHostCmd(msg.mode, protocol, oldAlias, msg.spec, msg.opts)
+}
+
+// saveHostCmd returns a command that performs the host save operation.
+func (m model) saveHostCmd(mode formMode, protocol config.Protocol, oldAlias string, spec config.Spec, opts config.SSHOptions) tea.Cmd {
+	return func() tea.Msg {
+		result := formSaveResultMsg{protocol: protocol, spec: spec}
+
+		switch mode {
 		case modeAdd:
 			root, err := config.GetConfigPathForProtocol(protocol)
 			if err != nil {
 				result.err = err
 				return result
 			}
-			err = config.AddHostToRootConfig(protocol, msg.spec, msg.opts)
-			result.err = err
-			if err == nil {
+			result.err = config.AddHostToRootConfig(protocol, spec, opts)
+			if result.err == nil {
 				result.configPath = root
 			}
-			return result
+
 		case modeEdit:
 			if oldAlias == "" {
 				result.err = errors.New("missing old alias")
@@ -70,15 +70,14 @@ func (m model) handleHostFormSubmit(msg formSubmittedMsg) (model, tea.Cmd) {
 				return result
 			}
 			result.configPath = configPath
-			result.err = config.UpdateHostInConfig(protocol, oldAlias, msg.spec, msg.opts)
-			return result
+			result.err = config.UpdateHostInConfig(protocol, oldAlias, spec, opts)
+
 		default:
 			result.err = errors.New("unknown form mode")
-			return result
 		}
-	}
 
-	return m, tea.Cmd(func() tea.Msg { return saveCmd() })
+		return result
+	}
 }
 
 // handleHostFormSaveResult processes the result of saving a host form.

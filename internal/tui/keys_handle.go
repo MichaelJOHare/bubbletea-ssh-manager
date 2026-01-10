@@ -64,28 +64,37 @@ func (m model) handleHostFormKeyMsg(msg tea.KeyMsg) (model, tea.Cmd) {
 	}
 
 	if key.Matches(msg, m.keys.FormSubmit) {
-		// if focused field is not a select (i.e. protocol selector)
-		if _, ok := m.ms.hostForm.GetFocusedField().(*huh.Select[config.Protocol]); !ok {
-			// and is an input, attempt to submit the form
-			if _, ok := m.ms.hostForm.GetFocusedField().(*huh.Input); ok {
-				mdl, cmd := m.ms.hostForm.Update(msg)
-				// update model's form reference
-				if f, ok := mdl.(*huh.Form); ok {
-					m.ms.hostForm = f
-				}
-				// if the form already completed/aborted, don't double-submit
-				if m.ms.hostForm.State != huh.StateNormal {
-					m.relayout()
-					return m, cmd
-				}
-				// if there are validation errors, don't submit
-				if len(m.ms.hostForm.Errors()) > 0 { // this will be changed after adding confirmation prompt
-					m.relayout()
-					return m, cmd
-				}
-				m.relayout()
-				return m, tea.Batch(cmd, m.ms.hostForm.SubmitCmd)
+		// if focused field is a select (e.g. protocol selector), let default behavior handle it
+		if _, ok := m.ms.hostForm.GetFocusedField().(*huh.Select[config.Protocol]); ok {
+			mdl, cmd := m.ms.hostForm.Update(msg)
+			if f, ok := mdl.(*huh.Form); ok {
+				m.ms.hostForm = f
 			}
+			m.relayout()
+			return m, cmd
+		}
+
+		// for input fields, attempt to submit the form
+		if _, ok := m.ms.hostForm.GetFocusedField().(*huh.Input); ok {
+			mdl, cmd := m.ms.hostForm.Update(msg)
+			if f, ok := mdl.(*huh.Form); ok {
+				m.ms.hostForm = f
+			}
+
+			// if the form already completed/aborted, don't double-submit
+			if m.ms.hostForm.State != huh.StateNormal {
+				m.relayout()
+				return m, cmd
+			}
+
+			// block submission if validation errors exist
+			if m.hasFormValidationErrors() {
+				m.relayout()
+				return m, cmd
+			}
+
+			m.relayout()
+			return m, tea.Batch(cmd, m.ms.hostForm.SubmitCmd)
 		}
 	}
 

@@ -82,7 +82,7 @@ func (m model) buildHostInfo(it *menuItem, s detailsStyles) string {
 	for _, r := range rows {
 		label := s.label.Render(fmt.Sprintf("%*s", maxLabelW, r[0]))
 		value := m.renderDetailValue(r[0], r[1], it.protocol, s)
-		b.WriteString(fmt.Sprintf("%s:  %s\n", label, value))
+		fmt.Fprintf(&b, "%s:  %s\n", label, value)
 	}
 	return b.String()
 }
@@ -115,7 +115,7 @@ func (m model) buildSSHOptions(it *menuItem, s detailsStyles) string {
 		if !ok || v == "" {
 			continue
 		}
-		b.WriteString(fmt.Sprintf("%s: %s\n", s.optionsLabel.Render(k), s.value.Render(v)))
+		fmt.Fprintf(&b, "%s: %s\n", s.optionsLabel.Render(k), s.value.Render(v))
 	}
 	return b.String()
 }

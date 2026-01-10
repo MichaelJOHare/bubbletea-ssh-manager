@@ -227,6 +227,14 @@ func buildFormStatusLines(r formStatusRenderers, d formStatusData) []string {
 	return lines
 }
 
+// hasFormValidationErrors checks if the current form has any validation errors.
+//
+// This is used to prevent form submission when there are validation errors.
+func (m model) hasFormValidationErrors() bool {
+	d := m.formStatusData()
+	return d.groupErr != nil || d.nicknameErr != nil || d.hostErr != nil || d.portErr != nil
+}
+
 // buildFormStatusPanel builds the form status panel view.
 //
 // It uses the current form data and theme to render the panel.
