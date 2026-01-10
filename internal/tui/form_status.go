@@ -11,12 +11,12 @@ import (
 )
 
 type formStatusData struct {
-	protocol  config.Protocol
-	groupName string // will add to existing group if present, else create new group
-	nickname  string // if no group, nickname is the alias and will appear at root level
-	hostname  string // hostname or IP - for telnet it's required
-	port      string // port number - for telnet it's required if not default
-	user      string // optional user name
+	protocol  config.Protocol // current protocol (ssh/telnet)
+	groupName string          // will add to existing group if present, else create new group
+	nickname  string          // if no group, nickname is the alias and will appear at root level
+	hostname  string          // hostname or IP - for telnet it's required
+	port      string          // port number - for telnet it's required if not default
+	user      string          // optional user name
 
 	existingGroups []string // existing group names
 
@@ -33,7 +33,7 @@ type formStatusRenderers struct {
 	valueError   func(...string) string // error value renderer
 	errText      func(...string) string // error text renderer
 	groupValue   func(...string) string // group name renderer
-	head         string                 // header text renderer
+	head         func(...string) string // header text renderer
 }
 
 // newFormStatusRenderers creates form status renderers based on the app theme.
@@ -45,7 +45,7 @@ func newFormStatusRenderers(theme Theme) formStatusRenderers {
 		valueError:   lipgloss.NewStyle().Foreground(theme.StatusError).Render,
 		errText:      lipgloss.NewStyle().Foreground(theme.StatusError).Render,
 		groupValue:   lipgloss.NewStyle().Foreground(theme.GroupName).Render,
-		head:         lipgloss.NewStyle().Foreground(theme.ProtocolSSH).Bold(true).Render("Current Settings"),
+		head:         lipgloss.NewStyle().Foreground(theme.ProtocolSSH).Bold(true).Render,
 	}
 }
 
@@ -198,7 +198,7 @@ func (m model) formStatusData() formStatusData {
 
 // buildFormStatusLines builds the lines for the form status panel.
 func buildFormStatusLines(r formStatusRenderers, d formStatusData) []string {
-	lines := []string{r.head, ""}
+	lines := []string{r.head("Current Settings"), ""}
 
 	lines = append(lines, r.label("Group: ")+r.formatGroupName(d.groupName, d.groupErr))
 

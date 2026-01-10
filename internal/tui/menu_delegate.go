@@ -14,7 +14,7 @@ import (
 type menuDelegate struct {
 	list.DefaultDelegate                      // embed default delegate to reuse its functionality
 	groupHints           map[*menuItem]string // optional group hints per host item
-	theme                Theme
+	theme                Theme                // app theme for coloring
 }
 
 // newMenuDelegate creates a new menuDelegate with default settings.

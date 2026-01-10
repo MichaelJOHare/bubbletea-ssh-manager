@@ -13,8 +13,10 @@ import (
 //
 //        *** Short-term ideas ***
 //
+//       fix remove host status being set right away instead of after confirmation
+//          -- to test, open remove host modal, wait ~10 seconds, then cancel - status should show for full 10 seconds
 //       maybe make E edit also global (makes editing group names a possibility)?
-//          -- actually just make E and R able to be used on groups too (maybe not, deleting groups could be messy)
+//          -- actually just make E able to be used on groups too (name only, warn it will change all child aliases)
 //       allow changing protocol in edit host form?
 //       check model_handle.go handleConnectFinishedMsg comment
 //       change color names back to actual colors in theme.go

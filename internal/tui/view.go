@@ -26,11 +26,13 @@ func (m model) viewMenu() string {
 	searchStyle := lg.Foreground(m.theme.SearchLabel).Bold(true).PaddingLeft(footerPadLeft)
 	promptStyle := lg.Foreground(m.theme.UsernamePrompt).Bold(true).PaddingLeft(footerPadLeft)
 
+	// grab the list view, focusing the active item if prompting for username
 	listView := m.lst.View()
 	if m.mode == modePromptUsername {
 		listView = m.setActiveMenuItem(listView)
 	}
 
+	// and then append status + search/prompt lines
 	lines := []string{listView}
 	if m.status != "" {
 		lines = append(lines, statusPadStyle.Render(statusTextStyle.Render(m.status)))

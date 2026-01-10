@@ -47,8 +47,7 @@ func preferredProgramPath(protocol config.Protocol) (string, error) {
 // It returns a Target for display/title, and a TailBuffer that captures the last
 // part of the command output for error reporting.
 func BuildCommand(trgt Target) (cmd *exec.Cmd, tgt Target, tail *TailBuffer, err error) {
-	// Boundary normalization: callers should already provide normalized specs
-	// (from parsed config or form submit), but normalize defensively once here.
+	// trgt should be normalized already, but normalize again to be sure
 	trgt.Spec = trgt.Spec.Normalized()
 
 	if trgt.Protocol != config.ProtocolSSH && trgt.Protocol != config.ProtocolTelnet {
