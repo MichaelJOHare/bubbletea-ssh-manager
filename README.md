@@ -72,4 +72,5 @@ __C:\msys64\msys2_shell.cmd -defterm -here -no-start -ucrt64__
 You should be able to type menu at the shell prompt to use the session manager to connect to your saved hosts. 
 You can also use the menu to add/edit/remove hosts.
 
-<img width="707" height="309" alt="Image" src="https://github.com/user-attachments/assets/c9653f11-ad14-4a8c-b381-2458a0c39b8c" />
+<img width="707" height="303" alt="Image" src="https://github.com/user-attachments/assets/016ddfe8-8287-4ee0-8255-d9cd0fb363e4" />
+<img width="707" height="305" alt="Image" src="https://github.com/user-attachments/assets/fbf5036f-020f-462d-8c04-44a048eefcd0" />
