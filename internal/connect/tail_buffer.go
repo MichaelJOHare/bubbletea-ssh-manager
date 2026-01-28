@@ -18,7 +18,7 @@ func NewTailBuffer(max int) *TailBuffer {
 	if max <= 0 {
 		max = 4096
 	}
-	return &TailBuffer{max: max}
+	return &TailBuffer{max: max, buf: make([]byte, 0, max)}
 }
 
 // Write implements io.Writer.

@@ -81,14 +81,14 @@ func (m model) buildHostInfo(it *menuItem, s detailsStyles) string {
 	var b strings.Builder
 	for _, r := range rows {
 		label := s.label.Render(fmt.Sprintf("%*s", maxLabelW, r[0]))
-		value := m.renderDetailValue(r[0], r[1], it.protocol, s)
+		value := m.renderInfoValue(r[0], r[1], it.protocol, s)
 		fmt.Fprintf(&b, "%s:  %s\n", label, value)
 	}
 	return b.String()
 }
 
-// renderDetailValue renders a value with appropriate styling based on field name.
-func (m model) renderDetailValue(field, value string, proto config.Protocol, s detailsStyles) string {
+// renderInfoValue renders a value with appropriate styling based on field name.
+func (m model) renderInfoValue(field, value string, proto config.Protocol, s detailsStyles) string {
 	if field == "Protocol" {
 		if proto == config.ProtocolTelnet {
 			return s.protoTelnet.Render(value)

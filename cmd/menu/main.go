@@ -12,6 +12,10 @@ import (
 // TODO:
 //
 //        *** Short-term ideas ***
+//       reproduce bug where after logging out of SMG openvms app, sometimes the menu doesn't redraw properly
+//          -- ie. the list keeps shifting up on a ~1 second interval
+//             -- remember it happening with Console Manager when it was showing BYTLLM errors
+//       write down other successful exit status that is sometimes returned when logging out of openvms
 //
 //       fix remove host status being set right away instead of after confirmation
 //          -- to test, open remove host modal, wait ~10 seconds, then cancel - status should show for full 10 seconds
@@ -44,7 +48,6 @@ import (
 //       add icon for executable
 //       add config file for environment settings (eg. default user, default port, paths, etc.)
 //       fix silent errors in parser.go
-//       change model pointer receiver methods to value receivers where possible
 //       move relayout calls to a better place (not after every modal open/close) - maybe in update loop after handling msg?
 //       look into context.Context for managing preflight timeouts/cancellations
 //          - move everything else to internal (eg. internal/tui/model.go, internal/tui/keys(views, forms), etc.)
